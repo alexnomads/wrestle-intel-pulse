@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         real_name: wrestler.real_name,
         promotion_id: promotionData.id,
         status: wrestler.status,
-        brand: wrestler.brand,
+        brand: wrestler.brand || promotion, // Ensure brand is set to promotion if not specified
         division: wrestler.division,
         height: wrestler.height,
         weight: wrestler.weight,
@@ -81,9 +81,13 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       };
 
-      await supabaseClient
+      const { error: insertError } = await supabaseClient
         .from('wrestlers')
         .insert(wrestlerData);
+
+      if (insertError) {
+        console.error('Error inserting wrestler:', wrestler.name, insertError);
+      }
     }
 
     return new Response(

@@ -44,12 +44,14 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
 
   const filteredWrestlers = getFilteredWrestlers();
 
-  // Separate champions and regular wrestlers
-  const champions = filteredWrestlers.filter(wrestler => wrestler.is_champion);
-  const regularWrestlers = filteredWrestlers.filter(wrestler => !wrestler.is_champion);
+  // Separate champions and regular wrestlers - champions are those with is_champion = true
+  const champions = filteredWrestlers.filter(wrestler => wrestler.is_champion === true);
+  const regularWrestlers = filteredWrestlers.filter(wrestler => wrestler.is_champion !== true);
 
   // Sort champions first, then regular wrestlers
   const sortedWrestlers = [...champions, ...regularWrestlers];
+
+  console.log(`${activePromotion} - Total wrestlers: ${filteredWrestlers.length}, Champions: ${champions.length}, Regular: ${regularWrestlers.length}`);
 
   return (
     <div className="space-y-6">
