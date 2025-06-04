@@ -5,6 +5,7 @@ import { SearchBar } from "./SearchBar";
 import { WrestlerCard } from "./WrestlerCard";
 import { TrendingSection } from "./TrendingSection";
 import { NewsFeed } from "./NewsFeed";
+import { RedditFeed } from "./RedditFeed";
 import { AnalyticsOverview } from "./AnalyticsOverview";
 
 export const Dashboard = () => {
@@ -35,7 +36,7 @@ export const Dashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Wrestler Cards */}
+          {/* Left Column - Wrestler Cards and Trending */}
           <div className="lg:col-span-2 space-y-6">
             <TrendingSection />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -78,9 +79,10 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Right Column - News Feed */}
+          {/* Right Column - News and Reddit Feeds */}
           <div className="space-y-6">
             <NewsFeed />
+            <RedditFeed />
           </div>
         </div>
       </main>

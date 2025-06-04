@@ -1,16 +1,15 @@
 
-import { Clock, ExternalLink, Heart, MessageCircle, Share, RefreshCw } from "lucide-react";
+import { MessageSquare, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRSSFeeds } from "@/hooks/useWrestlingData";
+import { useRedditPosts } from "@/hooks/useWrestlingData";
 
-export const NewsFeed = () => {
-  const { data: newsItems, isLoading, error, refetch } = useRSSFeeds();
+export const RedditFeed = () => {
+  const { data: redditPosts, isLoading, error, refetch } = useRedditPosts();
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Math.floor(Date.now() / 1000);
+    const diffInHours = Math.floor((now - timestamp) / 3600);
     
     if (diffInHours < 1) return "Less than 1h ago";
     if (diffInHours < 24) return `${diffInHours}h ago`;
@@ -23,8 +22,8 @@ export const NewsFeed = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Clock className="h-5 w-5 text-wrestling-electric" />
-            <span>Latest Wrestling News</span>
+            <MessageSquare className="h-5 w-5 text-orange-500" />
+            <span>r/SquaredCircle</span>
           </div>
           <Button 
             variant="ghost" 
@@ -39,55 +38,53 @@ export const NewsFeed = () => {
       <CardContent className="space-y-4">
         {isLoading && (
           <div className="text-center text-muted-foreground">
-            Loading wrestling news...
+            Loading Reddit posts...
           </div>
         )}
         
         {error && (
           <div className="text-center text-red-400">
-            Error loading news. Please try again.
+            Error loading Reddit posts. Please try again.
           </div>
         )}
         
-        {newsItems && newsItems.length > 0 ? (
-          newsItems.slice(0, 5).map((item, index) => (
-            <div key={item.guid || index} className="p-4 bg-secondary/20 rounded-lg space-y-3 hover:bg-secondary/30 transition-colors">
+        {redditPosts && redditPosts.length > 0 ? (
+          redditPosts.slice(0, 5).map((post, index) => (
+            <div key={post.url + index} className="p-4 bg-secondary/20 rounded-lg space-y-3 hover:bg-secondary/30 transition-colors">
               <div className="flex items-start justify-between">
-                <h4 className="font-medium text-foreground leading-tight">{item.title}</h4>
+                <h4 className="font-medium text-foreground leading-tight">{post.title}</h4>
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   className="text-muted-foreground hover:text-foreground"
-                  onClick={() => window.open(item.link, '_blank')}
+                  onClick={() => window.open(`https://reddit.com${post.url}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
               </div>
               
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {item.contentSnippet.substring(0, 150)}...
-              </p>
+              {post.selftext && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {post.selftext.substring(0, 150)}...
+                </p>
+              )}
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center space-x-2">
-                  <span>{item.source}</span>
+                  <span>u/{post.author}</span>
                   <span>•</span>
-                  <span>{formatTimeAgo(item.pubDate)}</span>
+                  <span>{formatTimeAgo(post.created_utc)}</span>
                 </div>
               </div>
               
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
-                  <Heart className="h-4 w-4" />
-                  <span>--</span>
+                  <ArrowUp className="h-4 w-4" />
+                  <span>{post.score}</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>--</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Share className="h-4 w-4" />
-                  <span>--</span>
+                  <MessageSquare className="h-4 w-4" />
+                  <span>{post.num_comments}</span>
                 </div>
               </div>
             </div>
@@ -95,7 +92,7 @@ export const NewsFeed = () => {
         ) : (
           !isLoading && (
             <div className="text-center text-muted-foreground">
-              No news items available
+              No Reddit posts available
             </div>
           )
         )}
