@@ -99,6 +99,7 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
                         trending="stable"
                         image={wrestler.image_url || undefined}
                         championships={wrestler.is_champion ? ["Champion"] : []}
+                        championshipTitle={wrestler.championship_title}
                         mentionSources={{ news: 0, reddit: 0 }}
                       />
                     ))}
@@ -124,6 +125,7 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
                         trending="stable"
                         image={wrestler.image_url || undefined}
                         championships={wrestler.is_champion ? ["Champion"] : []}
+                        championshipTitle={wrestler.championship_title}
                         mentionSources={{ news: 0, reddit: 0 }}
                       />
                     ))}

@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         image_url: wrestler.image_url,
         profile_url: wrestler.profile_url,
         is_champion: wrestler.is_champion || false,
+        championship_title: wrestler.championship_title,
         last_scraped_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

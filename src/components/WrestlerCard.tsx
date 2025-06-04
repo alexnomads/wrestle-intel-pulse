@@ -13,6 +13,7 @@ interface WrestlerCardProps {
   trending: "up" | "down" | "stable";
   image: string;
   championships?: string[];
+  championshipTitle?: string;
   mentionSources?: { news: number; reddit: number; };
 }
 
@@ -25,6 +26,7 @@ export const WrestlerCard = ({
   trending,
   image,
   championships = [],
+  championshipTitle,
   mentionSources = { news: 0, reddit: 0 }
 }: WrestlerCardProps) => {
   const getTrendingIcon = () => {
@@ -55,7 +57,7 @@ export const WrestlerCard = ({
     }
   };
 
-  const isChampion = championships.length > 0;
+  const isChampion = championships.length > 0 || championshipTitle;
   const isInjured = status.toLowerCase() === "injured";
 
   return (
@@ -74,7 +76,7 @@ export const WrestlerCard = ({
               <p className="text-sm text-muted-foreground">{promotion}</p>
               {isChampion && (
                 <p className="text-xs text-wrestling-gold font-medium">
-                  {championships[0]}
+                  {championshipTitle || championships[0]}
                 </p>
               )}
             </div>
