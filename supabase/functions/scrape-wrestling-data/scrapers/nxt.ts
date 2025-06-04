@@ -10,13 +10,13 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
     // Current NXT roster based on December 2024 Wikipedia
     const nxtWrestlers = [
       // Current Champions (based on December 2024 Wikipedia champion listings)
-      { name: "Trick Williams", real_name: "Matrick Williams", status: "Active", brand: "NXT", division: "men", hometown: "Columbia, South Carolina", finisher: "Trick Shot", is_champion: true, championship_title: "NXT Champion" },
-      { name: "Roxanne Perez", real_name: "Carla Gonzalez", status: "Active", brand: "NXT", division: "women", hometown: "San Antonio, Texas", finisher: "Pop Rox", is_champion: true, championship_title: "NXT Women's Champion" },
-      { name: "Oba Femi", real_name: "Obaloluwa Femi", status: "Active", brand: "NXT", division: "men", hometown: "Lagos, Nigeria", finisher: "Fall From Grace", is_champion: true, championship_title: "NXT North American Champion" },
-      { name: "Nathan Frazer", real_name: "Ben Carter", status: "Active", brand: "NXT", division: "men", hometown: "Blackpool, England", finisher: "Phoenix Splash", is_champion: true, championship_title: "NXT Tag Team Champion" },
-      { name: "Axiom", real_name: "A-Kid", status: "Active", brand: "NXT", division: "men", hometown: "Madrid, Spain", finisher: "Golden Ratio", is_champion: true, championship_title: "NXT Tag Team Champion" },
-      { name: "Fallon Henley", real_name: "Fallon Henley", status: "Active", brand: "NXT", division: "women", hometown: "Tennessee", finisher: "Henley Bottom", is_champion: true, championship_title: "NXT Women's Tag Team Champion" },
-      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop", is_champion: true, championship_title: "NXT Women's Tag Team Champion" },
+      { name: "Trick Williams", real_name: "Matrick Williams", status: "Active", brand: "NXT", division: "men", hometown: "Columbia, South Carolina", finisher: "Trick Shot", is_champion: true, championship_title: "NXT Championship" },
+      { name: "Roxanne Perez", real_name: "Carla Gonzalez", status: "Active", brand: "NXT", division: "women", hometown: "San Antonio, Texas", finisher: "Pop Rox", is_champion: true, championship_title: "NXT Women's Championship" },
+      { name: "Oba Femi", real_name: "Obaloluwa Femi", status: "Active", brand: "NXT", division: "men", hometown: "Lagos, Nigeria", finisher: "Fall From Grace", is_champion: true, championship_title: "NXT North American Championship" },
+      { name: "Nathan Frazer", real_name: "Ben Carter", status: "Active", brand: "NXT", division: "men", hometown: "Blackpool, England", finisher: "Phoenix Splash", is_champion: true, championship_title: "NXT Tag Team Championship" },
+      { name: "Axiom", real_name: "A-Kid", status: "Active", brand: "NXT", division: "men", hometown: "Madrid, Spain", finisher: "Golden Ratio", is_champion: true, championship_title: "NXT Tag Team Championship" },
+      { name: "Fallon Henley", real_name: "Fallon Henley", status: "Active", brand: "NXT", division: "women", hometown: "Tennessee", finisher: "Henley Bottom", is_champion: true, championship_title: "NXT Women's Tag Team Championship" },
+      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop", is_champion: true, championship_title: "NXT Women's Tag Team Championship" },
       
       // Active Roster Men
       { name: "Ethan Page", real_name: "Julian Micevski", status: "Active", brand: "NXT", division: "men", hometown: "Hamilton, Ontario", finisher: "Ego's Edge" },

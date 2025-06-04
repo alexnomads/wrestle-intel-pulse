@@ -132,6 +132,7 @@ export type Database = {
       wrestlers: {
         Row: {
           brand: string | null
+          championship_title: string | null
           created_at: string
           debut_date: string | null
           division: string | null
@@ -152,6 +153,7 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          championship_title?: string | null
           created_at?: string
           debut_date?: string | null
           division?: string | null
@@ -172,6 +174,7 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          championship_title?: string | null
           created_at?: string
           debut_date?: string | null
           division?: string | null
