@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WrestlerCard } from "./WrestlerCard";
 import { useWrestlersByPromotion, useWrestlerSearch } from "@/hooks/useSupabaseWrestlers";
+import { Crown } from "lucide-react";
 
 interface RosterTabsProps {
   searchQuery: string;
@@ -22,15 +23,15 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
   const { data: searchResults = [] } = useWrestlerSearch(searchQuery);
   const { data: promotionWrestlers = [] } = useWrestlersByPromotion(activePromotion);
 
-  // Filter wrestlers properly - only show wrestlers that belong to the current promotion AND are Active
+  // Filter wrestlers properly - only show wrestlers that belong to the current promotion
   const getFilteredWrestlers = () => {
     let wrestlers = searchQuery.trim() ? searchResults : promotionWrestlers;
     
-    // Filter by promotion and active status
+    // Filter by promotion and status (Active or Injured)
     wrestlers = wrestlers.filter(wrestler => {
       const belongsToPromotion = wrestler.promotions?.name === activePromotion;
-      const isActive = wrestler.status?.toLowerCase() === 'active';
-      return belongsToPromotion && isActive;
+      const isActiveOrInjured = wrestler.status?.toLowerCase() === 'active' || wrestler.status?.toLowerCase() === 'injured';
+      return belongsToPromotion && isActiveOrInjured;
     });
 
     // Remove duplicates based on wrestler name
@@ -42,6 +43,13 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
   };
 
   const filteredWrestlers = getFilteredWrestlers();
+
+  // Separate champions and regular wrestlers
+  const champions = filteredWrestlers.filter(wrestler => wrestler.is_champion);
+  const regularWrestlers = filteredWrestlers.filter(wrestler => !wrestler.is_champion);
+
+  // Sort champions first, then regular wrestlers
+  const sortedWrestlers = [...champions, ...regularWrestlers];
 
   return (
     <div className="space-y-6">
@@ -60,33 +68,72 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-foreground">
-                  {promotion.name} Active Roster
+                  {promotion.name} Roster
                 </h3>
                 <div className="text-sm text-muted-foreground">
-                  {filteredWrestlers.length} active wrestler{filteredWrestlers.length !== 1 ? 's' : ''}
+                  {sortedWrestlers.length} wrestler{sortedWrestlers.length !== 1 ? 's' : ''}
+                  {champions.length > 0 && (
+                    <span className="ml-2 text-wrestling-gold">
+                      • {champions.length} champion{champions.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {filteredWrestlers.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredWrestlers.map((wrestler) => (
-                    <WrestlerCard
-                      key={`${wrestler.id}-${wrestler.name}`}
-                      name={wrestler.name}
-                      promotion={wrestler.promotions?.name || promotion.name}
-                      status={wrestler.status}
-                      sentiment="--"
-                      mentions="--"
-                      trending="stable"
-                      image={wrestler.image_url || undefined}
-                      championships={wrestler.is_champion ? ["Champion"] : []}
-                      mentionSources={{ news: 0, reddit: 0 }}
-                    />
-                  ))}
+              {/* Champions Section */}
+              {champions.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Crown className="h-5 w-5 text-wrestling-gold" />
+                    <h4 className="text-lg font-semibold text-wrestling-gold">Current Champions</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {champions.map((wrestler) => (
+                      <WrestlerCard
+                        key={`champion-${wrestler.id}-${wrestler.name}`}
+                        name={wrestler.name}
+                        promotion={wrestler.promotions?.name || promotion.name}
+                        status={wrestler.status}
+                        sentiment="--"
+                        mentions="--"
+                        trending="stable"
+                        image={wrestler.image_url || undefined}
+                        championships={wrestler.is_champion ? ["Champion"] : []}
+                        mentionSources={{ news: 0, reddit: 0 }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              ) : (
+              )}
+
+              {/* Regular Wrestlers Section */}
+              {regularWrestlers.length > 0 && (
+                <div className="space-y-4">
+                  {champions.length > 0 && (
+                    <h4 className="text-lg font-semibold text-foreground">Roster</h4>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {regularWrestlers.map((wrestler) => (
+                      <WrestlerCard
+                        key={`wrestler-${wrestler.id}-${wrestler.name}`}
+                        name={wrestler.name}
+                        promotion={wrestler.promotions?.name || promotion.name}
+                        status={wrestler.status}
+                        sentiment="--"
+                        mentions="--"
+                        trending="stable"
+                        image={wrestler.image_url || undefined}
+                        championships={wrestler.is_champion ? ["Champion"] : []}
+                        mentionSources={{ news: 0, reddit: 0 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sortedWrestlers.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                  {searchQuery ? `No active wrestlers found matching "${searchQuery}"` : "No active wrestlers found"}
+                  {searchQuery ? `No wrestlers found matching "${searchQuery}"` : "No wrestlers found"}
                 </div>
               )}
             </div>

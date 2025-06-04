@@ -56,20 +56,21 @@ export const WrestlerCard = ({
   };
 
   const isChampion = championships.length > 0;
+  const isInjured = status.toLowerCase() === "injured";
 
   return (
-    <Card className="glass-card hover-scale group overflow-hidden">
+    <Card className={`glass-card hover-scale group overflow-hidden ${isChampion ? 'ring-2 ring-wrestling-gold/50' : ''}`}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="relative w-12 h-12 bg-gradient-to-br from-wrestling-electric/20 to-wrestling-purple/20 rounded-full flex items-center justify-center">
-              <span className="text-lg font-bold text-primary">{name.charAt(0)}</span>
+            <div className={`relative w-12 h-12 ${isChampion ? 'bg-gradient-to-br from-wrestling-gold/30 to-yellow-600/30' : 'bg-gradient-to-br from-wrestling-electric/20 to-wrestling-purple/20'} rounded-full flex items-center justify-center`}>
+              <span className={`text-lg font-bold ${isChampion ? 'text-wrestling-gold' : 'text-primary'}`}>{name.charAt(0)}</span>
               {isChampion && (
                 <Crown className="absolute -top-1 -right-1 h-4 w-4 text-wrestling-gold" />
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-foreground text-lg">{name}</h3>
+              <h3 className={`font-semibold text-lg ${isChampion ? 'text-wrestling-gold' : 'text-foreground'}`}>{name}</h3>
               <p className="text-sm text-muted-foreground">{promotion}</p>
               {isChampion && (
                 <p className="text-xs text-wrestling-gold font-medium">
@@ -86,7 +87,9 @@ export const WrestlerCard = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Status</span>
-            <Badge className={getStatusColor()}>{status}</Badge>
+            <Badge className={getStatusColor()}>
+              {isInjured ? "Injured" : status}
+            </Badge>
           </div>
           
           <div className="flex items-center justify-between">
@@ -112,7 +115,13 @@ export const WrestlerCard = ({
         <div className="mt-4">
           <div className="w-full bg-secondary rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-green-500 to-wrestling-electric h-2 rounded-full transition-all duration-500"
+              className={`h-2 rounded-full transition-all duration-500 ${
+                isChampion 
+                  ? 'bg-gradient-to-r from-wrestling-gold to-yellow-500' 
+                  : isInjured 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600'
+                    : 'bg-gradient-to-r from-green-500 to-wrestling-electric'
+              }`}
               style={{ width: sentiment }}
             />
           </div>
