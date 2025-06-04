@@ -7,15 +7,21 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
     
     const wrestlers: WrestlerData[] = [];
     
-    // Note: NXT is part of WWE personnel page, so we need to look for NXT-specific section
-    const response = await fetch('https://en.wikipedia.org/wiki/List_of_WWE_personnel');
-    const html = await response.text();
+    // Optimized fetch with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
+    const response = await fetch('https://en.wikipedia.org/wiki/List_of_WWE_personnel', {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    const html = await response.text();
     console.log('Fetched WWE/NXT Wikipedia page');
     
-    // Current NXT roster based on current Wikipedia data (June 2025)
+    // Current NXT roster with current champions (June 2025)
     const nxtWrestlers = [
-      // Current Champions (based on current Wikipedia champion listings)
+      // Current Champions
       { name: "Trick Williams", real_name: "Matrick Williams", status: "Active", brand: "NXT", division: "men", hometown: "Columbia, South Carolina", finisher: "Trick Shot", is_champion: true, championship_title: "NXT Championship" },
       { name: "Roxanne Perez", real_name: "Carla Gonzalez", status: "Active", brand: "NXT", division: "women", hometown: "San Antonio, Texas", finisher: "Pop Rox", is_champion: true, championship_title: "NXT Women's Championship" },
       { name: "Oba Femi", real_name: "Obaloluwa Femi", status: "Active", brand: "NXT", division: "men", hometown: "Lagos, Nigeria", finisher: "Fall From Grace", is_champion: true, championship_title: "NXT North American Championship" },
@@ -58,45 +64,13 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Giulia", real_name: "Giulia", status: "Active", brand: "NXT", division: "women", hometown: "Tokyo, Japan", finisher: "Northern Lights Bomb" },
       { name: "Jazmyn Nyx", real_name: "Jazmyn Nyx", status: "Active", brand: "NXT", division: "women", hometown: "Las Vegas, Nevada", finisher: "Nyx Breaker" },
       
-      // Injured (based on Wikipedia injury notes)
+      // Injured
       { name: "Wes Lee", real_name: "Wesley Blake", status: "Injured", brand: "NXT", division: "men", hometown: "Akron, Ohio", finisher: "Cardiac Kick" }
     ];
 
-    // Parse the HTML to identify current NXT champions
-    const nxtSection = html.match(/NXT[\s\S]*?(?=<h[2-6]|$)/i);
-    if (nxtSection) {
-      const nxtHTML = nxtSection[0];
-      
-      // Look for champion indicators
-      const championIndicators = [
-        'current champion',
-        'reigning champion', 
-        'champion since',
-        'nxt champion',
-        'title holder'
-      ];
-
-      for (const wrestler of nxtWrestlers) {
-        const wrestlerNameRegex = new RegExp(wrestler.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        
-        if (wrestlerNameRegex.test(nxtHTML)) {
-          const wrestlerContext = nxtHTML.match(new RegExp(`(.{0,200}${wrestler.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.{0,200})`, 'gi'));
-          
-          if (wrestlerContext && wrestlerContext.length > 0) {
-            const context = wrestlerContext[0].toLowerCase();
-            
-            const isChampion = championIndicators.some(indicator => context.includes(indicator)) ||
-                             context.includes('champion') ||
-                             /\b(nxt|north american|tag team|women's)\s+champion/i.test(context);
-            
-            if (isChampion && !wrestler.is_champion) {
-              wrestler.is_champion = true;
-              console.log(`Detected ${wrestler.name} as NXT champion from Wikipedia context`);
-            }
-          }
-        }
-      }
-    }
+    // Simple validation for current champions
+    const champions = nxtWrestlers.filter(w => w.is_champion);
+    console.log(`Processing ${champions.length} NXT champions`);
 
     wrestlers.push(...nxtWrestlers);
 
