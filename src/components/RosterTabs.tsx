@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WrestlerCard } from "./WrestlerCard";
@@ -66,6 +65,8 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
                       mentions="--"
                       trending="stable"
                       image={wrestler.image}
+                      championships={wrestler.championships}
+                      mentionSources={{ news: 0, reddit: 0 }}
                     />
                   ))}
                 </div>

@@ -40,9 +40,9 @@ export const getAllWrestlers = (): { promotion: Promotion; wrestler: Wrestler }[
   const allWrestlers: { promotion: Promotion; wrestler: Wrestler }[] = [];
   
   Object.entries(wrestlerData).forEach(([promotion, divisions]) => {
-    Object.values(divisions).forEach((wrestlers: Wrestler[]) => {
+    Object.values(divisions).forEach((wrestlers: any[]) => {
       wrestlers.forEach(wrestler => {
-        allWrestlers.push({ promotion: promotion as Promotion, wrestler });
+        allWrestlers.push({ promotion: promotion as Promotion, wrestler: wrestler as Wrestler });
       });
     });
   });
@@ -51,7 +51,7 @@ export const getAllWrestlers = (): { promotion: Promotion; wrestler: Wrestler }[
 };
 
 export const getWrestlersByPromotion = (promotion: Promotion): Wrestler[] => {
-  const promotionData = wrestlerData[promotion];
+  const promotionData = (wrestlerData as any)[promotion];
   if (!promotionData) return [];
   
   return [...(promotionData.men || []), ...(promotionData.women || [])];
@@ -79,15 +79,21 @@ export const getActiveWrestlers = (): { promotion: Promotion; wrestler: Wrestler
 };
 
 export const getWeeklyShows = (): Event[] => {
-  return eventData.weekly;
+  return (eventData as any).weekly.map((event: any) => ({
+    ...event,
+    type: 'weekly' as const
+  }));
 };
 
 export const getSpecialEvents = (): Event[] => {
-  return eventData.special;
+  return (eventData as any).special.map((event: any) => ({
+    ...event,
+    type: event.type as 'ple' | 'ppv'
+  }));
 };
 
 export const getUpcomingEvents = (): Event[] => {
   const now = new Date();
-  const upcoming = eventData.special.filter(event => new Date(event.date!) > now);
+  const upcoming = getSpecialEvents().filter(event => new Date(event.date!) > now);
   return upcoming.sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
 };

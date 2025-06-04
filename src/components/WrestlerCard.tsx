@@ -1,5 +1,5 @@
 
-import { TrendingUp, TrendingDown, Minus, MoreVertical } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, MoreVertical, Crown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ interface WrestlerCardProps {
   mentions: string;
   trending: "up" | "down" | "stable";
   image: string;
+  championships?: string[];
+  mentionSources?: { news: number; reddit: number; };
 }
 
 export const WrestlerCard = ({
@@ -21,7 +23,9 @@ export const WrestlerCard = ({
   sentiment,
   mentions,
   trending,
-  image
+  image,
+  championships = [],
+  mentionSources = { news: 0, reddit: 0 }
 }: WrestlerCardProps) => {
   const getTrendingIcon = () => {
     switch (trending) {
@@ -42,22 +46,36 @@ export const WrestlerCard = ({
         return "bg-wrestling-gold/20 text-wrestling-gold border-wrestling-gold/30";
       case "injured":
         return "bg-red-500/20 text-red-400 border-red-500/30";
+      case "suspended":
+        return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+      case "released":
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
       default:
         return "bg-secondary text-secondary-foreground border-border";
     }
   };
+
+  const isChampion = championships.length > 0;
 
   return (
     <Card className="glass-card hover-scale group overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-wrestling-electric/20 to-wrestling-purple/20 rounded-full flex items-center justify-center">
+            <div className="relative w-12 h-12 bg-gradient-to-br from-wrestling-electric/20 to-wrestling-purple/20 rounded-full flex items-center justify-center">
               <span className="text-lg font-bold text-primary">{name.charAt(0)}</span>
+              {isChampion && (
+                <Crown className="absolute -top-1 -right-1 h-4 w-4 text-wrestling-gold" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-foreground text-lg">{name}</h3>
               <p className="text-sm text-muted-foreground">{promotion}</p>
+              {isChampion && (
+                <p className="text-xs text-wrestling-gold font-medium">
+                  {championships[0]}
+                </p>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -81,7 +99,12 @@ export const WrestlerCard = ({
           
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Mentions (24h)</span>
-            <span className="text-sm font-medium text-foreground">{mentions}</span>
+            <div className="flex flex-col text-right">
+              <span className="text-sm font-medium text-foreground">{mentions}</span>
+              <div className="text-xs text-muted-foreground">
+                News: {mentionSources.news} | Reddit: {mentionSources.reddit}
+              </div>
+            </div>
           </div>
         </div>
 

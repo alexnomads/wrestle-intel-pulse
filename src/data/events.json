@@ -7,7 +7,7 @@
       "promotion": "WWE",
       "day": "Monday",
       "time": "8:00 PM ET",
-      "network": "USA Network",
+      "network": "Netflix",
       "nextDate": "2025-06-09",
       "type": "weekly"
     },
@@ -18,7 +18,7 @@
       "day": "Friday",
       "time": "8:00 PM ET",
       "network": "FOX",
-      "nextDate": "2025-06-13",
+      "nextDate": "2025-06-06",
       "type": "weekly"
     },
     {
@@ -48,7 +48,7 @@
       "day": "Saturday",
       "time": "8:00 PM ET",
       "network": "TNT",
-      "nextDate": "2025-06-14",
+      "nextDate": "2025-06-07",
       "type": "weekly"
     },
     {
@@ -74,7 +74,22 @@
       "matches": [
         {
           "title": "Undisputed WWE Championship",
-          "participants": ["Roman Reigns (c)", "TBD"]
+          "participants": ["Cody Rhodes (c)", "TBD"]
+        }
+      ]
+    },
+    {
+      "id": "money-in-the-bank",
+      "name": "WWE Money in the Bank",
+      "promotion": "WWE",
+      "date": "2025-07-06",
+      "location": "Allegiant Stadium, Las Vegas, NV",
+      "type": "ple",
+      "network": "Peacock/WWE Network",
+      "matches": [
+        {
+          "title": "Men's Money in the Bank Ladder Match",
+          "participants": ["TBD", "TBD", "TBD", "TBD", "TBD", "TBD"]
         }
       ]
     },
@@ -90,6 +105,21 @@
         {
           "title": "AEW World Championship",
           "participants": ["Jon Moxley (c)", "TBD"]
+        }
+      ]
+    },
+    {
+      "id": "all-out",
+      "name": "AEW All Out",
+      "promotion": "AEW",
+      "date": "2025-09-07",
+      "location": "NOW Arena, Chicago, IL",
+      "type": "ppv",
+      "network": "Bleacher Report",
+      "matches": [
+        {
+          "title": "AEW World Championship",
+          "participants": ["TBD", "TBD"]
         }
       ]
     },

@@ -14,11 +14,37 @@ export const EventCalendar = () => {
     const diffTime = eventDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return "Today";
+    if (diffDays <= 0) return "Today or Past";
     if (diffDays === 1) return "Tomorrow";
     if (diffDays < 7) return `${diffDays} days`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks`;
     return `${Math.ceil(diffDays / 30)} months`;
+  };
+
+  const getNextShowDate = (day: string) => {
+    const today = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetDay = dayNames.indexOf(day);
+    const currentDay = today.getDay();
+    
+    let daysUntil = targetDay - currentDay;
+    if (daysUntil <= 0) daysUntil += 7;
+    
+    const nextShow = new Date(today);
+    nextShow.setDate(today.getDate() + daysUntil);
+    return nextShow.toISOString().split('T')[0];
+  };
+
+  const convertTime = (timeET: string) => {
+    const etHour = parseInt(timeET.split(':')[0]);
+    const ptHour = etHour - 3;
+    const cestHour = etHour + 6;
+    
+    return {
+      et: timeET,
+      pt: `${ptHour < 0 ? ptHour + 12 : ptHour > 12 ? ptHour - 12 : ptHour}:00 PM PT`,
+      cest: `${cestHour > 24 ? cestHour - 24 : cestHour}:00 CEST`
+    };
   };
 
   const getPromotionColor = (promotion: string) => {
@@ -42,34 +68,42 @@ export const EventCalendar = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {weeklyShows.map((show) => (
-            <div key={show.id} className="p-4 bg-secondary/20 rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${getPromotionColor(show.promotion)}`} />
-                  <h4 className="font-semibold text-foreground">{show.name}</h4>
+          {weeklyShows.map((show) => {
+            const nextShowDate = show.nextDate || getNextShowDate(show.day!);
+            const timeZones = convertTime(show.time!);
+            
+            return (
+              <div key={show.id} className="p-4 bg-secondary/20 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${getPromotionColor(show.promotion)}`} />
+                    <h4 className="font-semibold text-foreground">{show.name}</h4>
+                  </div>
+                  <Badge variant="outline">{show.promotion}</Badge>
                 </div>
-                <Badge variant="outline">{show.promotion}</Badge>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{show.day}s at {show.time}</span>
+                
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span>{show.day}s</span>
+                      <span className="text-xs">
+                        {timeZones.et} | {timeZones.pt} | {timeZones.cest}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Tv className="h-4 w-4" />
+                    <span>{show.network}</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Tv className="h-4 w-4" />
-                  <span>{show.network}</span>
-                </div>
-              </div>
-              
-              {show.nextDate && (
+                
                 <div className="text-sm text-wrestling-electric font-medium">
-                  Next: {formatTimeUntil(show.nextDate)}
+                  Next: {formatTimeUntil(nextShowDate)} ({new Date(nextShowDate).toLocaleDateString()})
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
