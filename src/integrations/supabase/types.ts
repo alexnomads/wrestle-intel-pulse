@@ -84,51 +84,6 @@ export type Database = {
         }
         Relationships: []
       }
-      wrestler_championships: {
-        Row: {
-          championship_id: string | null
-          created_at: string
-          id: string
-          is_current: boolean | null
-          lost_date: string | null
-          won_date: string | null
-          wrestler_id: string | null
-        }
-        Insert: {
-          championship_id?: string | null
-          created_at?: string
-          id?: string
-          is_current?: boolean | null
-          lost_date?: string | null
-          won_date?: string | null
-          wrestler_id?: string | null
-        }
-        Update: {
-          championship_id?: string | null
-          created_at?: string
-          id?: string
-          is_current?: boolean | null
-          lost_date?: string | null
-          won_date?: string | null
-          wrestler_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wrestler_championships_championship_id_fkey"
-            columns: ["championship_id"]
-            isOneToOne: false
-            referencedRelation: "championships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wrestler_championships_wrestler_id_fkey"
-            columns: ["wrestler_id"]
-            isOneToOne: false
-            referencedRelation: "wrestlers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       wrestlers: {
         Row: {
           brand: string | null
