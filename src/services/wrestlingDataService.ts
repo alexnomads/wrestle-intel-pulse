@@ -1,12 +1,4 @@
 
-import Parser from 'rss-parser';
-
-const parser = new Parser({
-  customFields: {
-    item: ['content:encoded', 'contentSnippet']
-  }
-});
-
 export interface NewsItem {
   title: string;
   link: string;
@@ -33,6 +25,32 @@ const RSS_FEEDS = [
   { url: 'https://www.fightful.com/wrestling/feed', source: 'Fightful' },
 ];
 
+const parseRSSFeed = (xmlString: string): any[] => {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+  
+  const items = xmlDoc.querySelectorAll('item');
+  const parsedItems: any[] = [];
+  
+  items.forEach(item => {
+    const title = item.querySelector('title')?.textContent || '';
+    const link = item.querySelector('link')?.textContent || '';
+    const pubDate = item.querySelector('pubDate')?.textContent || '';
+    const description = item.querySelector('description')?.textContent || '';
+    const guid = item.querySelector('guid')?.textContent || link;
+    
+    parsedItems.push({
+      title: title.trim(),
+      link: link.trim(),
+      pubDate: pubDate.trim(),
+      contentSnippet: description.replace(/<[^>]*>/g, '').trim(),
+      guid: guid.trim()
+    });
+  });
+  
+  return parsedItems;
+};
+
 export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
   const allNews: NewsItem[] = [];
   
@@ -43,13 +61,13 @@ export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
       const response = await fetch(corsProxy);
       const data = await response.json();
       
-      const parsedFeed = await parser.parseString(data.contents);
+      const parsedItems = parseRSSFeed(data.contents);
       
-      const newsItems: NewsItem[] = parsedFeed.items.slice(0, 5).map(item => ({
+      const newsItems: NewsItem[] = parsedItems.slice(0, 5).map(item => ({
         title: item.title || '',
         link: item.link || '',
         pubDate: item.pubDate || '',
-        contentSnippet: item.contentSnippet || item.content || '',
+        contentSnippet: item.contentSnippet || '',
         source: feed.source,
         guid: item.guid || item.link || ''
       }));
