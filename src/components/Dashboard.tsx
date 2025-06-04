@@ -28,8 +28,7 @@ export const Dashboard = () => {
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Hero Section */}
         <div className="text-center space-y-4 py-12">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-wrestling-electric via-wrestling-gold to-wrestling-purple bg-clip-text text-transparent glow-text">The Ultimate Pro Wrestling
-Intelligence Platform </h1>
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-wrestling-electric via-wrestling-gold to-wrestling-purple bg-clip-text text-transparent glow-text">The Ultimate Pro Wrestling Intelligence Platform </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto"> Track wrestlers, storylines, and industry narratives with AI-powered insights</p>
         </div>
 
