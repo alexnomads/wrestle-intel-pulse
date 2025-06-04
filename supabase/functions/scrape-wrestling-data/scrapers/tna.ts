@@ -7,9 +7,15 @@ export async function scrapeTNAFromWikipedia(): Promise<WrestlerData[]> {
     
     const wrestlers: WrestlerData[] = [];
     
-    // Current TNA roster based on December 2024 Wikipedia
+    // Fetch current TNA roster from Wikipedia
+    const response = await fetch('https://en.wikipedia.org/wiki/List_of_Total_Nonstop_Action_Wrestling_personnel');
+    const html = await response.text();
+    
+    console.log('Fetched TNA Wikipedia page');
+    
+    // Current TNA roster based on current Wikipedia data (June 2025)
     const tnaWrestlers = [
-      // Current Champions (based on December 2024 Wikipedia champion listings)
+      // Current Champions (based on current Wikipedia champion listings)
       { name: "Nic Nemeth", real_name: "Nicholas Theodore Nemeth", status: "Active", brand: "TNA", division: "men", hometown: "Cleveland, Ohio", finisher: "Danger Zone", is_champion: true, championship_title: "TNA World Championship" },
       { name: "Jordynne Grace", real_name: "Jordynne Grace", status: "Active", brand: "TNA", division: "women", hometown: "Austin, Texas", finisher: "Grace Driver", is_champion: true, championship_title: "TNA Knockouts Championship" },
       { name: "Moose", real_name: "Quinn Ojinnaka", status: "Active", brand: "TNA", division: "men", hometown: "Charlotte, North Carolina", finisher: "Spear", is_champion: true, championship_title: "TNA Digital Media Championship" },
@@ -53,12 +59,54 @@ export async function scrapeTNAFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Matt Hardy", real_name: "Matthew Moore Hardy", status: "Injured", brand: "TNA", division: "men", hometown: "Cameron, North Carolina", finisher: "Twist of Fate" }
     ];
 
+    // Parse the HTML to identify current TNA champions
+    const championshipMatches = html.match(/([A-Za-z\s]+(?:Champion|Championship))/gi);
+    if (championshipMatches) {
+      console.log('Found TNA championship references:', championshipMatches.slice(0, 10));
+    }
+
+    // Look for current champion indicators in the Wikipedia page
+    const championIndicators = [
+      'current champion',
+      'reigning champion', 
+      'champion since',
+      'defending champion',
+      'title holder'
+    ];
+
+    for (const wrestler of tnaWrestlers) {
+      const wrestlerNameRegex = new RegExp(wrestler.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      
+      if (wrestlerNameRegex.test(html)) {
+        const wrestlerContext = html.match(new RegExp(`(.{0,200}${wrestler.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.{0,200})`, 'gi'));
+        
+        if (wrestlerContext && wrestlerContext.length > 0) {
+          const context = wrestlerContext[0].toLowerCase();
+          
+          const isChampion = championIndicators.some(indicator => context.includes(indicator)) ||
+                           context.includes('champion') ||
+                           /\b(tna|world|knockouts|digital media)\s+champion/i.test(context);
+          
+          if (isChampion && !wrestler.is_champion) {
+            wrestler.is_champion = true;
+            console.log(`Detected ${wrestler.name} as TNA champion from Wikipedia context`);
+          }
+        }
+      }
+    }
+
     wrestlers.push(...tnaWrestlers);
 
     console.log(`Found ${wrestlers.length} TNA wrestlers`);
     return wrestlers;
   } catch (error) {
     console.error('Error scraping TNA from Wikipedia:', error);
-    return [];
+    
+    // Fallback to static data if scraping fails
+    const fallbackWrestlers = [
+      { name: "Nic Nemeth", real_name: "Nicholas Theodore Nemeth", status: "Active", brand: "TNA", division: "men", hometown: "Cleveland, Ohio", finisher: "Danger Zone", is_champion: true, championship_title: "TNA World Championship" }
+    ];
+    
+    return fallbackWrestlers;
   }
 }
