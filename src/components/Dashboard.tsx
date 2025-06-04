@@ -9,6 +9,10 @@ import { RosterTabs } from "./RosterTabs";
 import { EventCalendar } from "./EventCalendar";
 import { SearchBar } from "./SearchBar";
 import { DataManagement } from "./DataManagement";
+import { WrestlerIntelligenceDashboard } from "./WrestlerIntelligenceDashboard";
+import { StorylineTracker } from "./StorylineTracker";
+import { IndustryAnalytics } from "./IndustryAnalytics";
+import { SmartSearchEngine } from "./SmartSearchEngine";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -33,8 +37,11 @@ const Dashboard = () => {
 
         {activeTab === 'rosters' && <RosterTabs searchQuery={searchQuery} />}
         {activeTab === 'events' && <EventCalendar />}
-        {activeTab === 'search' && <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+        {activeTab === 'search' && <SmartSearchEngine />}
         {activeTab === 'data' && <DataManagement />}
+        {activeTab === 'wrestler-intelligence' && <WrestlerIntelligenceDashboard />}
+        {activeTab === 'storyline-tracker' && <StorylineTracker />}
+        {activeTab === 'industry-analytics' && <IndustryAnalytics />}
       </main>
     </div>
   );

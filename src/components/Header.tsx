@@ -1,4 +1,6 @@
-import { BarChart3, Users, Calendar, Search, Database } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Users, Calendar, Search, Database, Activity, TrendingUp, BarChart3, Zap } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
@@ -6,38 +8,48 @@ interface HeaderProps {
 }
 
 export const Header = ({ activeTab, onTabChange }: HeaderProps) => {
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'wrestler-intelligence', label: 'Wrestler Intel', icon: Users },
+    { id: 'storyline-tracker', label: 'Storylines', icon: Activity },
+    { id: 'industry-analytics', label: 'Industry', icon: TrendingUp },
+    { id: 'rosters', label: 'Rosters', icon: Users },
+    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'search', label: 'Search', icon: Search },
+    { id: 'data', label: 'Data', icon: Database },
+  ];
+
   return (
-    <header className="bg-secondary border-b border-border h-16 flex items-center justify-between px-6">
-      <div className="font-bold text-xl">Wrestling Stats</div>
-
-      <nav className="hidden md:flex items-center space-x-6">
-        {[
-          { id: 'overview', label: 'Overview', icon: BarChart3 },
-          { id: 'rosters', label: 'Rosters', icon: Users },
-          { id: 'events', label: 'Events', icon: Calendar },
-          { id: 'search', label: 'Search', icon: Search },
-          { id: 'data', label: 'Data', icon: Database },
-        ].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-              activeTab === item.id
-                ? 'bg-wrestling-electric text-black'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-            }`}
-          >
-            <item.icon className="h-4 w-4" />
-            <span className="font-medium">{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div className="md:hidden">
-        {/* Mobile Menu (Example) */}
-        <button className="text-muted-foreground hover:text-foreground">
-          Menu
-        </button>
+    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Zap className="h-8 w-8 text-wrestling-electric" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-wrestling-electric to-wrestling-purple bg-clip-text text-transparent">
+                Wrestling Intelligence
+              </h1>
+            </div>
+          </div>
+          
+          <nav className="flex items-center space-x-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Button
+                  key={tab.id}
+                  variant={activeTab === tab.id ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => onTabChange(tab.id)}
+                  className="flex items-center space-x-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden md:inline">{tab.label}</span>
+                </Button>
+              );
+            })}
+          </nav>
+        </div>
       </div>
     </header>
   );
