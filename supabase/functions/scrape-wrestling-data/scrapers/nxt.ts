@@ -16,7 +16,7 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Nathan Frazer", real_name: "Ben Carter", status: "Active", brand: "NXT", division: "men", hometown: "Blackpool, England", finisher: "Phoenix Splash", is_champion: true, championship_title: "NXT Tag Team Champion" },
       { name: "Axiom", real_name: "A-Kid", status: "Active", brand: "NXT", division: "men", hometown: "Madrid, Spain", finisher: "Golden Ratio", is_champion: true, championship_title: "NXT Tag Team Champion" },
       { name: "Fallon Henley", real_name: "Fallon Henley", status: "Active", brand: "NXT", division: "women", hometown: "Tennessee", finisher: "Henley Bottom", is_champion: true, championship_title: "NXT Women's Tag Team Champion" },
-      { name: "Fatal Influence", real_name: "Jacy Jayne & Jazmyn Nyx", status: "Active", brand: "NXT", division: "women", hometown: "Various", finisher: "Influence", is_champion: true, championship_title: "NXT Women's Tag Team Champions" },
+      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop", is_champion: true, championship_title: "NXT Women's Tag Team Champion" },
       
       // Active Roster Men
       { name: "Ethan Page", real_name: "Julian Micevski", status: "Active", brand: "NXT", division: "men", hometown: "Hamilton, Ontario", finisher: "Ego's Edge" },
@@ -45,12 +45,12 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Jaida Parker", real_name: "Jaida Parker", status: "Active", brand: "NXT", division: "women", hometown: "Detroit, Michigan", finisher: "Hip Toss" },
       { name: "Lash Legend", real_name: "Lash Legend", status: "Active", brand: "NXT", division: "women", hometown: "Los Angeles, California", finisher: "Legend Bomb" },
       { name: "Jakara Jackson", real_name: "Jakara Jackson", status: "Active", brand: "NXT", division: "women", hometown: "Las Vegas, Nevada", finisher: "Jackson Lock" },
-      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop" },
       { name: "Gigi Dolin", real_name: "Priscilla Kelly", status: "Active", brand: "NXT", division: "women", hometown: "Massachusetts", finisher: "Gigi Bomb" },
       { name: "Kiana James", real_name: "Kiana James", status: "Active", brand: "NXT", division: "women", hometown: "Orlando, Florida", finisher: "Corporate Ladder" },
       { name: "Karmen Petrovic", real_name: "Karmen Petrovic", status: "Active", brand: "NXT", division: "women", hometown: "Belgrade, Serbia", finisher: "Petrovic Special" },
       { name: "Stephanie Vaquer", real_name: "Stephanie Vaquer", status: "Active", brand: "NXT", division: "women", hometown: "Chile", finisher: "Vaquera Lariat" },
       { name: "Giulia", real_name: "Giulia", status: "Active", brand: "NXT", division: "women", hometown: "Tokyo, Japan", finisher: "Northern Lights Bomb" },
+      { name: "Jazmyn Nyx", real_name: "Jazmyn Nyx", status: "Active", brand: "NXT", division: "women", hometown: "Las Vegas, Nevada", finisher: "Nyx Breaker" },
       
       // Injured (based on Wikipedia injury notes)
       { name: "Wes Lee", real_name: "Wesley Blake", status: "Injured", brand: "NXT", division: "men", hometown: "Akron, Ohio", finisher: "Cardiac Kick" }
