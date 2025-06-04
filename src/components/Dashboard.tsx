@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Header } from "./Header";
 import { SearchBar } from "./SearchBar";
@@ -10,6 +11,7 @@ import { EventCalendar } from "./EventCalendar";
 import { RosterTabs } from "./RosterTabs";
 import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
 import { analyzeTrendingWrestlers } from "@/services/trendingService";
+
 export const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
@@ -22,6 +24,11 @@ export const Dashboard = () => {
 
   // Get trending wrestlers based on real data
   const trendingWrestlers = analyzeTrendingWrestlers(newsItems, redditPosts);
+
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -67,7 +74,7 @@ export const Dashboard = () => {
         {activeTab === "overview" && (
           <>
             {/* Analytics Overview */}
-            <AnalyticsOverview />
+            <AnalyticsOverview onNavigate={handleNavigate} />
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

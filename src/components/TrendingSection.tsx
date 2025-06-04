@@ -1,5 +1,5 @@
 
-import { TrendingUp, Flame, Zap } from "lucide-react";
+import { TrendingUp, Flame, Zap, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
 import { generateTrendingTopics } from "@/services/trendingService";
@@ -26,6 +26,18 @@ export const TrendingSection = () => {
     }
   };
 
+  const handleTopicClick = (topic: any) => {
+    // Find the first source to open
+    if (topic.sources && topic.sources.length > 0) {
+      const firstSource = topic.sources[0];
+      if (firstSource.type === 'news' && firstSource.item.link) {
+        window.open(firstSource.item.link, '_blank');
+      } else if (firstSource.type === 'reddit' && firstSource.item.url) {
+        window.open(`https://reddit.com${firstSource.item.permalink}`, '_blank');
+      }
+    }
+  };
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -43,6 +55,7 @@ export const TrendingSection = () => {
                 <div 
                   key={topic.title} 
                   className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer group"
+                  onClick={() => handleTopicClick(topic)}
                 >
                   <div className="flex items-center space-x-3">
                     <IconComponent className={`h-4 w-4 ${getIconColor(index)}`} />
@@ -53,6 +66,7 @@ export const TrendingSection = () => {
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-muted-foreground">{topic.mentions}</span>
                     <span className="text-xs text-muted-foreground">mentions</span>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               );
