@@ -7,9 +7,9 @@ export const Header = () => {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-wrestling-electric to-wrestling-purple rounded-lg flex items-center justify-center">
-              <span className="text-background font-bold text-sm">WMG</span>
+              <span className="font-bold text-sm text-yellow-300">WMG</span>
             </div>
-            <span className="text-xl font-bold text-foreground">Wrestling Mind Games</span>
+            <span className="text-xl font-bold text-yellow-300">Wrestling Mind Games</span>
           </div>
 
           {/* Navigation */}
