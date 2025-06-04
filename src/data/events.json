@@ -1,0 +1,112 @@
+
+{
+  "weekly": [
+    {
+      "id": "raw",
+      "name": "Monday Night Raw",
+      "promotion": "WWE",
+      "day": "Monday",
+      "time": "8:00 PM ET",
+      "network": "USA Network",
+      "nextDate": "2025-06-09",
+      "type": "weekly"
+    },
+    {
+      "id": "smackdown",
+      "name": "Friday Night SmackDown",
+      "promotion": "WWE",
+      "day": "Friday",
+      "time": "8:00 PM ET",
+      "network": "FOX",
+      "nextDate": "2025-06-13",
+      "type": "weekly"
+    },
+    {
+      "id": "nxt",
+      "name": "WWE NXT",
+      "promotion": "NXT",
+      "day": "Tuesday",
+      "time": "8:00 PM ET",
+      "network": "The CW",
+      "nextDate": "2025-06-10",
+      "type": "weekly"
+    },
+    {
+      "id": "dynamite",
+      "name": "AEW Dynamite",
+      "promotion": "AEW",
+      "day": "Wednesday",
+      "time": "8:00 PM ET",
+      "network": "TBS",
+      "nextDate": "2025-06-11",
+      "type": "weekly"
+    },
+    {
+      "id": "collision",
+      "name": "AEW Collision",
+      "promotion": "AEW",
+      "day": "Saturday",
+      "time": "8:00 PM ET",
+      "network": "TNT",
+      "nextDate": "2025-06-14",
+      "type": "weekly"
+    },
+    {
+      "id": "impact",
+      "name": "TNA iMPACT!",
+      "promotion": "TNA",
+      "day": "Thursday",
+      "time": "8:00 PM ET",
+      "network": "AXS TV",
+      "nextDate": "2025-06-12",
+      "type": "weekly"
+    }
+  ],
+  "special": [
+    {
+      "id": "clash-at-the-castle",
+      "name": "WWE Clash at the Castle",
+      "promotion": "WWE",
+      "date": "2025-06-15",
+      "location": "OVO Hydro, Glasgow, Scotland",
+      "type": "ple",
+      "network": "Peacock/WWE Network",
+      "matches": [
+        {
+          "title": "Undisputed WWE Championship",
+          "participants": ["Roman Reigns (c)", "TBD"]
+        }
+      ]
+    },
+    {
+      "id": "forbidden-door",
+      "name": "AEW x NJPW Forbidden Door",
+      "promotion": "AEW",
+      "date": "2025-06-29",
+      "location": "UBS Arena, Belmont Park, NY",
+      "type": "ppv",
+      "network": "Bleacher Report",
+      "matches": [
+        {
+          "title": "AEW World Championship",
+          "participants": ["Jon Moxley (c)", "TBD"]
+        }
+      ]
+    },
+    {
+      "id": "slammiversary",
+      "name": "TNA Slammiversary",
+      "promotion": "TNA",
+      "date": "2025-07-20",
+      "location": "Cicero Stadium, Chicago, IL",
+      "type": "ppv",
+      "network": "TNA+",
+      "matches": [
+        {
+          "title": "TNA World Championship",
+          "participants": ["Moose (c)", "TBD"]
+        }
+      ]
+    }
+  ]
+}

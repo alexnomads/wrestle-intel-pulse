@@ -7,9 +7,20 @@ import { TrendingSection } from "./TrendingSection";
 import { NewsFeed } from "./NewsFeed";
 import { RedditFeed } from "./RedditFeed";
 import { AnalyticsOverview } from "./AnalyticsOverview";
+import { EventCalendar } from "./EventCalendar";
+import { RosterTabs } from "./RosterTabs";
+import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
+import { analyzeTrendingWrestlers } from "@/services/trendingService";
 
 export const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+  
+  const { data: newsItems = [] } = useRSSFeeds();
+  const { data: redditPosts = [] } = useRedditPosts();
+  
+  // Get trending wrestlers based on real data
+  const trendingWrestlers = analyzeTrendingWrestlers(newsItems, redditPosts);
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,60 +42,65 @@ export const Dashboard = () => {
           <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         </div>
 
-        {/* Analytics Overview */}
-        <AnalyticsOverview />
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Wrestler Cards and Trending */}
-          <div className="lg:col-span-2 space-y-6">
-            <TrendingSection />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <WrestlerCard 
-                name="CM Punk"
-                promotion="WWE"
-                status="Active"
-                sentiment="94%"
-                mentions="2,847"
-                trending="up"
-                image="/placeholder.svg"
-              />
-              <WrestlerCard 
-                name="Jon Moxley"
-                promotion="AEW"
-                status="Champion"
-                sentiment="87%"
-                mentions="1,932"
-                trending="stable"
-                image="/placeholder.svg"
-              />
-              <WrestlerCard 
-                name="Rhea Ripley"
-                promotion="WWE"
-                status="Injured"
-                sentiment="91%"
-                mentions="1,445"
-                trending="down"
-                image="/placeholder.svg"
-              />
-              <WrestlerCard 
-                name="Will Ospreay"
-                promotion="AEW"
-                status="Active"
-                sentiment="89%"
-                mentions="892"
-                trending="up"
-                image="/placeholder.svg"
-              />
-            </div>
-          </div>
-
-          {/* Right Column - News and Reddit Feeds */}
-          <div className="space-y-6">
-            <NewsFeed />
-            <RedditFeed />
-          </div>
+        {/* Navigation Tabs */}
+        <div className="flex justify-center space-x-4">
+          {[
+            { id: "overview", label: "Overview" },
+            { id: "rosters", label: "Rosters" },
+            { id: "events", label: "Events" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-2 rounded-full transition-colors ${
+                activeTab === tab.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {/* Tab Content */}
+        {activeTab === "overview" && (
+          <>
+            {/* Analytics Overview */}
+            <AnalyticsOverview />
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Wrestler Cards and Trending */}
+              <div className="lg:col-span-2 space-y-6">
+                <TrendingSection />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {trendingWrestlers.slice(0, 4).map((trendingWrestler) => (
+                    <WrestlerCard 
+                      key={trendingWrestler.wrestler.id}
+                      name={trendingWrestler.wrestler.name}
+                      promotion={trendingWrestler.promotion.toUpperCase()}
+                      status={trendingWrestler.wrestler.status}
+                      sentiment={`${Math.round(trendingWrestler.sentiment * 100)}%`}
+                      mentions={trendingWrestler.mentions.toString()}
+                      trending={trendingWrestler.trend}
+                      image={trendingWrestler.wrestler.image}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column - News and Reddit Feeds */}
+              <div className="space-y-6">
+                <NewsFeed />
+                <RedditFeed />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "rosters" && <RosterTabs searchQuery={searchQuery} />}
+        {activeTab === "events" && <EventCalendar />}
       </main>
     </div>
   );

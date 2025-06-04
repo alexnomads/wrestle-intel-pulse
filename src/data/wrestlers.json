@@ -1,0 +1,227 @@
+
+{
+  "wwe": {
+    "men": [
+      {
+        "id": "cm-punk",
+        "name": "CM Punk",
+        "realName": "Phil Brooks",
+        "status": "Active",
+        "championships": [],
+        "brand": "Raw",
+        "debut": "2006-06-27",
+        "height": "6'2\"",
+        "weight": "218 lbs",
+        "hometown": "Chicago, Illinois",
+        "finisher": "GTS (Go To Sleep)",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "roman-reigns",
+        "name": "Roman Reigns",
+        "realName": "Leati Joseph Anoa'i",
+        "status": "Active",
+        "championships": ["Undisputed WWE Championship"],
+        "brand": "SmackDown",
+        "debut": "2012-11-18",
+        "height": "6'3\"",
+        "weight": "265 lbs",
+        "hometown": "Pensacola, Florida",
+        "finisher": "Spear",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "seth-rollins",
+        "name": "Seth Rollins",
+        "realName": "Colby Lopez",
+        "status": "Active",
+        "championships": ["World Heavyweight Championship"],
+        "brand": "Raw",
+        "debut": "2012-11-18",
+        "height": "6'1\"",
+        "weight": "217 lbs",
+        "hometown": "Davenport, Iowa",
+        "finisher": "Stomp",
+        "image": "/placeholder.svg"
+      }
+    ],
+    "women": [
+      {
+        "id": "rhea-ripley",
+        "name": "Rhea Ripley",
+        "realName": "Demi Bennett",
+        "status": "Injured",
+        "championships": [],
+        "brand": "Raw",
+        "debut": "2017-10-18",
+        "height": "5'7\"",
+        "weight": "137 lbs",
+        "hometown": "Adelaide, Australia",
+        "finisher": "Riptide",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "bayley",
+        "name": "Bayley",
+        "realName": "Pamela Martinez",
+        "status": "Active",
+        "championships": ["WWE Women's Championship"],
+        "brand": "SmackDown",
+        "debut": "2012-07-20",
+        "height": "5'6\"",
+        "weight": "119 lbs",
+        "hometown": "San Jose, California",
+        "finisher": "Bayley-to-Belly",
+        "image": "/placeholder.svg"
+      }
+    ]
+  },
+  "aew": {
+    "men": [
+      {
+        "id": "jon-moxley",
+        "name": "Jon Moxley",
+        "realName": "Jonathan Good",
+        "status": "Active",
+        "championships": ["AEW World Championship"],
+        "debut": "2019-05-25",
+        "height": "6'4\"",
+        "weight": "234 lbs",
+        "hometown": "Cincinnati, Ohio",
+        "finisher": "Paradigm Shift",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "will-ospreay",
+        "name": "Will Ospreay",
+        "realName": "William Ospreay",
+        "status": "Active",
+        "championships": ["AEW International Championship"],
+        "debut": "2024-03-03",
+        "height": "6'0\"",
+        "weight": "202 lbs",
+        "hometown": "Essex, England",
+        "finisher": "Hidden Blade",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "kenny-omega",
+        "name": "Kenny Omega",
+        "realName": "Tyson Smith",
+        "status": "Injured",
+        "championships": [],
+        "debut": "2019-05-25",
+        "height": "6'0\"",
+        "weight": "203 lbs",
+        "hometown": "Winnipeg, Manitoba",
+        "finisher": "One Winged Angel",
+        "image": "/placeholder.svg"
+      }
+    ],
+    "women": [
+      {
+        "id": "toni-storm",
+        "name": "Toni Storm",
+        "realName": "Toni Rossall",
+        "status": "Active",
+        "championships": ["AEW Women's World Championship"],
+        "debut": "2022-03-06",
+        "height": "5'5\"",
+        "weight": "132 lbs",
+        "hometown": "Gold Coast, Australia",
+        "finisher": "Storm Zero",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "mercedes-mone",
+        "name": "Mercedes Moné",
+        "realName": "Mercedes Varnado",
+        "status": "Active",
+        "championships": ["AEW TBS Championship"],
+        "debut": "2024-03-31",
+        "height": "5'5\"",
+        "weight": "114 lbs",
+        "hometown": "Boston, Massachusetts",
+        "finisher": "Statement Maker",
+        "image": "/placeholder.svg"
+      }
+    ]
+  },
+  "nxt": {
+    "men": [
+      {
+        "id": "trick-williams",
+        "name": "Trick Williams",
+        "realName": "Matrick Belton",
+        "status": "Active",
+        "championships": ["NXT Championship"],
+        "debut": "2021-06-15",
+        "height": "6'3\"",
+        "weight": "222 lbs",
+        "hometown": "Stockbridge, Georgia",
+        "finisher": "Trick Shot",
+        "image": "/placeholder.svg"
+      }
+    ],
+    "women": [
+      {
+        "id": "roxanne-perez",
+        "name": "Roxanne Perez",
+        "realName": "Carla Gonzalez",
+        "status": "Active",
+        "championships": ["NXT Women's Championship"],
+        "debut": "2022-01-18",
+        "height": "5'3\"",
+        "weight": "108 lbs",
+        "hometown": "San Antonio, Texas",
+        "finisher": "Pop Rox",
+        "image": "/placeholder.svg"
+      }
+    ]
+  },
+  "tna": {
+    "men": [
+      {
+        "id": "moose",
+        "name": "Moose",
+        "realName": "Quinn Ojinnaka",
+        "status": "Active",
+        "championships": ["TNA World Championship"],
+        "debut": "2016-01-05",
+        "height": "6'5\"",
+        "weight": "300 lbs",
+        "hometown": "Atlanta, Georgia",
+        "finisher": "Spear",
+        "image": "/placeholder.svg"
+      },
+      {
+        "id": "nic-nemeth",
+        "name": "Nic Nemeth",
+        "realName": "Nicholas Nemeth",
+        "status": "Active",
+        "championships": [],
+        "debut": "2024-01-13",
+        "height": "6'0\"",
+        "weight": "213 lbs",
+        "hometown": "Cleveland, Ohio",
+        "finisher": "Danger Zone",
+        "image": "/placeholder.svg"
+      }
+    ],
+    "women": [
+      {
+        "id": "jordynne-grace",
+        "name": "Jordynne Grace",
+        "realName": "Jordynne Grace",
+        "status": "Active",
+        "championships": ["TNA Knockouts Championship"],
+        "debut": "2018-06-01",
+        "height": "5'3\"",
+        "weight": "140 lbs",
+        "hometown": "Austin, Texas",
+        "finisher": "Grace Driver",
+        "image": "/placeholder.svg"
+      }
+    ]
+  }
+}
