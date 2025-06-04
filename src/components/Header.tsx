@@ -1,39 +1,44 @@
-import { Search, Bell, Settings, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-export const Header = () => {
-  return <header className="border-b border-border/50 bg-card/20 backdrop-blur-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-wrestling-electric to-wrestling-purple rounded-lg flex items-center justify-center">
-              <span className="font-bold text-sm text-yellow-300">WMG</span>
-            </div>
-            <span className="text-xl font-bold text-yellow-300">Wrestling Mind Games</span>
-          </div>
+import { BarChart3, Users, Calendar, Search, Database } from "lucide-react";
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <a href="#" className="text-foreground hover:text-primary transition-colors">Dashboard</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Wrestlers</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Promotions</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Analytics</a>
-            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Trends</a>
-          </nav>
+interface HeaderProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
 
-          {/* Actions */}
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <Settings className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-              <User className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
+export const Header = ({ activeTab, onTabChange }: HeaderProps) => {
+  return (
+    <header className="bg-secondary border-b border-border h-16 flex items-center justify-between px-6">
+      <div className="font-bold text-xl">Wrestling Stats</div>
+
+      <nav className="hidden md:flex items-center space-x-6">
+        {[
+          { id: 'overview', label: 'Overview', icon: BarChart3 },
+          { id: 'rosters', label: 'Rosters', icon: Users },
+          { id: 'events', label: 'Events', icon: Calendar },
+          { id: 'search', label: 'Search', icon: Search },
+          { id: 'data', label: 'Data', icon: Database },
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onTabChange(item.id)}
+            className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+              activeTab === item.id
+                ? 'bg-wrestling-electric text-black'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <item.icon className="h-4 w-4" />
+            <span className="font-medium">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="md:hidden">
+        {/* Mobile Menu (Example) */}
+        <button className="text-muted-foreground hover:text-foreground">
+          Menu
+        </button>
       </div>
-    </header>;
+    </header>
+  );
 };

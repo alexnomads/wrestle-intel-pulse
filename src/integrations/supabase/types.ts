@@ -9,7 +9,250 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      championships: {
+        Row: {
+          created_at: string
+          current_champion_id: string | null
+          division: string | null
+          id: string
+          is_active: boolean | null
+          promotion_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_champion_id?: string | null
+          division?: string | null
+          id?: string
+          is_active?: boolean | null
+          promotion_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_champion_id?: string | null
+          division?: string | null
+          id?: string
+          is_active?: boolean | null
+          promotion_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championships_current_champion_id_fkey"
+            columns: ["current_champion_id"]
+            isOneToOne: false
+            referencedRelation: "wrestlers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championships_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          roster_url: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          roster_url?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          roster_url?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      wrestler_championships: {
+        Row: {
+          championship_id: string | null
+          created_at: string
+          id: string
+          is_current: boolean | null
+          lost_date: string | null
+          won_date: string | null
+          wrestler_id: string | null
+        }
+        Insert: {
+          championship_id?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean | null
+          lost_date?: string | null
+          won_date?: string | null
+          wrestler_id?: string | null
+        }
+        Update: {
+          championship_id?: string | null
+          created_at?: string
+          id?: string
+          is_current?: boolean | null
+          lost_date?: string | null
+          won_date?: string | null
+          wrestler_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wrestler_championships_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wrestler_championships_wrestler_id_fkey"
+            columns: ["wrestler_id"]
+            isOneToOne: false
+            referencedRelation: "wrestlers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wrestlers: {
+        Row: {
+          brand: string | null
+          created_at: string
+          debut_date: string | null
+          division: string | null
+          finisher: string | null
+          height: string | null
+          hometown: string | null
+          id: string
+          image_url: string | null
+          is_champion: boolean | null
+          last_scraped_at: string | null
+          name: string
+          profile_url: string | null
+          promotion_id: string | null
+          real_name: string | null
+          status: string
+          updated_at: string
+          weight: string | null
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          debut_date?: string | null
+          division?: string | null
+          finisher?: string | null
+          height?: string | null
+          hometown?: string | null
+          id?: string
+          image_url?: string | null
+          is_champion?: boolean | null
+          last_scraped_at?: string | null
+          name: string
+          profile_url?: string | null
+          promotion_id?: string | null
+          real_name?: string | null
+          status?: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          debut_date?: string | null
+          division?: string | null
+          finisher?: string | null
+          height?: string | null
+          hometown?: string | null
+          id?: string
+          image_url?: string | null
+          is_champion?: boolean | null
+          last_scraped_at?: string | null
+          name?: string
+          profile_url?: string | null
+          promotion_id?: string | null
+          real_name?: string | null
+          status?: string
+          updated_at?: string
+          weight?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wrestlers_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wrestling_events: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          event_date: string | null
+          event_time: string | null
+          event_type: string | null
+          id: string
+          is_recurring: boolean | null
+          location: string | null
+          name: string
+          network: string | null
+          promotion_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          name: string
+          network?: string | null
+          promotion_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          event_date?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          location?: string | null
+          name?: string
+          network?: string | null
+          promotion_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wrestling_events_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
