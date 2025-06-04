@@ -22,9 +22,26 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
   const { data: searchResults = [] } = useWrestlerSearch(searchQuery);
   const { data: promotionWrestlers = [] } = useWrestlersByPromotion(activePromotion);
 
-  const filteredWrestlers = searchQuery.trim() 
-    ? searchResults.filter(wrestler => wrestler.promotions?.name === activePromotion)
-    : promotionWrestlers;
+  // Filter wrestlers properly - only show wrestlers that belong to the current promotion AND are Active
+  const getFilteredWrestlers = () => {
+    let wrestlers = searchQuery.trim() ? searchResults : promotionWrestlers;
+    
+    // Filter by promotion and active status
+    wrestlers = wrestlers.filter(wrestler => {
+      const belongsToPromotion = wrestler.promotions?.name === activePromotion;
+      const isActive = wrestler.status?.toLowerCase() === 'active';
+      return belongsToPromotion && isActive;
+    });
+
+    // Remove duplicates based on wrestler name
+    const uniqueWrestlers = wrestlers.filter((wrestler, index, self) => 
+      index === self.findIndex(w => w.name.toLowerCase() === wrestler.name.toLowerCase())
+    );
+
+    return uniqueWrestlers;
+  };
+
+  const filteredWrestlers = getFilteredWrestlers();
 
   return (
     <div className="space-y-6">
@@ -43,10 +60,10 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-foreground">
-                  {promotion.name} Roster
+                  {promotion.name} Active Roster
                 </h3>
                 <div className="text-sm text-muted-foreground">
-                  {filteredWrestlers.length} wrestler{filteredWrestlers.length !== 1 ? 's' : ''}
+                  {filteredWrestlers.length} active wrestler{filteredWrestlers.length !== 1 ? 's' : ''}
                 </div>
               </div>
 
@@ -54,7 +71,7 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredWrestlers.map((wrestler) => (
                     <WrestlerCard
-                      key={wrestler.id}
+                      key={`${wrestler.id}-${wrestler.name}`}
                       name={wrestler.name}
                       promotion={wrestler.promotions?.name || promotion.name}
                       status={wrestler.status}
@@ -69,7 +86,7 @@ export const RosterTabs = ({ searchQuery }: RosterTabsProps) => {
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
-                  {searchQuery ? `No wrestlers found matching "${searchQuery}"` : "No wrestlers found"}
+                  {searchQuery ? `No active wrestlers found matching "${searchQuery}"` : "No active wrestlers found"}
                 </div>
               )}
             </div>
