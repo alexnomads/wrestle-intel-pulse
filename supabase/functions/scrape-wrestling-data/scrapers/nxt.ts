@@ -7,31 +7,23 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
     
     const wrestlers: WrestlerData[] = [];
     
-    // Optimized fetch with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-    
-    const response = await fetch('https://en.wikipedia.org/wiki/List_of_WWE_personnel', {
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    const html = await response.text();
-    console.log('Fetched WWE/NXT Wikipedia page');
-    
-    // Current NXT roster with current champions (June 2025)
-    const nxtWrestlers = [
-      // Current Champions
+    // Current NXT Champions as of June 2025 (based on provided images)
+    const currentChampions = [
       { name: "Trick Williams", real_name: "Matrick Williams", status: "Active", brand: "NXT", division: "men", hometown: "Columbia, South Carolina", finisher: "Trick Shot", is_champion: true, championship_title: "NXT Championship" },
-      { name: "Roxanne Perez", real_name: "Carla Gonzalez", status: "Active", brand: "NXT", division: "women", hometown: "San Antonio, Texas", finisher: "Pop Rox", is_champion: true, championship_title: "NXT Women's Championship" },
       { name: "Oba Femi", real_name: "Obaloluwa Femi", status: "Active", brand: "NXT", division: "men", hometown: "Lagos, Nigeria", finisher: "Fall From Grace", is_champion: true, championship_title: "NXT North American Championship" },
-      { name: "Nathan Frazer", real_name: "Ben Carter", status: "Active", brand: "NXT", division: "men", hometown: "Blackpool, England", finisher: "Phoenix Splash", is_champion: true, championship_title: "NXT Tag Team Championship" },
-      { name: "Axiom", real_name: "A-Kid", status: "Active", brand: "NXT", division: "men", hometown: "Madrid, Spain", finisher: "Golden Ratio", is_champion: true, championship_title: "NXT Tag Team Championship" },
-      { name: "Fallon Henley", real_name: "Fallon Henley", status: "Active", brand: "NXT", division: "women", hometown: "Tennessee", finisher: "Henley Bottom", is_champion: true, championship_title: "NXT Women's Tag Team Championship" },
-      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop", is_champion: true, championship_title: "NXT Women's Tag Team Championship" },
-      
-      // Active Roster Men
-      { name: "Ethan Page", real_name: "Julian Micevski", status: "Active", brand: "NXT", division: "men", hometown: "Hamilton, Ontario", finisher: "Ego's Edge" },
+      { name: "Ethan Page", real_name: "Julian Micevski", status: "Active", brand: "NXT", division: "men", hometown: "Hamilton, Ontario", finisher: "Ego's Edge", is_champion: true, championship_title: "NXT North American Championship" },
+      { name: "Jacy Jayne", real_name: "Avery Taylor", status: "Active", brand: "NXT", division: "women", hometown: "Georgia", finisher: "Jayne Drop", is_champion: true, championship_title: "NXT Women's Championship" },
+      { name: "Sol Ruca", real_name: "Sol Ruca", status: "Active", brand: "NXT", division: "women", hometown: "San Diego, California", finisher: "Sol Snatcher", is_champion: true, championship_title: "NXT Women's North American Championship" },
+      { name: "Hank Walker", real_name: "Hank Walker", status: "Active", brand: "NXT", division: "men", hometown: "North Carolina", finisher: "Tank Drop", is_champion: true, championship_title: "NXT Tag Team Championship" },
+      { name: "Tank Ledger", real_name: "Tank Ledger", status: "Active", brand: "NXT", division: "men", hometown: "North Carolina", finisher: "Tank Slam", is_champion: true, championship_title: "NXT Tag Team Championship" },
+      { name: "Noam Dar", real_name: "Noam Dar", status: "Active", brand: "NXT", division: "men", hometown: "Ayr, Scotland", finisher: "Champagne Super-Knee-Bar", is_champion: true, championship_title: "NXT Heritage Cup Championship" }
+    ];
+    
+    // Add current champions to wrestlers array
+    wrestlers.push(...currentChampions);
+    
+    // Known NXT wrestlers from roster
+    const knownNXTWrestlers = [
       { name: "Je'Von Evans", real_name: "Jevon Evans", status: "Active", brand: "NXT", division: "men", hometown: "Charlotte, North Carolina", finisher: "Evans Effect" },
       { name: "Tony D'Angelo", real_name: "Anthony Gangone", status: "Active", brand: "NXT", division: "men", hometown: "Brooklyn, New York", finisher: "Fuhgeddaboutit" },
       { name: "Channing Lorenzo", real_name: "Channing Decker", status: "Active", brand: "NXT", division: "men", hometown: "Boston, Massachusetts", finisher: "Boston Crab" },
@@ -46,10 +38,11 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Lexis King", real_name: "Brian Pillman Jr.", status: "Active", brand: "NXT", division: "men", hometown: "Cincinnati, Ohio", finisher: "Coronation" },
       { name: "Cedric Alexander", real_name: "Cedric Johnson", status: "Active", brand: "NXT", division: "men", hometown: "Charlotte, North Carolina", finisher: "Lumbar Check" },
       { name: "Ashante Thee Adonis", real_name: "Tehuti Miles", status: "Active", brand: "NXT", division: "men", hometown: "Los Angeles, California", finisher: "Adonis Lock" },
+      { name: "Nathan Frazer", real_name: "Ben Carter", status: "Active", brand: "NXT", division: "men", hometown: "Blackpool, England", finisher: "Phoenix Splash" },
+      { name: "Axiom", real_name: "A-Kid", status: "Active", brand: "NXT", division: "men", hometown: "Madrid, Spain", finisher: "Golden Ratio" },
       
-      // Active Roster Women
+      // Women's Division
       { name: "Ava", real_name: "Catalina White", status: "Active", brand: "NXT", division: "women", hometown: "San Jose, California", finisher: "Authority" },
-      { name: "Sol Ruca", real_name: "Sol Ruca", status: "Active", brand: "NXT", division: "women", hometown: "San Diego, California", finisher: "Sol Snatcher" },
       { name: "Lola Vice", real_name: "Valerie Loureda", status: "Active", brand: "NXT", division: "women", hometown: "Miami, Florida", finisher: "Hip Attack" },
       { name: "Cora Jade", real_name: "Brianna Coda", status: "Active", brand: "NXT", division: "women", hometown: "Chicago, Illinois", finisher: "DDT" },
       { name: "Tatum Paxley", real_name: "Tatum Paxley", status: "Active", brand: "NXT", division: "women", hometown: "Boyertown, Pennsylvania", finisher: "Psycho Trap" },
@@ -63,19 +56,42 @@ export async function scrapeNXTFromWikipedia(): Promise<WrestlerData[]> {
       { name: "Stephanie Vaquer", real_name: "Stephanie Vaquer", status: "Active", brand: "NXT", division: "women", hometown: "Chile", finisher: "Vaquera Lariat" },
       { name: "Giulia", real_name: "Giulia", status: "Active", brand: "NXT", division: "women", hometown: "Tokyo, Japan", finisher: "Northern Lights Bomb" },
       { name: "Jazmyn Nyx", real_name: "Jazmyn Nyx", status: "Active", brand: "NXT", division: "women", hometown: "Las Vegas, Nevada", finisher: "Nyx Breaker" },
+      { name: "Fallon Henley", real_name: "Fallon Henley", status: "Active", brand: "NXT", division: "women", hometown: "Tennessee", finisher: "Henley Bottom" },
+      { name: "Roxanne Perez", real_name: "Carla Gonzalez", status: "Active", brand: "NXT", division: "women", hometown: "San Antonio, Texas", finisher: "Pop Rox" },
       
       // Injured
       { name: "Wes Lee", real_name: "Wesley Blake", status: "Injured", brand: "NXT", division: "men", hometown: "Akron, Ohio", finisher: "Cardiac Kick" }
     ];
 
-    // Simple validation for current champions
-    const champions = nxtWrestlers.filter(w => w.is_champion);
-    console.log(`Processing ${champions.length} NXT champions`);
-
-    wrestlers.push(...nxtWrestlers);
-
-    console.log(`Found ${wrestlers.length} NXT wrestlers`);
-    return wrestlers;
+    // Add known wrestlers to the list
+    for (const wrestler of knownNXTWrestlers) {
+      const championData = currentChampions.find(c => c.name === wrestler.name);
+      
+      const wrestlerData: WrestlerData = {
+        name: wrestler.name,
+        real_name: wrestler.real_name,
+        status: wrestler.status,
+        brand: "NXT",
+        division: wrestler.division,
+        hometown: wrestler.hometown || "",
+        finisher: wrestler.finisher || "",
+        is_champion: championData ? true : false,
+        championship_title: championData ? championData.championship_title : null
+      };
+      
+      wrestlers.push(wrestlerData);
+    }
+    
+    // Remove duplicates based on name
+    const uniqueWrestlers = wrestlers.filter((wrestler, index, self) => 
+      index === self.findIndex(w => w.name.toLowerCase() === wrestler.name.toLowerCase())
+    );
+    
+    console.log(`Found ${uniqueWrestlers.length} total NXT wrestlers`);
+    console.log(`Found ${currentChampions.length} NXT champions`);
+    
+    return uniqueWrestlers;
+    
   } catch (error) {
     console.error('Error scraping NXT from Wikipedia:', error);
     
