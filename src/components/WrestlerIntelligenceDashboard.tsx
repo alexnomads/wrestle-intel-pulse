@@ -32,9 +32,8 @@ export const WrestlerIntelligenceDashboard = () => {
     // Algorithm to detect push/burial based on mention patterns and sentiment
     const recentMentions = wrestler.mentions || 0;
     const sentiment = wrestler.sentiment || 0.5;
-    const championshipStatus = wrestler.wrestler?.is_champion ? 1 : 0;
     
-    return Math.round((recentMentions * sentiment + championshipStatus * 20) / 10);
+    return Math.round((recentMentions * sentiment) / 2);
   };
 
   const getContractStatus = (wrestler: any) => {
@@ -44,7 +43,7 @@ export const WrestlerIntelligenceDashboard = () => {
   };
 
   const wrestlerIntelligence: WrestlerIntelligence[] = trendingWrestlers.map(tw => ({
-    wrestler: tw.wrestler,
+    wrestler: { name: tw.name }, // Create wrapper object for consistency
     mentions: tw.mentions,
     sentiment: tw.sentiment,
     trend: tw.trend,
@@ -161,7 +160,7 @@ export const WrestlerIntelligenceDashboard = () => {
                         </div>
                         <div>
                           <h3 className="font-semibold text-foreground">{intelligence.wrestler.name}</h3>
-                          <p className="text-sm text-muted-foreground">{intelligence.wrestler.promotions?.name}</p>
+                          <p className="text-sm text-muted-foreground">Wrestling Talent</p>
                         </div>
                       </div>
                       
@@ -221,7 +220,7 @@ export const WrestlerIntelligenceDashboard = () => {
                       {statusWrestlers.slice(0, 6).map((wrestler, index) => (
                         <div key={index} className="p-3 bg-secondary/50 rounded-lg">
                           <div className="font-medium text-foreground">{wrestler.wrestler.name}</div>
-                          <div className="text-sm text-muted-foreground">{wrestler.wrestler.promotions?.name}</div>
+                          <div className="text-sm text-muted-foreground">Wrestling Talent</div>
                           <div className="text-xs text-wrestling-electric mt-1">
                             {wrestler.mentions} mentions • {Math.round(wrestler.sentiment * 100)}% sentiment
                           </div>
@@ -279,7 +278,7 @@ export const WrestlerIntelligenceDashboard = () => {
                           </div>
                           <div>
                             <div className="font-medium text-foreground">{wrestler.wrestler.name}</div>
-                            <div className="text-sm text-muted-foreground">{wrestler.wrestler.promotions?.name}</div>
+                            <div className="text-sm text-muted-foreground">Wrestling Talent</div>
                           </div>
                         </div>
                         <div className="text-right">
