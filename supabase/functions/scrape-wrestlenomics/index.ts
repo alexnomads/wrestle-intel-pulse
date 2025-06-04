@@ -233,8 +233,7 @@ Deno.serve(async (req) => {
             air_date: rating.date,
             rating: rating.rating,
             viewership: rating.viewership,
-            network: rating.network,
-            scraped_at: new Date().toISOString()
+            network: rating.network
           })));
         break;
         
@@ -250,8 +249,7 @@ Deno.serve(async (req) => {
             event_date: ticket.date,
             capacity: ticket.capacity,
             tickets_sold: ticket.sold,
-            attendance_percentage: ticket.attendance_percentage,
-            scraped_at: new Date().toISOString()
+            attendance_percentage: ticket.attendance_percentage
           })));
         break;
         
@@ -266,8 +264,7 @@ Deno.serve(async (req) => {
             elo_rating: elo.elo_rating,
             promotion: elo.promotion,
             ranking_position: elo.rank,
-            trend: elo.trend,
-            scraped_at: new Date().toISOString()
+            trend: elo.trend
           })));
         break;
     }
