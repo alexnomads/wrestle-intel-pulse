@@ -120,7 +120,7 @@ export const SmartSearchEngine = () => {
         <CardContent>
           <div className="flex space-x-2">
             <Input
-              placeholder='Try: "AEW women\'s division booking last 6 months" or "CM Punk WWE return impact"'
+              placeholder="Try: AEW women's division booking last 6 months or CM Punk WWE return impact"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
