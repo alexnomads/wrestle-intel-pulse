@@ -16,6 +16,7 @@ export interface SupabaseWrestler {
   image_url: string | null;
   profile_url: string | null;
   is_champion: boolean;
+  championship_title: string | null;
   promotion_id: string;
   promotions: {
     name: string;
