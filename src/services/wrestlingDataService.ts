@@ -6,6 +6,8 @@ export interface NewsItem {
   contentSnippet: string;
   source: string;
   guid: string;
+  author?: string;
+  category?: string;
 }
 
 export interface RedditPost {
@@ -17,12 +19,47 @@ export interface RedditPost {
   author: string;
   subreddit: string;
   selftext: string;
+  permalink: string;
+}
+
+export interface WrestlenomicsData {
+  tvRatings: TVRating[];
+  ticketSales: TicketData[];
+  eloRankings: ELORanking[];
+}
+
+export interface TVRating {
+  show: string;
+  date: string;
+  rating: number;
+  viewership: number;
+  network: string;
+}
+
+export interface TicketData {
+  event: string;
+  venue: string;
+  date: string;
+  capacity: number;
+  sold: number;
+  attendance_percentage: number;
+}
+
+export interface ELORanking {
+  wrestler: string;
+  elo_rating: number;
+  promotion: string;
+  rank: number;
+  trend: 'up' | 'down' | 'stable';
 }
 
 const RSS_FEEDS = [
   { url: 'https://www.wrestlinginc.com/feed/', source: 'Wrestling Inc' },
   { url: 'https://411mania.com/wrestling/feed/', source: '411 Mania' },
   { url: 'https://www.fightful.com/wrestling/feed', source: 'Fightful' },
+  { url: 'https://www.f4wonline.com/feed', source: 'F4W Online' },
+  { url: 'https://www.sescoops.com/feed/', source: 'Sescoops' },
+  { url: 'https://www.pwmania.com/feed', source: 'PWMania' }
 ];
 
 const parseRSSFeed = (xmlString: string): any[] => {
@@ -38,13 +75,17 @@ const parseRSSFeed = (xmlString: string): any[] => {
     const pubDate = item.querySelector('pubDate')?.textContent || '';
     const description = item.querySelector('description')?.textContent || '';
     const guid = item.querySelector('guid')?.textContent || link;
+    const author = item.querySelector('author')?.textContent || item.querySelector('dc\\:creator')?.textContent || '';
+    const category = item.querySelector('category')?.textContent || '';
     
     parsedItems.push({
       title: title.trim(),
       link: link.trim(),
       pubDate: pubDate.trim(),
       contentSnippet: description.replace(/<[^>]*>/g, '').trim(),
-      guid: guid.trim()
+      guid: guid.trim(),
+      author: author.trim(),
+      category: category.trim()
     });
   });
   
@@ -61,15 +102,22 @@ export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
       const response = await fetch(corsProxy);
       const data = await response.json();
       
+      if (!data.contents) {
+        console.error(`No content received from ${feed.source}`);
+        continue;
+      }
+      
       const parsedItems = parseRSSFeed(data.contents);
       
-      const newsItems: NewsItem[] = parsedItems.slice(0, 5).map(item => ({
+      const newsItems: NewsItem[] = parsedItems.slice(0, 10).map(item => ({
         title: item.title || '',
         link: item.link || '',
         pubDate: item.pubDate || '',
         contentSnippet: item.contentSnippet || '',
         source: feed.source,
-        guid: item.guid || item.link || ''
+        guid: item.guid || item.link || '',
+        author: item.author || '',
+        category: item.category || ''
       }));
       
       allNews.push(...newsItems);
@@ -86,7 +134,12 @@ export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
 export const fetchRedditPosts = async (): Promise<RedditPost[]> => {
   try {
     console.log('Fetching Reddit posts from r/SquaredCircle...');
-    const response = await fetch('https://www.reddit.com/r/SquaredCircle/hot.json?limit=10');
+    const response = await fetch('https://www.reddit.com/r/SquaredCircle/hot.json?limit=25');
+    
+    if (!response.ok) {
+      throw new Error(`Reddit API error: ${response.status}`);
+    }
+    
     const data = await response.json();
     
     const posts: RedditPost[] = data.data.children.map((child: any) => ({
@@ -97,7 +150,8 @@ export const fetchRedditPosts = async (): Promise<RedditPost[]> => {
       num_comments: child.data.num_comments,
       author: child.data.author,
       subreddit: child.data.subreddit,
-      selftext: child.data.selftext
+      selftext: child.data.selftext,
+      permalink: child.data.permalink
     }));
     
     console.log(`Fetched ${posts.length} Reddit posts`);
@@ -106,4 +160,77 @@ export const fetchRedditPosts = async (): Promise<RedditPost[]> => {
     console.error('Error fetching Reddit posts:', error);
     return [];
   }
+};
+
+// Wrestlenomics data scraping functions
+export const scrapeWrestlenomicsData = async (): Promise<Partial<WrestlenomicsData>> => {
+  const data: Partial<WrestlenomicsData> = {};
+  
+  try {
+    // Note: These would need proper scraping implementation
+    // For now, we'll attempt to parse publicly available data
+    console.log('Attempting to fetch Wrestlenomics data...');
+    
+    // This is a placeholder - would need actual scraping logic
+    // or API access to get real Wrestlenomics data
+    data.tvRatings = [];
+    data.ticketSales = [];
+    data.eloRankings = [];
+    
+    console.log('Wrestlenomics data fetch completed');
+  } catch (error) {
+    console.error('Error fetching Wrestlenomics data:', error);
+  }
+  
+  return data;
+};
+
+// Enhanced sentiment analysis using real keyword detection
+export const analyzeSentiment = (text: string): { score: number; keywords: string[] } => {
+  const positiveKeywords = [
+    'amazing', 'incredible', 'fantastic', 'brilliant', 'outstanding', 'excellent',
+    'awesome', 'great', 'love', 'perfect', 'phenomenal', 'legendary', 'classic',
+    'champion', 'victory', 'win', 'success', 'return', 'debut', 'breakthrough'
+  ];
+  
+  const negativeKeywords = [
+    'terrible', 'awful', 'horrible', 'disappointing', 'boring', 'bad',
+    'hate', 'worst', 'disaster', 'failure', 'flop', 'painful', 'cringe',
+    'injury', 'injured', 'lose', 'defeat', 'suspended', 'controversy', 'burial'
+  ];
+  
+  const content = text.toLowerCase();
+  const foundPositive = positiveKeywords.filter(word => content.includes(word));
+  const foundNegative = negativeKeywords.filter(word => content.includes(word));
+  
+  const positiveScore = foundPositive.length;
+  const negativeScore = foundNegative.length;
+  
+  let score = 0.5; // neutral
+  if (positiveScore > negativeScore) {
+    score = Math.min(0.5 + (positiveScore * 0.1), 1.0);
+  } else if (negativeScore > positiveScore) {
+    score = Math.max(0.5 - (negativeScore * 0.1), 0.0);
+  }
+  
+  return {
+    score,
+    keywords: [...foundPositive, ...foundNegative]
+  };
+};
+
+// Extract wrestler mentions from text
+export const extractWrestlerMentions = (text: string): string[] => {
+  // Common wrestling names that might appear in content
+  const wrestlerNames = [
+    'CM Punk', 'Roman Reigns', 'Cody Rhodes', 'Seth Rollins', 'Drew McIntyre',
+    'Jon Moxley', 'Kenny Omega', 'Will Ospreay', 'Rhea Ripley', 'Bianca Belair',
+    'Becky Lynch', 'Sasha Banks', 'Mercedes Moné', 'Jade Cargill', 'Toni Storm',
+    'Gunther', 'Damian Priest', 'LA Knight', 'Jey Uso', 'Jimmy Uso'
+  ];
+  
+  const content = text.toLowerCase();
+  return wrestlerNames.filter(name => 
+    content.includes(name.toLowerCase())
+  );
 };
