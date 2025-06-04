@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Header } from "./Header";
 import { AnalyticsOverview } from "./AnalyticsOverview";
@@ -11,6 +12,7 @@ import { DataManagement } from "./DataManagement";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <div className="flex flex-col h-screen">
@@ -29,9 +31,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activeTab === 'rosters' && <RosterTabs />}
+        {activeTab === 'rosters' && <RosterTabs searchQuery={searchQuery} />}
         {activeTab === 'events' && <EventCalendar />}
-        {activeTab === 'search' && <SearchBar />}
+        {activeTab === 'search' && <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
         {activeTab === 'data' && <DataManagement />}
       </main>
     </div>
