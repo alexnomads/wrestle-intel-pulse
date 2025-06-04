@@ -1,18 +1,15 @@
-
 import { Search, Bell, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 export const Header = () => {
-  return (
-    <header className="border-b border-border/50 bg-card/20 backdrop-blur-md sticky top-0 z-50">
+  return <header className="border-b border-border/50 bg-card/20 backdrop-blur-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-wrestling-electric to-wrestling-purple rounded-lg flex items-center justify-center">
-              <span className="text-background font-bold text-sm">WS</span>
+              <span className="text-background font-bold text-sm">WMG</span>
             </div>
-            <span className="text-xl font-bold text-foreground">WrestleScope</span>
+            <span className="text-xl font-bold text-foreground">Wrestling Mind Games</span>
           </div>
 
           {/* Navigation */}
@@ -38,6 +35,5 @@ export const Header = () => {
           </div>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
