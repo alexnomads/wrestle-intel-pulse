@@ -57,6 +57,42 @@ export type Database = {
           },
         ]
       }
+      elo_rankings: {
+        Row: {
+          created_at: string
+          elo_rating: number
+          id: string
+          last_match_date: string | null
+          promotion: string | null
+          ranking_position: number | null
+          trend: string | null
+          updated_at: string
+          wrestler_name: string
+        }
+        Insert: {
+          created_at?: string
+          elo_rating: number
+          id?: string
+          last_match_date?: string | null
+          promotion?: string | null
+          ranking_position?: number | null
+          trend?: string | null
+          updated_at?: string
+          wrestler_name: string
+        }
+        Update: {
+          created_at?: string
+          elo_rating?: number
+          id?: string
+          last_match_date?: string | null
+          promotion?: string | null
+          ranking_position?: number | null
+          trend?: string | null
+          updated_at?: string
+          wrestler_name?: string
+        }
+        Relationships: []
+      }
       promotions: {
         Row: {
           created_at: string
@@ -81,6 +117,81 @@ export type Database = {
           roster_url?: string | null
           updated_at?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      ticket_sales: {
+        Row: {
+          attendance_percentage: number | null
+          capacity: number | null
+          created_at: string
+          event_date: string
+          event_name: string
+          id: string
+          promotion: string | null
+          tickets_sold: number | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          attendance_percentage?: number | null
+          capacity?: number | null
+          created_at?: string
+          event_date: string
+          event_name: string
+          id?: string
+          promotion?: string | null
+          tickets_sold?: number | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          attendance_percentage?: number | null
+          capacity?: number | null
+          created_at?: string
+          event_date?: string
+          event_name?: string
+          id?: string
+          promotion?: string | null
+          tickets_sold?: number | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      tv_ratings: {
+        Row: {
+          air_date: string
+          created_at: string
+          demographic_rating: number | null
+          id: string
+          network: string | null
+          rating: number | null
+          show: string
+          updated_at: string
+          viewership: number | null
+        }
+        Insert: {
+          air_date: string
+          created_at?: string
+          demographic_rating?: number | null
+          id?: string
+          network?: string | null
+          rating?: number | null
+          show: string
+          updated_at?: string
+          viewership?: number | null
+        }
+        Update: {
+          air_date?: string
+          created_at?: string
+          demographic_rating?: number | null
+          id?: string
+          network?: string | null
+          rating?: number | null
+          show?: string
+          updated_at?: string
+          viewership?: number | null
         }
         Relationships: []
       }

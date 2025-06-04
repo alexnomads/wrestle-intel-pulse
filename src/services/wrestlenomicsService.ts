@@ -55,9 +55,9 @@ export const scrapeAllWrestlenomicsData = async (): Promise<{
   };
 };
 
-// Fetch stored Wrestlenomics data from Supabase
+// Fetch stored Wrestlenomics data from Supabase with type assertions
 export const getStoredTVRatings = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('tv_ratings')
     .select('*')
     .order('air_date', { ascending: false })
@@ -72,7 +72,7 @@ export const getStoredTVRatings = async () => {
 };
 
 export const getStoredTicketSales = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('ticket_sales')
     .select('*')
     .order('event_date', { ascending: false })
@@ -87,7 +87,7 @@ export const getStoredTicketSales = async () => {
 };
 
 export const getStoredELORankings = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('elo_rankings')
     .select('*')
     .order('ranking_position', { ascending: true })

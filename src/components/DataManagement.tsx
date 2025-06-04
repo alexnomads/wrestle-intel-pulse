@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Database, Users, Trophy } from "lucide-react";
+import { RefreshCw, Database, Users, Trophy, ExternalLink } from "lucide-react";
 import { usePromotions, useSupabaseWrestlers, useChampions, useScrapeWrestlingData } from "@/hooks/useSupabaseWrestlers";
 import { useToast } from "@/hooks/use-toast";
 import { useScrapeWrestlenomics, useScrapeAllWrestlenomics, useAllWrestlenomicsData } from "@/hooks/useWrestlenomicsData";
@@ -18,7 +18,7 @@ export const DataManagement = () => {
   const { toast } = useToast();
   const scrapeWrestlenomics = useScrapeWrestlenomics();
   const scrapeAllWrestlenomics = useScrapeAllWrestlenomics();
-  const { tvRatings, ticketSales, eloRankings } = useAllWrestlenomicsData();
+  const { tvRatings, ticketSales, eloRankings, refetchAll } = useAllWrestlenomicsData();
 
   const handleScrapePromotion = async (promotionName: string) => {
     setScrapingStatus(prev => ({ ...prev, [promotionName]: true }));
@@ -77,8 +77,10 @@ export const DataManagement = () => {
       if (result.success) {
         toast({
           title: "Wrestlenomics Scraping Successful",
-          description: result.message,
+          description: `${result.message}. Check the Industry Analytics tab to view the data.`,
         });
+        // Refresh the data display
+        refetchAll();
       } else {
         toast({
           title: "Scraping Failed",
@@ -104,8 +106,11 @@ export const DataManagement = () => {
       
       toast({
         title: "Wrestlenomics Data Updated",
-        description: `Successfully updated ${successCount}/${totalCount} data sources`,
+        description: `Successfully updated ${successCount}/${totalCount} data sources. Check the Industry Analytics tab to view the data.`,
       });
+      
+      // Refresh the data display
+      refetchAll();
     } catch (error) {
       toast({
         title: "Error",
@@ -120,7 +125,13 @@ export const DataManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Data Management</h2>
-          <p className="text-muted-foreground">Manage and update wrestling data from official sources</p>
+          <p className="text-muted-foreground">
+            Manage and update wrestling data from official sources. 
+            <span className="inline-flex items-center ml-2 text-wrestling-electric">
+              View data in Industry Analytics 
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </span>
+          </p>
         </div>
         <Button 
           onClick={handleScrapeAll}
@@ -201,6 +212,12 @@ export const DataManagement = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+            <div className="text-sm text-blue-400">
+              💡 After updating data, view it in the <strong>Industry Analytics</strong> tab under "Wrestlenomics Data"
+            </div>
+          </div>
+
           <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
             <div className="flex items-center space-x-4">
               <div>
