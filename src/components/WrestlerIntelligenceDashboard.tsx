@@ -414,7 +414,7 @@ export const WrestlerIntelligenceDashboard = () => {
                 ))}
               </div>
             </CardContent>
-          </div>
+          </Card>
         </div>
       )}
     </div>
