@@ -80,130 +80,117 @@ export const useWrestlerAnalysis = (
       return [];
     }
     
-    console.log('Generating enhanced push/burial analysis for', wrestlers.length, 'wrestlers');
+    console.log('Starting optimized push/burial analysis for', wrestlers.length, 'wrestlers');
     
-    // First, extract all wrestler mentions from news to focus on those who are actually mentioned
-    const allMentions = new Map<string, number>();
-    const wrestlerNewsMap = new Map<string, NewsItem[]>();
+    // Pre-process all news content for faster analysis
+    const allContent = periodNewsItems.map(item => ({
+      content: `${item.title} ${item.contentSnippet}`.toLowerCase(),
+      item: item,
+      sentiment: analyzeSentiment(`${item.title} ${item.contentSnippet}`)
+    }));
     
-    periodNewsItems.forEach(item => {
-      const content = `${item.title} ${item.contentSnippet}`;
-      const mentions = extractWrestlerMentions(content);
-      
-      mentions.forEach(mention => {
-        // Normalize wrestler names for matching
-        const normalizedMention = mention.toLowerCase().trim();
-        
-        // Find matching wrestler in our database
-        const matchingWrestler = wrestlers.find(wrestler => {
-          const normalizedWrestlerName = wrestler.name.toLowerCase().trim();
-          return normalizedWrestlerName === normalizedMention ||
-                 normalizedWrestlerName.includes(normalizedMention) ||
-                 normalizedMention.includes(normalizedWrestlerName);
-        });
-        
-        if (matchingWrestler) {
-          const key = matchingWrestler.name;
-          allMentions.set(key, (allMentions.get(key) || 0) + 1);
-          
-          if (!wrestlerNewsMap.has(key)) {
-            wrestlerNewsMap.set(key, []);
-          }
-          wrestlerNewsMap.get(key)!.push(item);
-        }
-      });
+    console.log('Pre-processed', allContent.length, 'news items');
+    
+    // Focus on a subset of popular wrestlers for faster processing
+    const popularWrestlers = wrestlers.filter(wrestler => {
+      const name = wrestler.name.toLowerCase();
+      // Filter for main roster wrestlers and exclude non-wrestlers
+      return !name.includes('referee') && 
+             !name.includes('announcer') && 
+             !name.includes('commentator') &&
+             !name.includes('road agent') &&
+             !name.includes('music group') &&
+             wrestler.name.length > 3;
     });
     
-    console.log('Found mentions for', allMentions.size, 'wrestlers');
+    console.log('Analyzing', popularWrestlers.length, 'filtered wrestlers');
     
-    const analysis = wrestlers.map(wrestler => {
-      const wrestlerNews = wrestlerNewsMap.get(wrestler.name) || [];
-      const totalMentions = allMentions.get(wrestler.name) || 0;
-      
+    const wrestlerMentions = new Map<string, any>();
+    
+    // Batch process wrestler mentions
+    popularWrestlers.forEach(wrestler => {
+      const wrestlerName = wrestler.name.toLowerCase();
+      let mentions = 0;
+      let totalSentiment = 0;
       let pushScore = 0;
       let burialScore = 0;
-      let totalSentiment = 0;
+      const relatedNews: NewsItem[] = [];
       
-      wrestlerNews.forEach(item => {
-        const sentiment = analyzeSentiment(`${item.title} ${item.contentSnippet}`);
-        totalSentiment += sentiment.score;
-        
-        // Enhanced scoring based on content context
-        const content = `${item.title} ${item.contentSnippet}`.toLowerCase();
-        
-        // Push indicators
-        if (sentiment.score > 0.6) {
-          let pushMultiplier = 1;
-          if (content.includes('champion') || content.includes('title')) pushMultiplier = 1.5;
-          if (content.includes('main event') || content.includes('headlin')) pushMultiplier = 1.3;
-          if (content.includes('return') || content.includes('debut')) pushMultiplier = 1.2;
+      allContent.forEach(({ content, item, sentiment }) => {
+        // Simple but effective name matching
+        if (content.includes(wrestlerName) || 
+            (wrestlerName.includes(' ') && wrestlerName.split(' ').some(part => 
+              part.length > 3 && content.includes(part)))) {
           
-          pushScore += (sentiment.score - 0.5) * 2 * pushMultiplier;
-        }
-        
-        // Burial indicators
-        if (sentiment.score < 0.4) {
-          let burialMultiplier = 1;
-          if (content.includes('fired') || content.includes('released')) burialMultiplier = 2;
-          if (content.includes('buried') || content.includes('jobber')) burialMultiplier = 1.8;
-          if (content.includes('squash') || content.includes('dominated')) burialMultiplier = 1.3;
+          mentions++;
+          totalSentiment += sentiment.score;
+          relatedNews.push(item);
           
-          burialScore += (0.5 - sentiment.score) * 2 * burialMultiplier;
+          // Enhanced scoring
+          if (sentiment.score > 0.6) {
+            let multiplier = 1;
+            if (content.includes('champion') || content.includes('title')) multiplier = 1.5;
+            if (content.includes('main event')) multiplier = 1.3;
+            pushScore += (sentiment.score - 0.5) * 2 * multiplier;
+          }
+          
+          if (sentiment.score < 0.4) {
+            let multiplier = 1;
+            if (content.includes('fired') || content.includes('released')) multiplier = 2;
+            if (content.includes('buried')) multiplier = 1.8;
+            burialScore += (0.5 - sentiment.score) * 2 * multiplier;
+          }
         }
       });
-
-      const pushPercentage = totalMentions > 0 ? (pushScore / totalMentions) * 100 : 0;
-      const burialPercentage = totalMentions > 0 ? (burialScore / totalMentions) * 100 : 0;
-      const avgSentiment = totalMentions > 0 ? totalSentiment / totalMentions : 0.5;
       
-      let trend: 'push' | 'burial' | 'stable' = 'stable';
-      if (totalMentions >= 2) {
-        if (pushPercentage > burialPercentage && pushPercentage > 15) {
-          trend = 'push';
-        } else if (burialPercentage > pushPercentage && burialPercentage > 15) {
-          trend = 'burial';
+      if (mentions > 0) {
+        const pushPercentage = (pushScore / mentions) * 100;
+        const burialPercentage = (burialScore / mentions) * 100;
+        const avgSentiment = totalSentiment / mentions;
+        
+        let trend: 'push' | 'burial' | 'stable' = 'stable';
+        if (mentions >= 1) {
+          if (pushPercentage > burialPercentage && pushPercentage > 10) {
+            trend = 'push';
+          } else if (burialPercentage > pushPercentage && burialPercentage > 10) {
+            trend = 'burial';
+          }
         }
+        
+        const momentumScore = mentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
+        const isOnFire = mentions >= 2 && avgSentiment > 0.65 && pushPercentage > 25;
+        
+        wrestlerMentions.set(wrestler.id, {
+          id: wrestler.id,
+          wrestler_name: wrestler.name,
+          promotion: wrestler.brand || 'Unknown',
+          pushScore: Math.min(pushPercentage, 100),
+          burialScore: Math.min(burialPercentage, 100),
+          trend,
+          totalMentions: mentions,
+          sentimentScore: Math.round(avgSentiment * 100),
+          isChampion: wrestler.is_champion || false,
+          championshipTitle: wrestler.championship_title || null,
+          evidence: mentions > 5 ? 'High Media Coverage' :
+                   mentions > 2 ? 'Moderate Coverage' : 'Limited Coverage',
+          isOnFire,
+          momentumScore
+        });
+        
+        console.log(`Wrestler: ${wrestler.name}, Mentions: ${mentions}, Trend: ${trend}, Sentiment: ${avgSentiment.toFixed(2)}`);
       }
-
-      const momentumScore = totalMentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
-      const isOnFire = totalMentions >= 3 && avgSentiment > 0.65 && pushPercentage > 30;
-
-      const result = {
-        id: wrestler.id,
-        wrestler_name: wrestler.name,
-        promotion: wrestler.brand || 'Unknown',
-        pushScore: Math.min(pushPercentage, 100),
-        burialScore: Math.min(burialPercentage, 100),
-        trend,
-        totalMentions,
-        sentimentScore: Math.round(avgSentiment * 100),
-        isChampion: wrestler.is_champion || false,
-        championshipTitle: wrestler.championship_title || null,
-        evidence: totalMentions > 10 ? 'High Media Coverage' :
-                 totalMentions > 5 ? 'Moderate Coverage' :
-                 totalMentions > 0 ? 'Limited Coverage' : 'No Recent Coverage',
-        isOnFire,
-        momentumScore
-      };
-      
-      if (totalMentions > 0) {
-        console.log(`Wrestler: ${wrestler.name}, Mentions: ${totalMentions}, Trend: ${trend}, Sentiment: ${avgSentiment.toFixed(2)}`);
-      }
-      
-      return result;
     });
     
-    // Filter to only include wrestlers with mentions
-    const analysisWithMentions = analysis.filter(a => a.totalMentions > 0);
+    const analysis = Array.from(wrestlerMentions.values());
     
     console.log('Analysis complete:', {
-      totalAnalyzed: analysis.length,
-      withMentions: analysisWithMentions.length,
-      pushTrend: analysisWithMentions.filter(a => a.trend === 'push').length,
-      burialTrend: analysisWithMentions.filter(a => a.trend === 'burial').length
+      totalAnalyzed: popularWrestlers.length,
+      withMentions: analysis.length,
+      pushTrend: analysis.filter(a => a.trend === 'push').length,
+      burialTrend: analysis.filter(a => a.trend === 'burial').length
     });
     
-    return analysisWithMentions;
+    return analysis;
   }, [wrestlers, periodNewsItems]);
 
   const filteredAnalysis = useMemo(() => {

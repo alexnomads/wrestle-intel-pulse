@@ -13,13 +13,7 @@ const RSS_FEEDS = [
   { url: 'https://www.wrestlingheadlines.com/feed/', source: 'Wrestling Headlines' },
   { url: 'https://www.ringsidenews.com/feed/', source: 'Ringside News' },
   { url: 'https://www.wrestlezone.com/feed/', source: 'WrestleZone' },
-  { url: 'https://www.cagesideseats.com/rss/current', source: 'Cageside Seats' },
-  { url: 'https://www.wwe.com/feeds/all', source: 'WWE.com' },
-  { url: 'https://www.allelitewrestling.com/rss', source: 'AEW.com' },
-  { url: 'https://www.impactwrestling.com/feed/', source: 'Impact Wrestling' },
-  { url: 'https://www.wrestletalk.com/feed', source: 'WrestleTalk' },
-  { url: 'https://www.postwrestling.com/feed', source: 'POST Wrestling' },
-  { url: 'https://www.voicesofwrestling.com/feed', source: 'Voices of Wrestling' }
+  { url: 'https://www.cagesideseats.com/rss/current', source: 'Cageside Seats' }
 ];
 
 const parseRSSFeed = (xmlString: string): any[] => {
@@ -54,80 +48,78 @@ const parseRSSFeed = (xmlString: string): any[] => {
 
 export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
   const allNews: NewsItem[] = [];
-  const maxRetries = 2;
+  const maxRetries = 1; // Reduce retries for faster response
+  const timeout = 5000; // 5 second timeout per feed
   
-  for (const feed of RSS_FEEDS) {
-    let retryCount = 0;
-    let success = false;
-    
-    while (retryCount < maxRetries && !success) {
-      try {
-        console.log(`Fetching RSS feed from ${feed.source} (attempt ${retryCount + 1})...`);
-        
-        // Try multiple CORS proxies for better reliability
-        const corsProxies = [
-          `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`,
-          `https://cors-anywhere.herokuapp.com/${feed.url}`,
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(feed.url)}`
-        ];
-        
-        let response;
-        let data;
-        
-        for (const proxy of corsProxies) {
-          try {
-            response = await fetch(proxy, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/rss+xml, application/xml, text/xml',
-              }
-            });
-            
-            if (response.ok) {
-              data = await response.json();
-              if (data.contents || data.content) {
-                break;
-              }
-            }
-          } catch (proxyError) {
-            console.warn(`Proxy ${proxy} failed for ${feed.source}:`, proxyError);
-            continue;
-          }
+  // Process feeds concurrently with a limit to avoid overwhelming servers
+  const processFeed = async (feed: any): Promise<NewsItem[]> => {
+    try {
+      console.log(`Fetching RSS feed from ${feed.source}...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      // Use a more reliable proxy
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
+      
+      const response = await fetch(proxyUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         }
-        
-        if (!data || (!data.contents && !data.content)) {
-          throw new Error(`No content received from any proxy for ${feed.source}`);
-        }
-        
-        const xmlContent = data.contents || data.content || data;
-        const parsedItems = parseRSSFeed(xmlContent);
-        
-        const newsItems: NewsItem[] = parsedItems.slice(0, 8).map(item => ({
-          title: item.title || '',
-          link: item.link || '',
-          pubDate: item.pubDate || new Date().toISOString(),
-          contentSnippet: item.contentSnippet || '',
-          source: feed.source,
-          guid: item.guid || item.link || '',
-          author: item.author || '',
-          category: item.category || ''
-        }));
-        
-        allNews.push(...newsItems);
-        console.log(`Successfully fetched ${newsItems.length} items from ${feed.source}`);
-        success = true;
-        
-      } catch (error) {
-        retryCount++;
-        console.error(`Error fetching RSS feed from ${feed.source} (attempt ${retryCount}):`, error);
-        
-        if (retryCount >= maxRetries) {
-          console.error(`Failed to fetch from ${feed.source} after ${maxRetries} attempts`);
-        } else {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
+      
+      const data = await response.json();
+      
+      if (!data.contents) {
+        throw new Error('No content received');
+      }
+      
+      const parsedItems = parseRSSFeed(data.contents);
+      
+      const newsItems: NewsItem[] = parsedItems.slice(0, 10).map(item => ({
+        title: item.title || '',
+        link: item.link || '',
+        pubDate: item.pubDate || new Date().toISOString(),
+        contentSnippet: item.contentSnippet || '',
+        source: feed.source,
+        guid: item.guid || item.link || '',
+        author: item.author || '',
+        category: item.category || ''
+      }));
+      
+      console.log(`Successfully fetched ${newsItems.length} items from ${feed.source}`);
+      return newsItems;
+      
+    } catch (error) {
+      console.warn(`Failed to fetch from ${feed.source}:`, error);
+      return [];
+    }
+  };
+  
+  // Process feeds in smaller batches to avoid timeouts
+  const batchSize = 4;
+  for (let i = 0; i < RSS_FEEDS.length; i += batchSize) {
+    const batch = RSS_FEEDS.slice(i, i + batchSize);
+    const batchResults = await Promise.allSettled(
+      batch.map(feed => processFeed(feed))
+    );
+    
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        allNews.push(...result.value);
+      }
+    });
+    
+    // Small delay between batches
+    if (i + batchSize < RSS_FEEDS.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   

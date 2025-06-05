@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { useWrestlerMomentumAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
@@ -60,17 +59,34 @@ export const WrestlerIntelligenceDashboard = () => {
     refetchMomentum();
   };
 
-  if (momentumLoading || wrestlersLoading || newsLoading) {
+  const isLoading = momentumLoading || wrestlersLoading || newsLoading;
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
-        <span className="ml-2 text-lg">Analyzing wrestler intelligence...</span>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
+        </div>
+        
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <div className="flex items-center justify-center mb-4">
+              <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric mr-3" />
+              <span className="text-lg">Loading wrestling intelligence data...</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {wrestlersLoading && "Loading wrestlers database..."}
+              {newsLoading && "Fetching latest wrestling news..."}
+              {momentumLoading && "Analyzing wrestler momentum..."}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Show error state if we have no data
-  if (newsError || (wrestlers.length === 0 && newsItems.length === 0)) {
+  // Show error state if we have critical issues
+  if (newsError && newsItems.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -105,16 +121,19 @@ export const WrestlerIntelligenceDashboard = () => {
 
         <Card className="glass-card">
           <CardContent className="p-8 text-center">
-            <div className="text-lg font-semibold text-foreground mb-2">
-              Unable to load analytics data
+            <div className="flex items-center justify-center mb-4">
+              <AlertCircle className="h-8 w-8 text-red-500 mr-3" />
+              <div className="text-lg font-semibold text-foreground">Data Loading Issues</div>
             </div>
             <div className="text-sm text-muted-foreground mb-4">
-              {newsError ? 'Error loading news data' : 'No wrestler or news data available'}
+              Wrestling news sources are temporarily unavailable. Please try refreshing in a few moments.
             </div>
-            <div className="text-xs text-muted-foreground">
-              Debug: Wrestlers: {wrestlers.length}, News: {newsItems.length}
-              {newsError && <div>Error: {newsError.message}</div>}
-            </div>
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-wrestling-electric text-white rounded hover:bg-wrestling-electric/80 transition-colors"
+            >
+              Retry Loading Data
+            </button>
           </CardContent>
         </Card>
       </div>
@@ -167,6 +186,18 @@ export const WrestlerIntelligenceDashboard = () => {
             timePeriod={selectedTimePeriod}
           />
 
+          {/* Show data status */}
+          {newsItems.length > 0 && (
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Data Status: {newsItems.length} news articles analyzed • {filteredAnalysis.length} wrestlers with mentions</span>
+                  <span>Last updated: {new Date().toLocaleTimeString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* PUSH Top 10 and BURIED Worst 10 Charts */}
           <PushBurialCharts
             topPushWrestlers={topPushWrestlers}
@@ -199,6 +230,12 @@ export const WrestlerIntelligenceDashboard = () => {
                     rank={index + 1}
                   />
                 ))}
+                {filteredAnalysis.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">
+                    No wrestler analysis available for the selected time period.
+                    Try selecting a longer time period or check back later for more news data.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
