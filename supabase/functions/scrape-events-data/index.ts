@@ -63,7 +63,6 @@ async function scrapeWWEEvents(): Promise<EventData[]> {
     }
     
     // Add weekly shows with proper scheduling
-    const today = new Date();
     const weeklyShows = [
       {
         name: 'Monday Night Raw',
@@ -389,10 +388,7 @@ serve(async (req) => {
           }
           
           if (promotion) {
-            // Create a unique identifier for the event to avoid duplicates
-            const eventIdentifier = `${eventData.name.toLowerCase().replace(/\s+/g, '-')}-${eventData.date}`;
-            
-            // Insert or update event
+            // Insert or update event using the correct unique constraint
             const { error } = await supabaseClient
               .from('wrestling_events')
               .upsert({
@@ -409,7 +405,7 @@ serve(async (req) => {
                 is_recurring: eventData.eventType === 'weekly',
                 day_of_week: eventData.eventType === 'weekly' ? new Date(eventData.date).getDay() : null,
               }, {
-                onConflict: 'name,promotion_id,event_date',
+                onConflict: 'unique_event_per_promotion_date',
                 ignoreDuplicates: false
               });
             
