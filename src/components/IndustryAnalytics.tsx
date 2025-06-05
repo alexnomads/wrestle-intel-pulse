@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Users, Activity } from "lucide-react";
 import { WrestlenomicsDataDisplay } from "./WrestlenomicsDataDisplay";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
+import { analyzeSentiment } from "@/services/wrestlingDataService";
 
 interface PromotionMetrics {
   promotion: string;
@@ -43,14 +44,14 @@ export const IndustryAnalytics = () => {
         return count + wrestlerMatches.length;
       }, 0);
       
-      // Calculate sentiment from news
+      // Calculate sentiment from news using the sentiment analysis service
       let totalSentiment = 0;
       let sentimentCount = 0;
       promotionNews.forEach(item => {
-        if (item.sentiment_score !== null && item.sentiment_score !== undefined) {
-          totalSentiment += item.sentiment_score;
-          sentimentCount++;
-        }
+        const content = `${item.title} ${item.contentSnippet || ''}`;
+        const sentiment = analyzeSentiment(content);
+        totalSentiment += sentiment.score;
+        sentimentCount++;
       });
       
       const avgSentiment = sentimentCount > 0 ? totalSentiment / sentimentCount : 0.5;
