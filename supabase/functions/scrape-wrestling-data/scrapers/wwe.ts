@@ -7,157 +7,254 @@ export async function scrapeWWEFromWikipedia(): Promise<WrestlerData[]> {
     
     const wrestlers: WrestlerData[] = [];
     
-    // Fetch current WWE roster from Wikipedia with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
+    // Fetch the Wikipedia page for WWE personnel
     const response = await fetch('https://en.wikipedia.org/wiki/List_of_WWE_personnel', {
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const html = await response.text();
-    console.log('Fetched WWE Wikipedia page successfully');
-    
-    // Current WWE Champions as of June 2025 (hardcoded for reliability)
-    const currentChampions = [
-      { name: "John Cena", real_name: "John Felix Anthony Cena Jr.", status: "Active", brand: "WWE", division: "men", hometown: "West Newbury, Massachusetts", finisher: "Attitude Adjustment", is_champion: true, championship_title: "WWE Championship" },
-      { name: "Jey Uso", real_name: "Joshua Samuel Fatu", status: "Active", brand: "WWE", division: "men", hometown: "San Francisco, California", finisher: "Superkick", is_champion: true, championship_title: "World Heavyweight Championship" },
-      { name: "Dominik Mysterio", real_name: "Dominik Gutiérrez", status: "Active", brand: "WWE", division: "men", hometown: "San Diego, California", finisher: "Frog Splash", is_champion: true, championship_title: "Intercontinental Championship" },
-      { name: "Jacob Fatu", real_name: "Jacob Fatu", status: "Active", brand: "WWE", division: "men", hometown: "Sacramento, California", finisher: "Moonsault", is_champion: true, championship_title: "United States Championship" },
-      { name: "Xavier Woods", real_name: "Austin Watson", status: "Active", brand: "WWE", division: "men", hometown: "Atlanta, Georgia", finisher: "Lost in the Woods", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Kofi Kingston", real_name: "Kofi Nahaje Sarkodie-Mensah", status: "Active", brand: "WWE", division: "men", hometown: "Ghana", finisher: "Trouble in Paradise", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Angelo Dawkins", real_name: "Angelo Dawkins", status: "Active", brand: "WWE", division: "men", hometown: "Cincinnati, Ohio", finisher: "Cash Out", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Montez Ford", real_name: "Kenneth Crawford", status: "Active", brand: "WWE", division: "men", hometown: "Chicago, Illinois", finisher: "From the Heavens", is_champion: true, championship_title: "World Tag Team Championship" }
-    ];
-    
-    // Add current champions to wrestlers array
-    wrestlers.push(...currentChampions);
-    
-    // Use regex patterns to extract wrestler names from the HTML since DOMParser isn't available
-    const namePatterns = [
-      // Pattern for table rows with wrestler names
-      /<tr[^>]*>[\s\S]*?<td[^>]*>[\s\S]*?<a[^>]*title="([^"]*)"[^>]*>([^<]+)<\/a>[\s\S]*?<\/tr>/gi,
-      // Pattern for simple links to wrestler pages
-      /<a[^>]*href="\/wiki\/([^"]*)"[^>]*title="([^"]*)"[^>]*>([^<]+)<\/a>/gi
-    ];
-    
-    const extractedNames = new Set<string>();
-    
-    for (const pattern of namePatterns) {
-      let match;
-      while ((match = pattern.exec(html)) !== null) {
-        const name = match[2] || match[3];
-        if (name && name.length > 2 && !name.includes('WWE') && !name.includes('Championship')) {
-          // Clean the name
-          const cleanName = name.replace(/\([^)]*\)/g, '').trim();
-          if (cleanName.length > 2 && !cleanName.toLowerCase().includes('list of') && !cleanName.toLowerCase().includes('category:')) {
-            extractedNames.add(cleanName);
-          }
-        }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Wrestling-Data-Scraper/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       }
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch WWE Wikipedia page:', response.status);
+      return getFallbackWWEData();
     }
+
+    const html = await response.text();
+    console.log(`Retrieved WWE Wikipedia page, length: ${html.length}`);
     
-    // Common WWE wrestler names to ensure we have a good roster
-    const knownWWEWrestlers = [
-      { name: "Roman Reigns", real_name: "Leati Joseph Anoa'i" },
-      { name: "Seth Rollins", real_name: "Colby Daniel Lopez" },
-      { name: "Drew McIntyre", real_name: "Andrew McLean Galloway IV" },
-      { name: "Cody Rhodes", real_name: "Cody Garrett Runnels" },
-      { name: "CM Punk", real_name: "Phillip Jack Brooks" },
-      { name: "Rhea Ripley", real_name: "Demi Bennett" },
-      { name: "Bianca Belair", real_name: "Bianca Nicole Blair" },
-      { name: "Bayley", real_name: "Pamela Rose Martinez" },
-      { name: "Liv Morgan", real_name: "Gionna Jene Daddio" },
-      { name: "Jade Cargill", real_name: "Jade Cargill" },
-      { name: "LA Knight", real_name: "Shaun Ricker" },
-      { name: "Bron Breakker", real_name: "Bronson Rechsteiner" },
-      { name: "Gunther", real_name: "Walter Hahn" },
-      { name: "Finn Balor", real_name: "Fergal Devitt" },
-      { name: "JD McDonagh", real_name: "Jordan Devlin" },
-      { name: "Damian Priest", real_name: "Luis Martinez" },
-      { name: "Rey Mysterio", real_name: "Óscar Gutiérrez" },
-      { name: "Kevin Owens", real_name: "Kevin Yanick Steen" },
-      { name: "Randy Orton", real_name: "Randal Keith Orton" },
-      { name: "AJ Styles", real_name: "Allen Neal Jones" },
-      { name: "The Miz", real_name: "Michael Gregory Mizanin" },
-      { name: "Bobby Lashley", real_name: "Franklin Roberto Lashley" },
-      { name: "Braun Strowman", real_name: "Adam Joseph Scherr" },
-      { name: "Sheamus", real_name: "Stephen Farrelly" },
-      { name: "Ricochet", real_name: "Trevor Dean Mann" },
-      { name: "Chad Gable", real_name: "Charles Betts" },
-      { name: "Otis", real_name: "Nikola Bogojevic" },
-      { name: "Grayson Waller", real_name: "Matheus Clement" },
-      { name: "Austin Theory", real_name: "Austin White" },
-      { name: "Solo Sikoa", real_name: "Joseph Fatu" },
-      { name: "Jimmy Uso", real_name: "Jonathan Solofa Fatu" },
-      { name: "Tama Tonga", real_name: "Alipate Aloisio Leone" },
-      { name: "Tonga Loa", real_name: "Tevita Tu'amoeloa Fetaiakimoeata Fifita" },
-      { name: "Nia Jax", real_name: "Savelina Fanene" },
-      { name: "Iyo Sky", real_name: "Masami Odate" },
-      { name: "Dakota Kai", real_name: "Cheree Georgina Crowley" },
-      { name: "Kairi Sane", real_name: "Kaori Housako" },
-      { name: "Shayna Baszler", real_name: "Shayna Andrea Baszler" },
-      { name: "Zoey Stark", real_name: "Theresa Serrano" },
-      { name: "Candice LeRae", real_name: "Candice LeRae Gargano" },
-      { name: "Indi Hartwell", real_name: "Samantha De Martin" }
-    ];
+    // Parse wrestler data from the HTML
+    const parsedWrestlers = parseWWEWikipediaPage(html);
+    wrestlers.push(...parsedWrestlers);
     
-    // Add known wrestlers to the list
-    for (const wrestler of knownWWEWrestlers) {
-      const championData = currentChampions.find(c => c.name === wrestler.name);
-      
-      const wrestlerData: WrestlerData = {
-        name: wrestler.name,
-        real_name: wrestler.real_name,
-        status: "Active",
-        brand: "WWE",
-        division: wrestler.name.includes("Nia Jax") || wrestler.name.includes("Iyo Sky") || 
-                 wrestler.name.includes("Dakota Kai") || wrestler.name.includes("Kairi Sane") || 
-                 wrestler.name.includes("Shayna Baszler") || wrestler.name.includes("Zoey Stark") || 
-                 wrestler.name.includes("Candice LeRae") || wrestler.name.includes("Indi Hartwell") || 
-                 wrestler.name.includes("Rhea Ripley") || wrestler.name.includes("Bianca Belair") || 
-                 wrestler.name.includes("Bayley") || wrestler.name.includes("Liv Morgan") || 
-                 wrestler.name.includes("Jade Cargill") ? "women" : "men",
-        hometown: "",
-        finisher: "",
-        is_champion: championData ? true : false,
-        championship_title: championData ? championData.championship_title : null
-      };
-      
-      wrestlers.push(wrestlerData);
-    }
-    
-    // Remove duplicates based on name
-    const uniqueWrestlers = wrestlers.filter((wrestler, index, self) => 
-      index === self.findIndex(w => w.name.toLowerCase() === wrestler.name.toLowerCase())
-    );
-    
-    console.log(`Found ${uniqueWrestlers.length} total WWE wrestlers`);
-    console.log(`Found ${currentChampions.length} WWE champions`);
-    
-    return uniqueWrestlers;
+    console.log(`Successfully parsed ${wrestlers.length} WWE wrestlers from Wikipedia`);
+    return wrestlers;
     
   } catch (error) {
     console.error('Error scraping WWE from Wikipedia:', error);
-    
-    // Fallback: return at least the current champions so we don't have 0 wrestlers
-    const fallbackChampions = [
-      { name: "John Cena", real_name: "John Felix Anthony Cena Jr.", status: "Active", brand: "WWE", division: "men", hometown: "West Newbury, Massachusetts", finisher: "Attitude Adjustment", is_champion: true, championship_title: "WWE Championship" },
-      { name: "Jey Uso", real_name: "Joshua Samuel Fatu", status: "Active", brand: "WWE", division: "men", hometown: "San Francisco, California", finisher: "Superkick", is_champion: true, championship_title: "World Heavyweight Championship" },
-      { name: "Dominik Mysterio", real_name: "Dominik Gutiérrez", status: "Active", brand: "WWE", division: "men", hometown: "San Diego, California", finisher: "Frog Splash", is_champion: true, championship_title: "Intercontinental Championship" },
-      { name: "Jacob Fatu", real_name: "Jacob Fatu", status: "Active", brand: "WWE", division: "men", hometown: "Sacramento, California", finisher: "Moonsault", is_champion: true, championship_title: "United States Championship" },
-      { name: "Xavier Woods", real_name: "Austin Watson", status: "Active", brand: "WWE", division: "men", hometown: "Atlanta, Georgia", finisher: "Lost in the Woods", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Kofi Kingston", real_name: "Kofi Nahaje Sarkodie-Mensah", status: "Active", brand: "WWE", division: "men", hometown: "Ghana", finisher: "Trouble in Paradise", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Angelo Dawkins", real_name: "Angelo Dawkins", status: "Active", brand: "WWE", division: "men", hometown: "Cincinnati, Ohio", finisher: "Cash Out", is_champion: true, championship_title: "World Tag Team Championship" },
-      { name: "Montez Ford", real_name: "Kenneth Crawford", status: "Active", brand: "WWE", division: "men", hometown: "Chicago, Illinois", finisher: "From the Heavens", is_champion: true, championship_title: "World Tag Team Championship" }
-    ];
-    
-    console.log('Returning fallback champions to ensure database has WWE data');
-    return fallbackChampions;
+    return getFallbackWWEData();
   }
+}
+
+function parseWWEWikipediaPage(html: string): WrestlerData[] {
+  const wrestlers: WrestlerData[] = [];
+  
+  try {
+    // Look for wrestler data in tables with specific patterns
+    // WWE Wikipedia typically has tables for Raw, SmackDown, and other brands
+    
+    // Pattern 1: Standard wrestler table rows
+    const wrestlerPattern = /<tr[^>]*>[\s\S]*?<td[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?<\/td>[\s\S]*?<td[^>]*>([^<]*)<\/td>[\s\S]*?<td[^>]*>([^<]*)<\/td>[\s\S]*?<\/tr>/gi;
+    
+    let match;
+    let currentBrand = '';
+    
+    // Detect brand sections in the page
+    const brandSectionPattern = /<span[^>]*class="mw-headline"[^>]*id="([^"]*)"[^>]*>([^<]*(?:Raw|SmackDown|NXT))/gi;
+    let brandMatch;
+    const brandPositions: { brand: string; position: number }[] = [];
+    
+    while ((brandMatch = brandSectionPattern.exec(html)) !== null) {
+      brandPositions.push({
+        brand: brandMatch[2].trim(),
+        position: brandMatch.index
+      });
+    }
+    
+    // Parse wrestler entries
+    while ((match = wrestlerPattern.exec(html)) !== null) {
+      const name = match[2]?.trim() || '';
+      const realName = match[1]?.trim() || '';
+      const status = 'Active'; // Assume active if on current roster
+      
+      // Determine brand based on position in HTML
+      let brand = 'WWE';
+      for (const brandPos of brandPositions.reverse()) {
+        if (match.index > brandPos.position) {
+          brand = brandPos.brand;
+          break;
+        }
+      }
+      
+      if (name && name.length > 2) {
+        const wrestler: WrestlerData = {
+          name: name,
+          real_name: realName !== name ? realName : null,
+          status: status,
+          brand: brand,
+          division: inferGender(name, realName),
+          hometown: '',
+          finisher: '',
+          height: '',
+          weight: '',
+          is_champion: false,
+          championship_title: null
+        };
+        
+        wrestlers.push(wrestler);
+        console.log(`Added WWE wrestler: ${name} (${brand})`);
+      }
+    }
+    
+    // If we didn't get many results, try alternative parsing
+    if (wrestlers.length < 10) {
+      console.log('Low wrestler count, trying alternative parsing...');
+      
+      // Look for simpler link patterns
+      const simplePattern = /<a[^>]*href="\/wiki\/[^"]*"[^>]*title="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+      const potentialWrestlers = new Set<string>();
+      
+      while ((match = simplePattern.exec(html)) !== null) {
+        const title = match[1]?.trim() || '';
+        const text = match[2]?.trim() || '';
+        
+        // Filter for likely wrestler names (avoid other Wikipedia links)
+        if (isLikelyWrestlerName(text) && !title.includes('(wrestler)') === false) {
+          potentialWrestlers.add(text);
+        }
+      }
+      
+      // Add potential wrestlers
+      for (const name of Array.from(potentialWrestlers).slice(0, 50)) {
+        wrestlers.push({
+          name: name,
+          real_name: null,
+          status: 'Active',
+          brand: 'WWE',
+          division: inferGender(name),
+          hometown: '',
+          finisher: '',
+          height: '',
+          weight: '',
+          is_champion: false,
+          championship_title: null
+        });
+      }
+    }
+    
+    return wrestlers;
+    
+  } catch (error) {
+    console.error('Error parsing WWE Wikipedia page:', error);
+    return [];
+  }
+}
+
+function isLikelyWrestlerName(name: string): boolean {
+  // Basic heuristics for wrestler names
+  const words = name.split(' ');
+  
+  // Must be 1-4 words
+  if (words.length < 1 || words.length > 4) return false;
+  
+  // Must be reasonable length
+  if (name.length < 3 || name.length > 40) return false;
+  
+  // Exclude common non-wrestler terms
+  const excludeTerms = [
+    'championship', 'title', 'match', 'event', 'show', 'network',
+    'episode', 'season', 'year', 'month', 'week', 'time', 'date',
+    'wikipedia', 'edit', 'source', 'reference', 'category', 'template'
+  ];
+  
+  const lowerName = name.toLowerCase();
+  for (const term of excludeTerms) {
+    if (lowerName.includes(term)) return false;
+  }
+  
+  // Must start with capital letter
+  if (!/^[A-Z]/.test(name)) return false;
+  
+  return true;
+}
+
+function inferGender(name: string, realName?: string): 'men' | 'women' {
+  const femaleIndicators = [
+    'woman', 'lady', 'girl', 'queen', 'princess', 'duchess', 'empress',
+    // Common female wrestler names/nicknames
+    'rhea', 'bianca', 'becky', 'charlotte', 'sasha', 'bayley', 'asuka',
+    'alexa', 'nikki', 'brie', 'naomi', 'zelina', 'dakota', 'toni',
+    'candice', 'indi', 'raquel', 'shayna', 'ronda', 'liv', 'dana'
+  ];
+  
+  const searchText = `${name} ${realName || ''}`.toLowerCase();
+  
+  for (const indicator of femaleIndicators) {
+    if (searchText.includes(indicator)) {
+      return 'women';
+    }
+  }
+  
+  return 'men'; // Default to men's division
+}
+
+function getFallbackWWEData(): WrestlerData[] {
+  // Fallback data based on known current WWE roster
+  return [
+    {
+      name: "Roman Reigns",
+      real_name: "Leati Joseph Anoa'i",
+      status: "Active",
+      brand: "SmackDown",
+      division: "men",
+      hometown: "Pensacola, Florida",
+      finisher: "Spear",
+      height: "6'3\"",
+      weight: "265 lbs",
+      is_champion: true,
+      championship_title: "Undisputed WWE Championship"
+    },
+    {
+      name: "CM Punk",
+      real_name: "Phil Brooks",
+      status: "Active", 
+      brand: "Raw",
+      division: "men",
+      hometown: "Chicago, Illinois",
+      finisher: "GTS",
+      height: "6'2\"",
+      weight: "218 lbs",
+      is_champion: false,
+      championship_title: null
+    },
+    {
+      name: "Cody Rhodes",
+      real_name: "Cody Garrett Runnels",
+      status: "Active",
+      brand: "SmackDown", 
+      division: "men",
+      hometown: "Marietta, Georgia",
+      finisher: "Cross Rhodes",
+      height: "6'1\"",
+      weight: "225 lbs",
+      is_champion: false,
+      championship_title: null
+    },
+    {
+      name: "Rhea Ripley",
+      real_name: "Demi Bennett",
+      status: "Active",
+      brand: "Raw",
+      division: "women",
+      hometown: "Adelaide, Australia", 
+      finisher: "Riptide",
+      height: "5'7\"",
+      weight: "137 lbs",
+      is_champion: false,
+      championship_title: null
+    },
+    {
+      name: "Bianca Belair",
+      real_name: "Bianca Crawford",
+      status: "Active",
+      brand: "SmackDown",
+      division: "women",
+      hometown: "Knoxville, Tennessee",
+      finisher: "K.O.D.",
+      height: "5'7\"", 
+      weight: "165 lbs",
+      is_champion: false,
+      championship_title: null
+    }
+  ];
 }
