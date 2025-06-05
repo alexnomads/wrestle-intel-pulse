@@ -23,8 +23,19 @@ export const WrestlerIntelligenceDashboard = () => {
   // Real data hooks
   const { data: wrestlerMomentum = [], isLoading: momentumLoading, refetch: refetchMomentum } = useWrestlerMomentumAnalysis();
   const { data: trendingTopics = [] } = useAdvancedTrendingTopics();
-  const { data: wrestlers = [] } = useSupabaseWrestlers();
-  const { data: newsItems = [] } = useRSSFeeds();
+  const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
+  const { data: newsItems = [], isLoading: newsLoading, error: newsError } = useRSSFeeds();
+
+  // Log data for debugging
+  console.log('Dashboard Data:', {
+    wrestlers: wrestlers.length,
+    newsItems: newsItems.length,
+    wrestlersLoading,
+    newsLoading,
+    newsError,
+    selectedTimePeriod,
+    selectedPromotion
+  });
 
   // Analysis hook
   const {
@@ -49,11 +60,63 @@ export const WrestlerIntelligenceDashboard = () => {
     refetchMomentum();
   };
 
-  if (momentumLoading) {
+  if (momentumLoading || wrestlersLoading || newsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
         <span className="ml-2 text-lg">Analyzing wrestler intelligence...</span>
+      </div>
+    );
+  }
+
+  // Show error state if we have no data
+  if (newsError || (wrestlers.length === 0 && newsItems.length === 0)) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
+          <div className="flex items-center space-x-4">
+            <div className="flex space-x-2">
+              {(['30', '60', '180', '365'] as TimePeriod[]).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setSelectedTimePeriod(period)}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    selectedTimePeriod === period
+                      ? 'bg-wrestling-electric text-white'
+                      : 'bg-secondary text-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {period} Days
+                </button>
+              ))}
+            </div>
+            
+            <DashboardFilters
+              selectedPromotion={selectedPromotion}
+              onPromotionChange={setSelectedPromotion}
+              selectedMetric="push"
+              onMetricChange={() => {}}
+              onRefresh={handleRefresh}
+              isLoading={momentumLoading}
+            />
+          </div>
+        </div>
+
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <div className="text-lg font-semibold text-foreground mb-2">
+              Unable to load analytics data
+            </div>
+            <div className="text-sm text-muted-foreground mb-4">
+              {newsError ? 'Error loading news data' : 'No wrestler or news data available'}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Debug: Wrestlers: {wrestlers.length}, News: {newsItems.length}
+              {newsError && <div>Error: {newsError.message}</div>}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

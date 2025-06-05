@@ -1,50 +1,92 @@
 
-// Enhanced sentiment analysis using real keyword detection
-export const analyzeSentiment = (text: string): { score: number; keywords: string[] } => {
-  const positiveKeywords = [
-    'amazing', 'incredible', 'fantastic', 'brilliant', 'outstanding', 'excellent',
-    'awesome', 'great', 'love', 'perfect', 'phenomenal', 'legendary', 'classic',
-    'champion', 'victory', 'win', 'success', 'return', 'debut', 'breakthrough'
+// Simple sentiment analysis and wrestler mention extraction
+export interface SentimentResult {
+  score: number; // 0-1 scale where 0.5 is neutral
+  magnitude: number;
+}
+
+// Simple keyword-based sentiment analysis
+export const analyzeSentiment = (text: string): SentimentResult => {
+  if (!text || text.trim().length === 0) {
+    return { score: 0.5, magnitude: 0 };
+  }
+
+  const positiveWords = [
+    'champion', 'winner', 'victory', 'successful', 'amazing', 'great', 'excellent',
+    'outstanding', 'impressive', 'dominant', 'powerful', 'strong', 'talented',
+    'skilled', 'push', 'rising', 'star', 'featured', 'main event', 'title shot',
+    'breakthrough', 'momentum', 'hot', 'over', 'popular', 'crowd favorite'
   ];
-  
-  const negativeKeywords = [
-    'terrible', 'awful', 'horrible', 'disappointing', 'boring', 'bad',
-    'hate', 'worst', 'disaster', 'failure', 'flop', 'painful', 'cringe',
-    'injury', 'injured', 'lose', 'defeat', 'suspended', 'controversy', 'burial'
+
+  const negativeWords = [
+    'lost', 'defeated', 'failed', 'terrible', 'awful', 'bad', 'worst',
+    'weak', 'buried', 'jobber', 'squash', 'destruction', 'dominated',
+    'crushed', 'embarrassed', 'humiliated', 'flop', 'boring', 'stale',
+    'heat', 'go away', 'change channel', 'bathroom break', 'boring'
   ];
+
+  const words = text.toLowerCase().split(/\s+/);
+  let positiveScore = 0;
+  let negativeScore = 0;
+
+  words.forEach(word => {
+    if (positiveWords.some(pos => word.includes(pos))) {
+      positiveScore++;
+    }
+    if (negativeWords.some(neg => word.includes(neg))) {
+      negativeScore++;
+    }
+  });
+
+  const totalWords = words.length;
+  const magnitude = (positiveScore + negativeScore) / totalWords;
   
-  const content = text.toLowerCase();
-  const foundPositive = positiveKeywords.filter(word => content.includes(word));
-  const foundNegative = negativeKeywords.filter(word => content.includes(word));
-  
-  const positiveScore = foundPositive.length;
-  const negativeScore = foundNegative.length;
-  
+  // Calculate sentiment score (0-1 scale)
   let score = 0.5; // neutral
   if (positiveScore > negativeScore) {
-    score = Math.min(0.5 + (positiveScore * 0.1), 1.0);
+    score = 0.5 + (positiveScore / (positiveScore + negativeScore)) * 0.4;
   } else if (negativeScore > positiveScore) {
-    score = Math.max(0.5 - (negativeScore * 0.1), 0.0);
+    score = 0.5 - (negativeScore / (positiveScore + negativeScore)) * 0.4;
   }
-  
+
   return {
-    score,
-    keywords: [...foundPositive, ...foundNegative]
+    score: Math.max(0, Math.min(1, score)),
+    magnitude: Math.max(0, Math.min(1, magnitude))
   };
 };
 
 // Extract wrestler mentions from text
 export const extractWrestlerMentions = (text: string): string[] => {
-  // Common wrestling names that might appear in content
-  const wrestlerNames = [
-    'CM Punk', 'Roman Reigns', 'Cody Rhodes', 'Seth Rollins', 'Drew McIntyre',
-    'Jon Moxley', 'Kenny Omega', 'Will Ospreay', 'Rhea Ripley', 'Bianca Belair',
-    'Becky Lynch', 'Sasha Banks', 'Mercedes Moné', 'Jade Cargill', 'Toni Storm',
-    'Gunther', 'Damian Priest', 'LA Knight', 'Jey Uso', 'Jimmy Uso'
+  if (!text || text.trim().length === 0) {
+    return [];
+  }
+
+  // Common wrestler name patterns and variations
+  const wrestlerPatterns = [
+    // Full names that might appear
+    /\b(Roman Reigns?|Seth Rollins?|Drew McIntyre|Cody Rhodes|LA Knight|John Cena)\b/gi,
+    /\b(Jon Moxley|Kenny Omega|CM Punk|Adam Cole|MJF|Hangman Page)\b/gi,
+    /\b(Trick Williams|Ilja Dragunov|Roxanne Perez|Rhea Ripley)\b/gi,
+    /\b(Jordynne Grace|Moose|Eddie Edwards|Rich Swann)\b/gi,
+    
+    // Single names that are distinctive
+    /\b(Gunther|Rollins|Reigns|Cena|Punk|Omega|Moxley|Hangman)\b/gi,
+    /\b(Rhea|Roxanne|Jordynne|Moose|Trick)\b/gi,
+    
+    // Tag teams and stables
+    /\b(New Day|Judgment Day|Bloodline|Elite|House of Black)\b/gi,
+    /\b(Motor City Machine Guns|Death Triangle|Private Party)\b/gi
   ];
+
+  const mentions: string[] = [];
   
-  const content = text.toLowerCase();
-  return wrestlerNames.filter(name => 
-    content.includes(name.toLowerCase())
-  );
+  wrestlerPatterns.forEach(pattern => {
+    const matches = text.match(pattern);
+    if (matches) {
+      mentions.push(...matches.map(match => match.trim()));
+    }
+  });
+
+  // Remove duplicates and return
+  return [...new Set(mentions)];
 };

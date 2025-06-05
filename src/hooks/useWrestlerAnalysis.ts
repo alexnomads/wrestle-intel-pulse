@@ -39,6 +39,13 @@ export const useWrestlerAnalysis = (
   selectedTimePeriod: string,
   selectedPromotion: string
 ) => {
+  console.log('useWrestlerAnalysis - Input data:', {
+    wrestlersCount: wrestlers.length,
+    newsItemsCount: newsItems.length,
+    selectedTimePeriod,
+    selectedPromotion
+  });
+
   const filteredWrestlers = useMemo(() => {
     return selectedPromotion === 'all' 
       ? wrestlers 
@@ -53,19 +60,46 @@ export const useWrestlerAnalysis = (
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - periodDays);
     
-    return newsItems.filter(item => {
+    const filtered = newsItems.filter(item => {
       const itemDate = new Date(item.pubDate);
       return itemDate >= cutoffDate;
     });
+    
+    console.log('Filtered news items:', {
+      total: newsItems.length,
+      filtered: filtered.length,
+      cutoffDate: cutoffDate.toISOString()
+    });
+    
+    return filtered;
   }, [newsItems, selectedTimePeriod]);
 
   const pushBurialAnalysis = useMemo(() => {
-    if (!wrestlers.length) return [];
+    if (!wrestlers.length) {
+      console.log('No wrestlers data available');
+      return [];
+    }
     
-    return wrestlers.map(wrestler => {
-      const wrestlerNews = periodNewsItems.filter(item => 
-        extractWrestlerMentions(`${item.title} ${item.contentSnippet}`).includes(wrestler.name)
-      );
+    console.log('Generating push/burial analysis for', wrestlers.length, 'wrestlers');
+    
+    const analysis = wrestlers.map(wrestler => {
+      // Find mentions in news for this wrestler
+      const wrestlerNews = periodNewsItems.filter(item => {
+        const text = `${item.title} ${item.contentSnippet}`.toLowerCase();
+        const wrestlerName = wrestler.name.toLowerCase();
+        
+        // Check if wrestler name appears in the text
+        const hasDirectMention = text.includes(wrestlerName);
+        
+        // Also check extracted mentions
+        const mentions = extractWrestlerMentions(`${item.title} ${item.contentSnippet}`);
+        const hasExtractedMention = mentions.some(mention => 
+          mention.toLowerCase().includes(wrestlerName) || 
+          wrestlerName.includes(mention.toLowerCase())
+        );
+        
+        return hasDirectMention || hasExtractedMention;
+      });
       
       let pushScore = 0;
       let burialScore = 0;
@@ -88,9 +122,9 @@ export const useWrestlerAnalysis = (
       const avgSentiment = totalMentions > 0 ? totalSentiment / totalMentions : 0.5;
       
       let trend: 'push' | 'burial' | 'stable' = 'stable';
-      if (pushPercentage > burialPercentage && pushPercentage > 30) {
+      if (pushPercentage > burialPercentage && pushPercentage > 20) {
         trend = 'push';
-      } else if (burialPercentage > pushPercentage && burialPercentage > 30) {
+      } else if (burialPercentage > pushPercentage && burialPercentage > 20) {
         trend = 'burial';
       }
 
@@ -98,9 +132,9 @@ export const useWrestlerAnalysis = (
       const momentumScore = totalMentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
       
       // Determine if wrestler is "on fire" (high mentions + positive sentiment + strong trend)
-      const isOnFire = totalMentions >= 5 && avgSentiment > 0.7 && pushPercentage > 50;
+      const isOnFire = totalMentions >= 3 && avgSentiment > 0.65 && pushPercentage > 40;
 
-      return {
+      const result = {
         id: wrestler.id,
         wrestler_name: wrestler.name,
         promotion: wrestler.brand || 'Unknown',
@@ -117,7 +151,22 @@ export const useWrestlerAnalysis = (
         isOnFire,
         momentumScore
       };
+      
+      if (totalMentions > 0) {
+        console.log(`Wrestler: ${wrestler.name}, Mentions: ${totalMentions}, Trend: ${trend}, Sentiment: ${avgSentiment.toFixed(2)}`);
+      }
+      
+      return result;
     });
+    
+    console.log('Analysis complete:', {
+      totalAnalyzed: analysis.length,
+      withMentions: analysis.filter(a => a.totalMentions > 0).length,
+      pushTrend: analysis.filter(a => a.trend === 'push').length,
+      burialTrend: analysis.filter(a => a.trend === 'burial').length
+    });
+    
+    return analysis;
   }, [wrestlers, periodNewsItems]);
 
   const filteredAnalysis = useMemo(() => {
