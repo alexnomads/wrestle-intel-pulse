@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, AlertCircle } from "lucide-react";
@@ -6,7 +7,6 @@ import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { useWrestlerAnalysis } from "@/hooks/useWrestlerAnalysis";
 import { MomentumLeaderCard } from "./wrestler-intelligence/MomentumLeaderCard";
-import { PushBurialCard } from "./wrestler-intelligence/PushBurialCard";
 import { ContractStatusCard } from "./wrestler-intelligence/ContractStatusCard";
 import { DashboardFilters } from "./wrestler-intelligence/DashboardFilters";
 import { EmptyWrestlerState } from "./wrestler-intelligence/EmptyWrestlerState";
@@ -44,16 +44,6 @@ export const WrestlerIntelligenceDashboard = () => {
     topPushWrestlers,
     worstBuriedWrestlers
   } = useWrestlerAnalysis(wrestlers, newsItems, selectedTimePeriod, selectedPromotion);
-
-  // Generate push/burial data for cards
-  const pushBurialData = filteredAnalysis.map(wrestler => ({
-    name: wrestler.wrestler_name,
-    promotion: wrestler.promotion,
-    pushScore: wrestler.pushScore,
-    burialRisk: wrestler.burialScore,
-    trend: wrestler.trend,
-    evidence: wrestler.evidence
-  }));
 
   const handleRefresh = () => {
     refetchMomentum();
@@ -240,61 +230,6 @@ export const WrestlerIntelligenceDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Push/Burial Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Top Pushes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {pushBurialData
-                    .filter(w => w.trend === 'push')
-                    .slice(0, 5)
-                    .map((wrestler, index) => (
-                      <PushBurialCard
-                        key={wrestler.name}
-                        wrestler={wrestler}
-                        type="push"
-                        rank={index + 1}
-                      />
-                    ))}
-                  {pushBurialData.filter(w => w.trend === 'push').length === 0 && (
-                    <div className="text-center text-muted-foreground py-4">
-                      No wrestlers currently receiving a strong push in the last {selectedTimePeriod} days
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Burial Watch</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {pushBurialData
-                    .filter(w => w.trend === 'burial')
-                    .slice(0, 5)
-                    .map((wrestler, index) => (
-                      <PushBurialCard
-                        key={wrestler.name}
-                        wrestler={wrestler}
-                        type="burial"
-                        rank={index + 1}
-                      />
-                    ))}
-                  {pushBurialData.filter(w => w.trend === 'burial').length === 0 && (
-                    <div className="text-center text-muted-foreground py-4">
-                      No wrestlers currently being buried in the last {selectedTimePeriod} days
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Media Coverage Analysis */}
           <Card className="glass-card">
             <CardHeader>
@@ -302,7 +237,7 @@ export const WrestlerIntelligenceDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {filteredAnalysis.slice(0, 8).map((wrestler) => (
+                {filteredAnalysis.slice(0, 15).map((wrestler) => (
                   <ContractStatusCard
                     key={wrestler.id}
                     contract={{

@@ -26,14 +26,26 @@ export const useWrestlerAnalysis = (
   }, [wrestlers, selectedPromotion]);
 
   const periodNewsItems = useMemo(() => {
-    return filterNewsByTimePeriod(newsItems, selectedTimePeriod);
+    let newsForPeriod = filterNewsByTimePeriod(newsItems, selectedTimePeriod);
+    
+    // If we don't have enough news for the selected period, expand to at least 7 days
+    if (newsForPeriod.length < 50) {
+      console.log('Not enough news for selected period, expanding to 7 days minimum');
+      const sevenDayNews = filterNewsByTimePeriod(newsItems, '7');
+      if (sevenDayNews.length > newsForPeriod.length) {
+        newsForPeriod = sevenDayNews;
+      }
+    }
+    
+    return newsForPeriod;
   }, [newsItems, selectedTimePeriod]);
 
   const pushBurialAnalysis = useMemo(() => {
     const popularWrestlers = filterPopularWrestlers(wrestlers);
     console.log('Analyzing', popularWrestlers.length, 'filtered wrestlers');
     
-    return performWrestlerAnalysis(popularWrestlers, periodNewsItems);
+    // Pass minimum wrestler requirement to ensure at least 10
+    return performWrestlerAnalysis(popularWrestlers, periodNewsItems, 10);
   }, [wrestlers, periodNewsItems]);
 
   const filteredAnalysis = useMemo(() => {

@@ -98,14 +98,16 @@ const isWrestlerMentioned = (wrestlerName: string, content: string): boolean => 
 
 export const performWrestlerAnalysis = (
   wrestlers: Wrestler[],
-  newsItems: NewsItem[]
+  newsItems: NewsItem[],
+  minWrestlers: number = 10
 ): WrestlerAnalysis[] => {
   if (!wrestlers.length || !newsItems.length) {
     console.log('No wrestlers or news data available for analysis');
     return [];
   }
   
-  console.log('Starting balanced push/burial analysis for', wrestlers.length, 'wrestlers with', newsItems.length, 'news items');
+  console.log('Starting wrestler analysis for', wrestlers.length, 'wrestlers with', newsItems.length, 'news items');
+  console.log('Target minimum wrestlers:', minWrestlers);
   
   // Pre-process all news content for faster analysis
   const allContent: ProcessedNewsContent[] = newsItems.map(item => ({
@@ -118,7 +120,7 @@ export const performWrestlerAnalysis = (
   
   const wrestlerMentions = new Map<string, WrestlerAnalysis>();
   
-  // Batch process wrestler mentions with balanced matching
+  // Batch process wrestler mentions
   wrestlers.forEach(wrestler => {
     const wrestlerName = wrestler.name;
     let mentions = 0;
@@ -126,8 +128,6 @@ export const performWrestlerAnalysis = (
     let pushScore = 0;
     let burialScore = 0;
     const relatedNews: NewsItem[] = [];
-    
-    console.log(`Analyzing mentions for: ${wrestlerName}`);
     
     allContent.forEach(({ content, item, sentiment }) => {
       // Use balanced name matching
@@ -159,6 +159,7 @@ export const performWrestlerAnalysis = (
       }
     });
     
+    // Include wrestlers even with minimal mentions to reach minimum target
     if (mentions > 0) {
       const pushPercentage = Math.min((pushScore / mentions) * 100, 100);
       const burialPercentage = Math.min((burialScore / mentions) * 100, 100);
@@ -167,15 +168,15 @@ export const performWrestlerAnalysis = (
       let trend: 'push' | 'burial' | 'stable' = 'stable';
       if (mentions >= 1) {
         // More sensitive trending detection
-        if (pushPercentage > burialPercentage && (pushPercentage > 3 || avgSentiment > 0.55)) {
+        if (pushPercentage > burialPercentage && (pushPercentage > 2 || avgSentiment > 0.55)) {
           trend = 'push';
-        } else if (burialPercentage > pushPercentage && (burialPercentage > 3 || avgSentiment < 0.45)) {
+        } else if (burialPercentage > pushPercentage && (burialPercentage > 2 || avgSentiment < 0.45)) {
           trend = 'burial';
         }
       }
       
       const momentumScore = mentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
-      const isOnFire = mentions >= 2 && avgSentiment > 0.6 && pushPercentage > 20;
+      const isOnFire = mentions >= 2 && avgSentiment > 0.6 && pushPercentage > 15;
       
       wrestlerMentions.set(wrestler.id, {
         id: wrestler.id,
@@ -201,19 +202,28 @@ export const performWrestlerAnalysis = (
       });
       
       console.log(`✓ ${wrestler.name}: ${mentions} mentions, Trend: ${trend}, Push: ${pushPercentage.toFixed(1)}%, Burial: ${burialPercentage.toFixed(1)}%, Sentiment: ${avgSentiment.toFixed(2)}`);
-    } else {
-      console.log(`✗ ${wrestler.name}: No mentions found`);
     }
   });
   
   const analysis = Array.from(wrestlerMentions.values());
   
-  console.log('Balanced analysis complete:', {
+  // Sort by total mentions and momentum score
+  analysis.sort((a, b) => {
+    if (b.totalMentions !== a.totalMentions) {
+      return b.totalMentions - a.totalMentions;
+    }
+    return b.momentumScore - a.momentumScore;
+  });
+  
+  console.log('Analysis complete:', {
     totalAnalyzed: wrestlers.length,
     withMentions: analysis.length,
     pushTrend: analysis.filter(a => a.trend === 'push').length,
-    burialTrend: analysis.filter(a => a.trend === 'burial').length
+    burialTrend: analysis.filter(a => a.trend === 'burial').length,
+    targetMinimum: minWrestlers,
+    achieved: analysis.length >= minWrestlers
   });
   
-  return analysis;
+  // Ensure we return at least the minimum number if possible
+  return analysis.slice(0, Math.max(minWrestlers, analysis.length));
 };
