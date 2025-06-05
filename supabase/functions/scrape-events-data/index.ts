@@ -26,39 +26,44 @@ interface EventData {
 }
 
 async function scrapeWWEEvents(): Promise<EventData[]> {
-  console.log('Scraping WWE events...');
+  console.log('Scraping WWE events from official results page...');
   
   try {
-    // Scrape from WWE's official events page
-    const response = await fetch('https://www.wwe.com/shows/events');
+    // Scrape from WWE's official events results page
+    const response = await fetch('https://www.wwe.com/events/results/all-events/all-dates/');
     const html = await response.text();
     
-    // Extract event data using regex patterns
-    const eventRegex = /<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<\/div>/gi;
     const events: EventData[] = [];
     
+    // Extract event cards from WWE results page
+    const eventCardRegex = /<article[^>]*class="[^"]*event-card[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
     let match;
-    while ((match = eventRegex.exec(html)) !== null) {
-      const eventHtml = match[0];
+    
+    while ((match = eventCardRegex.exec(html)) !== null) {
+      const cardHtml = match[1];
       
       // Extract event details
-      const nameMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
-      const dateMatch = eventHtml.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/);
-      const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i);
+      const titleMatch = cardHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
+      const dateMatch = cardHtml.match(/\b\w+\s+\d{1,2},?\s+\d{4}\b/);
+      const locationMatch = cardHtml.match(/location[^>]*>([^<]+)</i) || cardHtml.match(/venue[^>]*>([^<]+)</i);
       
-      if (nameMatch && dateMatch) {
+      if (titleMatch) {
+        const eventName = titleMatch[1].trim();
+        const eventDate = dateMatch ? new Date(dateMatch[0]).toISOString().split('T')[0] : getNextWeekday(1);
+        
         events.push({
-          name: nameMatch[1].trim(),
-          date: dateMatch[0],
-          location: locationMatch?.[1]?.trim(),
+          name: eventName,
+          date: eventDate,
+          location: locationMatch?.[1]?.trim() || 'Various',
           network: 'WWE Network/Peacock',
-          eventType: 'ple',
-          promotionName: 'WWE',
+          eventType: eventName.toLowerCase().includes('raw') || eventName.toLowerCase().includes('smackdown') ? 'weekly' : 'ple',
+          promotionName: eventName.toLowerCase().includes('nxt') ? 'NXT' : 'WWE',
         });
       }
     }
     
-    // Add weekly shows
+    // Add weekly shows with proper scheduling
+    const today = new Date();
     const weeklyShows = [
       {
         name: 'Monday Night Raw',
@@ -78,25 +83,87 @@ async function scrapeWWEEvents(): Promise<EventData[]> {
         eventType: 'weekly',
         promotionName: 'WWE',
       },
+      {
+        name: 'WWE NXT',
+        date: getNextWeekday(2), // Tuesday
+        time: '20:00',
+        location: 'Various',
+        network: 'USA Network',
+        eventType: 'weekly',
+        promotionName: 'NXT',
+      },
     ];
     
     return [...events, ...weeklyShows];
   } catch (error) {
     console.error('Error scraping WWE events:', error);
-    return [];
+    
+    // Fallback to weekly shows if scraping fails
+    return [
+      {
+        name: 'Monday Night Raw',
+        date: getNextWeekday(1),
+        time: '20:00',
+        location: 'Various',
+        network: 'USA Network',
+        eventType: 'weekly',
+        promotionName: 'WWE',
+      },
+      {
+        name: 'Friday Night SmackDown',
+        date: getNextWeekday(5),
+        time: '20:00',
+        location: 'Various',
+        network: 'FOX',
+        eventType: 'weekly',
+        promotionName: 'WWE',
+      },
+      {
+        name: 'WWE NXT',
+        date: getNextWeekday(2),
+        time: '20:00',
+        location: 'Various',
+        network: 'USA Network',
+        eventType: 'weekly',
+        promotionName: 'NXT',
+      },
+    ];
   }
 }
 
 async function scrapeAEWEvents(): Promise<EventData[]> {
-  console.log('Scraping AEW events...');
+  console.log('Scraping AEW events from official events page...');
   
   try {
-    const response = await fetch('https://www.allelitewrestling.com/events');
+    const response = await fetch('https://www.allelitewrestling.com/aew-events');
     const html = await response.text();
     
     const events: EventData[] = [];
     
-    // Add known weekly shows
+    // Look for event information in AEW page
+    const eventRegex = /<div[^>]*class="[^"]*event[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    let match;
+    
+    while ((match = eventRegex.exec(html)) !== null) {
+      const eventHtml = match[1];
+      
+      const titleMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
+      const dateMatch = eventHtml.match(/\b\w+\s+\d{1,2},?\s+\d{4}\b/);
+      const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i);
+      
+      if (titleMatch) {
+        events.push({
+          name: titleMatch[1].trim(),
+          date: dateMatch ? new Date(dateMatch[0]).toISOString().split('T')[0] : getNextWeekday(3),
+          location: locationMatch?.[1]?.trim() || 'Various',
+          network: 'TBS/TNT',
+          eventType: 'ple',
+          promotionName: 'AEW',
+        });
+      }
+    }
+    
+    // Add weekly shows
     const weeklyShows = [
       {
         name: 'AEW Dynamite',
@@ -116,12 +183,113 @@ async function scrapeAEWEvents(): Promise<EventData[]> {
         eventType: 'weekly',
         promotionName: 'AEW',
       },
+      {
+        name: 'AEW Collision',
+        date: getNextWeekday(6), // Saturday
+        time: '20:00',
+        location: 'Various',
+        network: 'TNT',
+        eventType: 'weekly',
+        promotionName: 'AEW',
+      },
     ];
     
-    return weeklyShows;
+    return [...events, ...weeklyShows];
   } catch (error) {
     console.error('Error scraping AEW events:', error);
-    return [];
+    
+    // Fallback to weekly shows
+    return [
+      {
+        name: 'AEW Dynamite',
+        date: getNextWeekday(3),
+        time: '20:00',
+        location: 'Various',
+        network: 'TBS',
+        eventType: 'weekly',
+        promotionName: 'AEW',
+      },
+      {
+        name: 'AEW Rampage',
+        date: getNextWeekday(5),
+        time: '22:00',
+        location: 'Various',
+        network: 'TNT',
+        eventType: 'weekly',
+        promotionName: 'AEW',
+      },
+      {
+        name: 'AEW Collision',
+        date: getNextWeekday(6),
+        time: '20:00',
+        location: 'Various',
+        network: 'TNT',
+        eventType: 'weekly',
+        promotionName: 'AEW',
+      },
+    ];
+  }
+}
+
+async function scrapeTNAEvents(): Promise<EventData[]> {
+  console.log('Scraping TNA events...');
+  
+  try {
+    const response = await fetch('https://tnawrestling.com/events');
+    const html = await response.text();
+    
+    const events: EventData[] = [];
+    
+    // Look for event information in TNA page
+    const eventRegex = /<div[^>]*class="[^"]*event[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    let match;
+    
+    while ((match = eventRegex.exec(html)) !== null) {
+      const eventHtml = match[1];
+      
+      const titleMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
+      const dateMatch = eventHtml.match(/\b\w+\s+\d{1,2},?\s+\d{4}\b/);
+      const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i);
+      
+      if (titleMatch) {
+        events.push({
+          name: titleMatch[1].trim(),
+          date: dateMatch ? new Date(dateMatch[0]).toISOString().split('T')[0] : getNextWeekday(4),
+          location: locationMatch?.[1]?.trim() || 'Various',
+          network: 'AXS TV',
+          eventType: 'ple',
+          promotionName: 'TNA',
+        });
+      }
+    }
+    
+    // Add TNA Impact weekly show
+    events.push({
+      name: 'TNA Impact Wrestling',
+      date: getNextWeekday(4), // Thursday
+      time: '20:00',
+      location: 'Various',
+      network: 'AXS TV',
+      eventType: 'weekly',
+      promotionName: 'TNA',
+    });
+    
+    return events;
+  } catch (error) {
+    console.error('Error scraping TNA events:', error);
+    
+    // Fallback to weekly show
+    return [
+      {
+        name: 'TNA Impact Wrestling',
+        date: getNextWeekday(4),
+        time: '20:00',
+        location: 'Various',
+        network: 'AXS TV',
+        eventType: 'weekly',
+        promotionName: 'TNA',
+      },
+    ];
   }
 }
 
@@ -195,24 +363,35 @@ serve(async (req) => {
     if (action === 'scrape-events') {
       console.log('Starting event scraping...');
       
-      const [wweEvents, aewEvents] = await Promise.all([
+      const [wweEvents, aewEvents, tnaEvents] = await Promise.all([
         scrapeWWEEvents(),
         scrapeAEWEvents(),
+        scrapeTNAEvents(),
       ]);
       
-      const allEvents = [...wweEvents, ...aewEvents];
+      const allEvents = [...wweEvents, ...aewEvents, ...tnaEvents];
       let successCount = 0;
+      let errorCount = 0;
       
       for (const eventData of allEvents) {
         try {
           // Get promotion ID
-          const { data: promotion } = await supabaseClient
+          const { data: promotion, error: promotionError } = await supabaseClient
             .from('promotions')
             .select('id')
             .eq('name', eventData.promotionName)
             .single();
           
+          if (promotionError) {
+            console.error('Error finding promotion:', promotionError, 'for:', eventData.promotionName);
+            errorCount++;
+            continue;
+          }
+          
           if (promotion) {
+            // Create a unique identifier for the event to avoid duplicates
+            const eventIdentifier = `${eventData.name.toLowerCase().replace(/\s+/g, '-')}-${eventData.date}`;
+            
             // Insert or update event
             const { error } = await supabaseClient
               .from('wrestling_events')
@@ -230,26 +409,34 @@ serve(async (req) => {
                 is_recurring: eventData.eventType === 'weekly',
                 day_of_week: eventData.eventType === 'weekly' ? new Date(eventData.date).getDay() : null,
               }, {
-                onConflict: 'name,event_date',
+                onConflict: 'name,promotion_id,event_date',
                 ignoreDuplicates: false
               });
             
             if (!error) {
               successCount++;
+              console.log(`Successfully inserted: ${eventData.name} for ${eventData.promotionName}`);
             } else {
-              console.error('Error inserting event:', error);
+              console.error('Error inserting event:', error, 'for event:', eventData.name);
+              errorCount++;
             }
+          } else {
+            console.error('No promotion found for:', eventData.promotionName);
+            errorCount++;
           }
         } catch (error) {
-          console.error('Error processing event:', error);
+          console.error('Error processing event:', error, 'for event:', eventData.name);
+          errorCount++;
         }
       }
       
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Successfully scraped and stored ${successCount} events`,
-          eventsProcessed: allEvents.length
+          message: `Successfully scraped and stored ${successCount} events (${errorCount} errors)`,
+          eventsProcessed: allEvents.length,
+          successCount,
+          errorCount
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
