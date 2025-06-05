@@ -7,6 +7,243 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// WWE Events Scraper
+async function scrapeWWEEvents() {
+  console.log('Scraping WWE events...');
+  
+  try {
+    const response = await fetch('https://www.wwe.com/events/results/all-events/all-dates/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('WWE fetch failed:', response.status);
+      return [];
+    }
+    
+    const html = await response.text();
+    console.log(`WWE HTML length: ${html.length}`);
+    
+    const events = [];
+    
+    // Look for event patterns in the HTML
+    const eventMatches = html.match(/<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<\/div>/gi) || [];
+    console.log(`Found ${eventMatches.length} potential WWE events`);
+    
+    // Extract event information using regex patterns
+    for (const eventHtml of eventMatches.slice(0, 10)) { // Limit to 10 events
+      try {
+        // Extract event name
+        const nameMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i) || 
+                         eventHtml.match(/title="([^"]+)"/i) ||
+                         eventHtml.match(/>([^<]{5,50})</);
+        
+        // Extract date
+        const dateMatch = eventHtml.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{4}|\w+ \d{1,2}, \d{4})/);
+        
+        // Extract location
+        const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i) ||
+                             eventHtml.match(/venue[^>]*>([^<]+)</i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const eventName = nameMatch[1].trim();
+          
+          // Skip if event name is too generic or short
+          if (eventName.length > 3 && !eventName.match(/^(more|view|click|see)/i)) {
+            const event = {
+              name: eventName,
+              promotionName: eventName.toLowerCase().includes('nxt') ? 'NXT' : 'WWE',
+              event_date: dateMatch ? parseEventDate(dateMatch[1]) : getNextWeekday(1), // Default to Monday
+              event_time: '20:00:00',
+              location: locationMatch ? locationMatch[1].trim() : 'Various WWE Venues',
+              network: eventName.toLowerCase().includes('nxt') ? 'USA Network' : 
+                      eventName.toLowerCase().includes('smackdown') ? 'FOX' : 'USA Network',
+              event_type: isWeeklyShow(eventName) ? 'weekly' : 'ple',
+              is_recurring: isWeeklyShow(eventName),
+              day_of_week: getDayOfWeek(eventName)
+            };
+            
+            events.push(event);
+            console.log(`WWE Event: ${event.name}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing WWE event:', error);
+      }
+    }
+    
+    return events;
+  } catch (error) {
+    console.error('WWE scraping error:', error);
+    return [];
+  }
+}
+
+// AEW Events Scraper
+async function scrapeAEWEvents() {
+  console.log('Scraping AEW events...');
+  
+  try {
+    const response = await fetch('https://www.allelitewrestling.com/aew-events', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('AEW fetch failed:', response.status);
+      return [];
+    }
+    
+    const html = await response.text();
+    console.log(`AEW HTML length: ${html.length}`);
+    
+    const events = [];
+    
+    // Look for event patterns
+    const eventMatches = html.match(/<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<\/div>/gi) || 
+                        html.match(/<article[^>]*>[\s\S]*?<\/article>/gi) || [];
+    console.log(`Found ${eventMatches.length} potential AEW events`);
+    
+    for (const eventHtml of eventMatches.slice(0, 10)) {
+      try {
+        const nameMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i) ||
+                         eventHtml.match(/title="([^"]+)"/i);
+        
+        const dateMatch = eventHtml.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{4}|\w+ \d{1,2}, \d{4})/);
+        const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const eventName = nameMatch[1].trim();
+          
+          if (eventName.length > 3 && !eventName.match(/^(more|view|click|see)/i)) {
+            const event = {
+              name: eventName,
+              promotionName: 'AEW',
+              event_date: dateMatch ? parseEventDate(dateMatch[1]) : getNextWeekday(3), // Default to Wednesday
+              event_time: eventName.toLowerCase().includes('rampage') ? '22:00:00' : '20:00:00',
+              location: locationMatch ? locationMatch[1].trim() : 'Various AEW Venues',
+              network: eventName.toLowerCase().includes('rampage') || eventName.toLowerCase().includes('collision') ? 'TNT' : 'TBS',
+              event_type: isWeeklyShow(eventName) ? 'weekly' : 'ppv',
+              is_recurring: isWeeklyShow(eventName),
+              day_of_week: getDayOfWeek(eventName)
+            };
+            
+            events.push(event);
+            console.log(`AEW Event: ${event.name}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing AEW event:', error);
+      }
+    }
+    
+    return events;
+  } catch (error) {
+    console.error('AEW scraping error:', error);
+    return [];
+  }
+}
+
+// TNA Events Scraper
+async function scrapeTNAEvents() {
+  console.log('Scraping TNA events...');
+  
+  try {
+    const response = await fetch('https://tnawrestling.com/events', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('TNA fetch failed:', response.status);
+      return [];
+    }
+    
+    const html = await response.text();
+    console.log(`TNA HTML length: ${html.length}`);
+    
+    const events = [];
+    
+    const eventMatches = html.match(/<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<\/div>/gi) || [];
+    console.log(`Found ${eventMatches.length} potential TNA events`);
+    
+    for (const eventHtml of eventMatches.slice(0, 10)) {
+      try {
+        const nameMatch = eventHtml.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i) ||
+                         eventHtml.match(/title="([^"]+)"/i);
+        
+        const dateMatch = eventHtml.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{4}|\w+ \d{1,2}, \d{4})/);
+        const locationMatch = eventHtml.match(/location[^>]*>([^<]+)</i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const eventName = nameMatch[1].trim();
+          
+          if (eventName.length > 3 && !eventName.match(/^(more|view|click|see)/i)) {
+            const event = {
+              name: eventName,
+              promotionName: 'TNA',
+              event_date: dateMatch ? parseEventDate(dateMatch[1]) : getNextWeekday(4), // Default to Thursday
+              event_time: '20:00:00',
+              location: locationMatch ? locationMatch[1].trim() : 'Various TNA Venues',
+              network: 'AXS TV',
+              event_type: isWeeklyShow(eventName) ? 'weekly' : 'ppv',
+              is_recurring: isWeeklyShow(eventName),
+              day_of_week: getDayOfWeek(eventName)
+            };
+            
+            events.push(event);
+            console.log(`TNA Event: ${event.name}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing TNA event:', error);
+      }
+    }
+    
+    return events;
+  } catch (error) {
+    console.error('TNA scraping error:', error);
+    return [];
+  }
+}
+
+// Helper functions
+function parseEventDate(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  } catch (error) {
+    console.error('Date parsing error:', error);
+  }
+  
+  // Return next week if parsing fails
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  return nextWeek.toISOString().split('T')[0];
+}
+
+function isWeeklyShow(eventName: string): boolean {
+  const weeklyShows = ['raw', 'smackdown', 'nxt', 'dynamite', 'rampage', 'collision', 'impact'];
+  return weeklyShows.some(show => eventName.toLowerCase().includes(show));
+}
+
+function getDayOfWeek(eventName: string): number | null {
+  const name = eventName.toLowerCase();
+  if (name.includes('raw')) return 1; // Monday
+  if (name.includes('nxt')) return 2; // Tuesday
+  if (name.includes('dynamite')) return 3; // Wednesday
+  if (name.includes('impact')) return 4; // Thursday
+  if (name.includes('smackdown') || name.includes('rampage')) return 5; // Friday
+  if (name.includes('collision')) return 6; // Saturday
+  return null;
+}
+
 function getNextWeekday(dayOfWeek: number): string {
   const today = new Date();
   const currentDay = today.getDay();
@@ -16,15 +253,15 @@ function getNextWeekday(dayOfWeek: number): string {
   return nextDate.toISOString().split('T')[0];
 }
 
-function generateEvents() {
-  console.log('Generating wrestling events...');
+// Fallback events if scraping fails
+function generateFallbackEvents() {
+  console.log('Generating fallback events...');
   
-  const events = [
-    // WWE Events
+  return [
     {
       name: 'Monday Night Raw',
       promotionName: 'WWE',
-      event_date: getNextWeekday(1), // Monday
+      event_date: getNextWeekday(1),
       event_time: '20:00:00',
       location: 'Various WWE Venues',
       network: 'USA Network',
@@ -35,7 +272,7 @@ function generateEvents() {
     {
       name: 'Friday Night SmackDown',
       promotionName: 'WWE',
-      event_date: getNextWeekday(5), // Friday
+      event_date: getNextWeekday(5),
       event_time: '20:00:00',
       location: 'Various WWE Venues',
       network: 'FOX',
@@ -43,11 +280,10 @@ function generateEvents() {
       is_recurring: true,
       day_of_week: 5
     },
-    // NXT Events
     {
       name: 'WWE NXT',
       promotionName: 'NXT',
-      event_date: getNextWeekday(2), // Tuesday
+      event_date: getNextWeekday(2),
       event_time: '20:00:00',
       location: 'WWE Performance Center',
       network: 'USA Network',
@@ -55,11 +291,10 @@ function generateEvents() {
       is_recurring: true,
       day_of_week: 2
     },
-    // AEW Events
     {
       name: 'AEW Dynamite',
       promotionName: 'AEW',
-      event_date: getNextWeekday(3), // Wednesday
+      event_date: getNextWeekday(3),
       event_time: '20:00:00',
       location: 'Various AEW Venues',
       network: 'TBS',
@@ -68,32 +303,9 @@ function generateEvents() {
       day_of_week: 3
     },
     {
-      name: 'AEW Rampage',
-      promotionName: 'AEW',
-      event_date: getNextWeekday(5), // Friday
-      event_time: '22:00:00',
-      location: 'Various AEW Venues',
-      network: 'TNT',
-      event_type: 'weekly',
-      is_recurring: true,
-      day_of_week: 5
-    },
-    {
-      name: 'AEW Collision',
-      promotionName: 'AEW',
-      event_date: getNextWeekday(6), // Saturday
-      event_time: '20:00:00',
-      location: 'Various AEW Venues',
-      network: 'TNT',
-      event_type: 'weekly',
-      is_recurring: true,
-      day_of_week: 6
-    },
-    // TNA Events
-    {
       name: 'TNA Impact Wrestling',
       promotionName: 'TNA',
-      event_date: getNextWeekday(4), // Thursday
+      event_date: getNextWeekday(4),
       event_time: '20:00:00',
       location: 'Various TNA Venues',
       network: 'AXS TV',
@@ -102,9 +314,6 @@ function generateEvents() {
       day_of_week: 4
     }
   ];
-  
-  console.log(`Generated ${events.length} wrestling events`);
-  return events;
 }
 
 serve(async (req) => {
@@ -122,9 +331,9 @@ serve(async (req) => {
     console.log(`Processing action: ${action}`);
 
     if (action === 'scrape-events') {
-      console.log('Starting event generation and insertion...');
+      console.log('Starting real-world event scraping...');
       
-      // Get all promotions from database
+      // Get promotions from database
       const { data: promotions, error: promotionsError } = await supabaseClient
         .from('promotions')
         .select('id, name');
@@ -145,27 +354,57 @@ serve(async (req) => {
         promotionMap.set(promo.name.toUpperCase(), promo.id);
       });
       
-      console.log('Promotion map:', Object.fromEntries(promotionMap));
+      // Scrape events from all sources
+      const allScrapedEvents = [];
       
-      // Generate events
-      const events = generateEvents();
+      try {
+        console.log('Scraping WWE events...');
+        const wweEvents = await scrapeWWEEvents();
+        allScrapedEvents.push(...wweEvents);
+        console.log(`Scraped ${wweEvents.length} WWE events`);
+      } catch (error) {
+        console.error('WWE scraping failed:', error);
+      }
+      
+      try {
+        console.log('Scraping AEW events...');
+        const aewEvents = await scrapeAEWEvents();
+        allScrapedEvents.push(...aewEvents);
+        console.log(`Scraped ${aewEvents.length} AEW events`);
+      } catch (error) {
+        console.error('AEW scraping failed:', error);
+      }
+      
+      try {
+        console.log('Scraping TNA events...');
+        const tnaEvents = await scrapeTNAEvents();
+        allScrapedEvents.push(...tnaEvents);
+        console.log(`Scraped ${tnaEvents.length} TNA events`);
+      } catch (error) {
+        console.error('TNA scraping failed:', error);
+      }
+      
+      // If no events were scraped, use fallback
+      const eventsToProcess = allScrapedEvents.length > 0 ? allScrapedEvents : generateFallbackEvents();
+      console.log(`Processing ${eventsToProcess.length} total events`);
+      
       let successCount = 0;
       let errorCount = 0;
       const errors = [];
       
-      // Clear existing events first
+      // Clear existing events
       console.log('Clearing existing events...');
       const { error: deleteError } = await supabaseClient
         .from('wrestling_events')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .neq('id', '00000000-0000-0000-0000-000000000000');
       
       if (deleteError) {
         console.log('Warning: Could not clear existing events:', deleteError);
       }
       
       // Insert new events
-      for (const eventData of events) {
+      for (const eventData of eventsToProcess) {
         try {
           console.log(`Processing event: ${eventData.name} for ${eventData.promotionName}`);
           
@@ -177,8 +416,6 @@ serve(async (req) => {
             errors.push(`Promotion not found: ${eventData.promotionName}`);
             continue;
           }
-          
-          console.log(`Found promotion ID: ${promotionId} for ${eventData.promotionName}`);
           
           const eventRecord = {
             name: eventData.name,
@@ -193,8 +430,6 @@ serve(async (req) => {
             card_announced: false,
             sold_out: false
           };
-          
-          console.log('Inserting event record:', eventRecord);
           
           const { data: insertedEvent, error: insertError } = await supabaseClient
             .from('wrestling_events')
@@ -217,31 +452,22 @@ serve(async (req) => {
         }
       }
       
-      console.log(`Event processing complete. Success: ${successCount}, Errors: ${errorCount}`);
+      const scrapingMethod = allScrapedEvents.length > 0 ? 'real-world scraping' : 'fallback data';
+      console.log(`Event processing complete using ${scrapingMethod}. Success: ${successCount}, Errors: ${errorCount}`);
       
       return new Response(
         JSON.stringify({
           success: successCount > 0,
-          message: `Processed ${events.length} events. Success: ${successCount}, Errors: ${errorCount}`,
+          message: `Processed ${eventsToProcess.length} events using ${scrapingMethod}. Success: ${successCount}, Errors: ${errorCount}`,
           successCount,
           errorCount,
-          errors: errors.slice(0, 5) // Limit error details
+          scrapingMethod,
+          errors: errors.slice(0, 5)
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    if (action === 'scrape-news') {
-      console.log('News scraping not implemented yet');
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'News scraping feature coming soon'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     return new Response(
       JSON.stringify({ success: false, message: 'Invalid action' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
