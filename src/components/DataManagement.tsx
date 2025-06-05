@@ -1,11 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ExternalLink, Zap } from "lucide-react";
+import { RefreshCw, ExternalLink, Zap, Clock, Play, Pause } from "lucide-react";
 import { usePromotions, useSupabaseWrestlers, useChampions, useScrapeWrestlingData } from "@/hooks/useSupabaseWrestlers";
 import { useToast } from "@/hooks/use-toast";
 import { useAllWrestlenomicsData } from "@/hooks/useWrestlenomicsData";
 import { useRealTimeAnalytics } from "@/hooks/useRealTimeWrestlingData";
+import { useComprehensiveNews, useComprehensiveReddit } from "@/hooks/useWrestlingData";
+import { autoUpdateService } from "@/services/autoUpdateService";
 import { DataStatisticsCards } from "./data-management/DataStatisticsCards";
 import { RealTimeDataSources } from "./data-management/RealTimeDataSources";
 import { WrestlenomicsDataSources } from "./data-management/WrestlenomicsDataSources";
@@ -14,6 +16,8 @@ import { PromotionDataSources } from "./data-management/PromotionDataSources";
 export const DataManagement = () => {
   const [isScrapingAll, setIsScrapingAll] = useState(false);
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: string]: boolean }>({});
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(true);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   
   const { data: promotions = [] } = usePromotions();
   const { data: wrestlers = [], refetch: refetchWrestlers } = useSupabaseWrestlers();
@@ -23,6 +27,35 @@ export const DataManagement = () => {
   const { tvRatings, ticketSales, eloRankings, refetchAll } = useAllWrestlenomicsData();
   
   const { events, news, storylines, refetchAll: refetchRealTimeData } = useRealTimeAnalytics();
+  const { data: comprehensiveNews = [], refetch: refetchComprehensiveNews } = useComprehensiveNews();
+  const { data: comprehensiveReddit = [], refetch: refetchComprehensiveReddit } = useComprehensiveReddit();
+
+  useEffect(() => {
+    // Register comprehensive data updates with auto-update service
+    const updateCallback = async () => {
+      try {
+        setLastUpdateTime(new Date().toLocaleTimeString());
+        await Promise.allSettled([
+          refetchComprehensiveNews(),
+          refetchComprehensiveReddit(),
+          refetchRealTimeData(),
+          refetchAll()
+        ]);
+        toast({
+          title: "Auto-Update Complete",
+          description: `Data refreshed at ${new Date().toLocaleTimeString()}`,
+        });
+      } catch (error) {
+        console.error('Auto-update error:', error);
+      }
+    };
+
+    autoUpdateService.addUpdateCallback(updateCallback);
+
+    return () => {
+      autoUpdateService.removeUpdateCallback(updateCallback);
+    };
+  }, [refetchComprehensiveNews, refetchComprehensiveReddit, refetchRealTimeData, refetchAll, toast]);
 
   const handleScrapePromotion = async (promotionName: string) => {
     setScrapingStatus(prev => ({ ...prev, [promotionName]: true }));
@@ -57,15 +90,53 @@ export const DataManagement = () => {
   const handleScrapeAll = async () => {
     setIsScrapingAll(true);
     
-    for (const promotion of promotions) {
-      await handleScrapePromotion(promotion.name);
+    try {
+      // Update wrestling data
+      for (const promotion of promotions) {
+        await handleScrapePromotion(promotion.name);
+      }
+      
+      // Trigger comprehensive news and Reddit update
+      await Promise.allSettled([
+        refetchComprehensiveNews(),
+        refetchComprehensiveReddit(),
+        refetchRealTimeData(),
+        refetchAll()
+      ]);
+      
+      setLastUpdateTime(new Date().toLocaleTimeString());
+      
+      toast({
+        title: "All Data Updated",
+        description: "Successfully updated data for all promotions and news sources",
+      });
+    } catch (error) {
+      toast({
+        title: "Update Error",
+        description: "Some data sources failed to update",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScrapingAll(false);
     }
-    
-    setIsScrapingAll(false);
-    toast({
-      title: "All Data Updated",
-      description: "Successfully updated data for all promotions",
-    });
+  };
+
+  const toggleAutoUpdate = () => {
+    if (autoUpdateEnabled) {
+      autoUpdateService.stopAutoUpdate();
+      setAutoUpdateEnabled(false);
+      toast({
+        title: "Auto-Update Disabled",
+        description: "Data will no longer update automatically every 10 minutes",
+      });
+    } else {
+      autoUpdateService.startAutoUpdate();
+      setAutoUpdateEnabled(true);
+      toast({
+        title: "Auto-Update Enabled",
+        description: "Data will now update automatically every 10 minutes",
+      });
+    }
   };
 
   const wrestlersByPromotion = wrestlers.reduce((acc, wrestler) => {
@@ -84,37 +155,94 @@ export const DataManagement = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Real-Time Data Management</h2>
           <p className="text-muted-foreground">
-            Manage and update wrestling data from live sources. All data is scraped in real-time from official websites.
+            Comprehensive wrestling data from {comprehensiveNews.length + news.length} news sources, {comprehensiveReddit.length} Reddit posts, and official promotions.
             <span className="inline-flex items-center ml-2 text-wrestling-electric">
-              View data across all tabs 
-              <ExternalLink className="h-3 w-3 ml-1" />
+              Auto-updates every 10 minutes 
+              <Clock className="h-3 w-3 ml-1" />
             </span>
           </p>
-        </div>
-        <Button 
-          onClick={handleScrapeAll}
-          disabled={isScrapingAll}
-          className="bg-wrestling-electric hover:bg-wrestling-electric/90"
-        >
-          {isScrapingAll ? (
-            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Zap className="h-4 w-4 mr-2" />
+          {lastUpdateTime && (
+            <p className="text-sm text-muted-foreground">
+              Last updated: {lastUpdateTime}
+            </p>
           )}
-          Update All Real-Time Data
-        </Button>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            onClick={toggleAutoUpdate}
+            variant={autoUpdateEnabled ? "default" : "outline"}
+            size="sm"
+          >
+            {autoUpdateEnabled ? (
+              <Pause className="h-4 w-4 mr-2" />
+            ) : (
+              <Play className="h-4 w-4 mr-2" />
+            )}
+            Auto-Update {autoUpdateEnabled ? 'ON' : 'OFF'}
+          </Button>
+          <Button 
+            onClick={handleScrapeAll}
+            disabled={isScrapingAll}
+            className="bg-wrestling-electric hover:bg-wrestling-electric/90"
+          >
+            {isScrapingAll ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-2" />
+            )}
+            Update All Data Now
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-4">
+        <div className="text-sm text-green-400">
+          🔴 LIVE: Auto-updating from {comprehensiveNews.length > 0 ? 'comprehensive' : 'standard'} wrestling news sources every 10 minutes
+        </div>
       </div>
 
       <DataStatisticsCards
         wrestlersCount={wrestlers.length}
         championsCount={champions.length}
         eventsCount={events.length}
-        newsCount={news.length}
+        newsCount={comprehensiveNews.length + news.length}
       />
+
+      <div className="grid gap-6">
+        <div className="bg-secondary/30 rounded-lg p-4">
+          <h3 className="font-semibold text-foreground mb-2">Comprehensive News Sources ({comprehensiveNews.length} articles)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div>• F4W Online • PWTorch • PWInsider</div>
+            <div>• Wrestling Inc • Fightful • Ringside News</div>
+            <div>• WWE.com • AEW.com • Impact Wrestling</div>
+            <div>• Cageside Seats • WrestleZone • + more</div>
+          </div>
+        </div>
+
+        <div className="bg-secondary/30 rounded-lg p-4">
+          <h3 className="font-semibold text-foreground mb-2">Twitter/X Wrestling Accounts</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div>• @SeanRossSapp • @WrestleVotes</div>
+            <div>• @davemeltzerWON • @ryansatin</div>
+            <div>• @WWE • @AEW • @njpw1972</div>
+            <div>• @MichaelCole • @WadeBarrett • + 40 more</div>
+          </div>
+        </div>
+
+        <div className="bg-secondary/30 rounded-lg p-4">
+          <h3 className="font-semibold text-foreground mb-2">Reddit Wrestling Communities ({comprehensiveReddit.length} posts)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div>• r/SquaredCircle • r/WWE • r/AEWOfficial</div>
+            <div>• r/njpw • r/ImpactWrestling • r/Wreddit</div>
+            <div>• r/IndieWrestling • r/ROH • r/SCJerk</div>
+            <div>• r/FantasyBooking • r/WrestlingGM • + more</div>
+          </div>
+        </div>
+      </div>
 
       <RealTimeDataSources
         eventsCount={events.length}
-        newsCount={news.length}
+        newsCount={comprehensiveNews.length + news.length}
         storylinesCount={storylines.length}
         onDataUpdate={refetchRealTimeData}
       />

@@ -2,10 +2,10 @@
 import { Clock, ExternalLink, Heart, MessageCircle, Share, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRSSFeeds } from "@/hooks/useWrestlingData";
+import { useComprehensiveNews } from "@/hooks/useWrestlingData";
 
 export const NewsFeed = () => {
-  const { data: newsItems, isLoading, error, refetch } = useRSSFeeds();
+  const { data: newsItems, isLoading, error, refetch } = useComprehensiveNews();
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -24,7 +24,10 @@ export const NewsFeed = () => {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Clock className="h-5 w-5 text-wrestling-electric" />
-            <span>Latest Wrestling News</span>
+            <span>Comprehensive Wrestling News</span>
+            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+              {newsItems?.length || 0} sources
+            </span>
           </div>
           <Button 
             variant="ghost" 
@@ -39,18 +42,18 @@ export const NewsFeed = () => {
       <CardContent className="space-y-4">
         {isLoading && (
           <div className="text-center text-muted-foreground">
-            Loading wrestling news...
+            Loading comprehensive wrestling news from all sources...
           </div>
         )}
         
         {error && (
           <div className="text-center text-red-400">
-            Error loading news. Please try again.
+            Error loading comprehensive news. Please try again.
           </div>
         )}
         
         {newsItems && newsItems.length > 0 ? (
-          newsItems.slice(0, 5).map((item, index) => (
+          newsItems.slice(0, 8).map((item, index) => (
             <div key={item.guid || index} className="p-4 bg-secondary/20 rounded-lg space-y-3 hover:bg-secondary/30 transition-colors">
               <div className="flex items-start justify-between">
                 <h4 className="font-medium text-foreground leading-tight">{item.title}</h4>
@@ -70,7 +73,9 @@ export const NewsFeed = () => {
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center space-x-2">
-                  <span>{item.source}</span>
+                  <span className="bg-wrestling-electric/20 text-wrestling-electric px-2 py-1 rounded text-xs">
+                    {item.source}
+                  </span>
                   <span>•</span>
                   <span>{formatTimeAgo(item.pubDate)}</span>
                 </div>
@@ -95,7 +100,7 @@ export const NewsFeed = () => {
         ) : (
           !isLoading && (
             <div className="text-center text-muted-foreground">
-              No news items available
+              No comprehensive news items available
             </div>
           )
         )}

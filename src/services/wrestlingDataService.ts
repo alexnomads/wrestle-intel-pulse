@@ -13,3 +13,9 @@ export { fetchRSSFeeds } from './data/rssService';
 export { fetchRedditPosts } from './data/redditService';
 export { scrapeWrestlenomicsData } from './data/wrestlenomicsDataService';
 export { analyzeSentiment, extractWrestlerMentions } from './data/sentimentAnalysisService';
+
+// Export enhanced comprehensive services
+export { 
+  fetchComprehensiveWrestlingNews, 
+  fetchComprehensiveRedditPosts 
+} from './data/enhancedRssService';

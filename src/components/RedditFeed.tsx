@@ -2,10 +2,10 @@
 import { MessageSquare, ArrowUp, ExternalLink, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRedditPosts } from "@/hooks/useWrestlingData";
+import { useComprehensiveReddit } from "@/hooks/useWrestlingData";
 
 export const RedditFeed = () => {
-  const { data: redditPosts, isLoading, error, refetch } = useRedditPosts();
+  const { data: redditPosts, isLoading, error, refetch } = useComprehensiveReddit();
 
   const formatTimeAgo = (timestamp: number) => {
     const now = Math.floor(Date.now() / 1000);
@@ -23,7 +23,10 @@ export const RedditFeed = () => {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <MessageSquare className="h-5 w-5 text-orange-500" />
-            <span>r/SquaredCircle</span>
+            <span>Wrestling Reddit Communities</span>
+            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">
+              {redditPosts?.length || 0} posts
+            </span>
           </div>
           <Button 
             variant="ghost" 
@@ -38,7 +41,7 @@ export const RedditFeed = () => {
       <CardContent className="space-y-4">
         {isLoading && (
           <div className="text-center text-muted-foreground">
-            Loading Reddit posts...
+            Loading posts from all wrestling subreddits...
           </div>
         )}
         
@@ -49,7 +52,7 @@ export const RedditFeed = () => {
         )}
         
         {redditPosts && redditPosts.length > 0 ? (
-          redditPosts.slice(0, 5).map((post, index) => (
+          redditPosts.slice(0, 8).map((post, index) => (
             <div key={post.url + index} className="p-4 bg-secondary/20 rounded-lg space-y-3 hover:bg-secondary/30 transition-colors">
               <div className="flex items-start justify-between">
                 <h4 className="font-medium text-foreground leading-tight">{post.title}</h4>
@@ -57,7 +60,7 @@ export const RedditFeed = () => {
                   variant="ghost" 
                   size="icon" 
                   className="text-muted-foreground hover:text-foreground"
-                  onClick={() => window.open(`https://reddit.com${post.url}`, '_blank')}
+                  onClick={() => window.open(`https://reddit.com${post.permalink}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
@@ -71,6 +74,9 @@ export const RedditFeed = () => {
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center space-x-2">
+                  <span className="bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-xs">
+                    r/{post.subreddit}
+                  </span>
                   <span>u/{post.author}</span>
                   <span>•</span>
                   <span>{formatTimeAgo(post.created_utc)}</span>
@@ -92,7 +98,7 @@ export const RedditFeed = () => {
         ) : (
           !isLoading && (
             <div className="text-center text-muted-foreground">
-              No Reddit posts available
+              No Reddit posts available from wrestling communities
             </div>
           )
         )}
