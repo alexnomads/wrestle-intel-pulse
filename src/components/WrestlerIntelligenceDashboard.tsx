@@ -75,7 +75,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
       return {
         id: wrestler.id,
-        name: wrestler.name,
+        wrestler_name: wrestler.name, // Fix: Use wrestler_name to match WrestlerMomentum interface
         promotion: wrestler.brand || 'Unknown',
         momentum,
         momentumScore,
@@ -100,7 +100,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Generate push/burial analysis
   const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
-    name: wrestler.name,
+    name: wrestler.wrestler_name,
     promotion: wrestler.promotion,
     pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
     burialRisk: wrestler.contractRisk === 'high' ? 8 : 
@@ -188,7 +188,7 @@ export const WrestlerIntelligenceDashboard = () => {
                   <MomentumLeaderCard
                     key={wrestler.id}
                     wrestler={{
-                      name: wrestler.name,
+                      name: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       momentum: wrestler.momentumScore,
                       trend: wrestler.momentum === 'rising' ? 'up' : 
@@ -271,7 +271,7 @@ export const WrestlerIntelligenceDashboard = () => {
                   <ContractStatusCard
                     key={wrestler.id}
                     contract={{
-                      wrestlerName: wrestler.name,
+                      wrestlerName: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       status: wrestler.contractStatus,
                       expirationDate: 'Unknown', // This would come from real contract data

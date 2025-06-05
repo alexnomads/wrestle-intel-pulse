@@ -75,7 +75,7 @@ export const StorylineTracker = () => {
       
       return {
         promotion: pattern.promotion,
-        pattern: primaryPattern,
+        pattern: primaryPattern as string, // Fix: Explicitly cast to string
         frequency: Math.min(pattern.totalStorylines * 8, 100),
         effectiveness: Math.min(avgFanReception, 10),
         examples: storylines

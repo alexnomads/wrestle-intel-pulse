@@ -3,15 +3,19 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 interface DashboardFiltersProps {
-  selectedTimeframe: string;
-  onTimeframeChange: (timeframe: string) => void;
+  selectedPromotion: string;
+  onPromotionChange: (promotion: string) => void;
+  selectedMetric: string;
+  onMetricChange: (metric: string) => void;
   onRefresh: () => void;
   isLoading: boolean;
 }
 
 export const DashboardFilters = ({ 
-  selectedTimeframe, 
-  onTimeframeChange, 
+  selectedPromotion,
+  onPromotionChange,
+  selectedMetric, 
+  onMetricChange, 
   onRefresh, 
   isLoading 
 }: DashboardFiltersProps) => {
@@ -26,14 +30,24 @@ export const DashboardFilters = ({
         <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
         Refresh
       </Button>
-      {['24h', '7d', '30d', '90d'].map((timeframe) => (
+      {['all', 'wwe', 'aew', 'nxt', 'tna'].map((promotion) => (
         <Button
-          key={timeframe}
-          variant={selectedTimeframe === timeframe ? 'default' : 'outline'}
+          key={promotion}
+          variant={selectedPromotion === promotion ? 'default' : 'outline'}
           size="sm"
-          onClick={() => onTimeframeChange(timeframe)}
+          onClick={() => onPromotionChange(promotion)}
         >
-          {timeframe}
+          {promotion.toUpperCase()}
+        </Button>
+      ))}
+      {['momentum', 'push', 'burial', 'contract'].map((metric) => (
+        <Button
+          key={metric}
+          variant={selectedMetric === metric ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onMetricChange(metric)}
+        >
+          {metric.charAt(0).toUpperCase() + metric.slice(1)}
         </Button>
       ))}
     </div>
