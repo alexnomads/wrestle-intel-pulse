@@ -40,7 +40,7 @@ export const WrestlerIntelligenceDashboard = () => {
     cutoffDate.setDate(cutoffDate.getDate() - periodDays);
     
     return newsItems.filter(item => {
-      const itemDate = new Date(item.pubDate || item.published_at || item.created_at);
+      const itemDate = new Date(item.pubDate);
       return itemDate >= cutoffDate;
     });
   };

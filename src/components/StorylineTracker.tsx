@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,7 +63,7 @@ export const StorylineTracker = () => {
         newsVolume: newsMentions.length,
         fanReception: Math.round(engagementScore * 10),
         sentiment: topic.sentiment || 0.5,
-        growth: topic.weeklyGrowth || 0
+        growth: topic.growth_rate || 0
       };
     }).sort((a, b) => (b.mentions + b.redditEngagement) - (a.mentions + a.redditEngagement));
 
@@ -128,7 +127,7 @@ export const StorylineTracker = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-foreground">Storyline Tracker</h2>
+        <h2 className="text-3xl font-bold text-foreground">Storyline & Narrative Tracker</h2>
         <StorylineFilters
           selectedPromotion={selectedPromotion}
           onPromotionChange={setSelectedPromotion}
