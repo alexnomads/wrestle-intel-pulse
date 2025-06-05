@@ -14,6 +14,7 @@ const WRESTLING_SUBREDDITS = [
   'FantasyBooking',
   'WrestlingGM',
   'prowrestling'
+  // Removed 'mma' and 'ufc' subreddits as requested
 ];
 
 export const fetchRedditPosts = async (): Promise<RedditPost[]> => {

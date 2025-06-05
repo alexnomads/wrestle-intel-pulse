@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +29,7 @@ interface UnifiedItem {
 }
 
 export const UnifiedNewsFeed = ({ refreshTrigger }: UnifiedNewsFeedProps) => {
-  const [filter, setFilter] = useState<'all' | 'breaking' | 'positive' | 'negative'>('all');
+  const [filter, setFilter] = useState<'all' | 'positive' | 'negative'>('all');
   const { data: newsItems = [] } = useComprehensiveNews();
   const { data: redditPosts = [] } = useComprehensiveReddit();
 
@@ -88,11 +87,9 @@ export const UnifiedNewsFeed = ({ refreshTrigger }: UnifiedNewsFeedProps) => {
     })
   ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-  // Apply filters
+  // Apply filters (removed 'breaking' filter)
   const filteredItems = unifiedItems.filter(item => {
     switch (filter) {
-      case 'breaking':
-        return item.isBreaking;
       case 'positive':
         return item.sentiment > 0.6;
       case 'negative':
@@ -136,12 +133,11 @@ export const UnifiedNewsFeed = ({ refreshTrigger }: UnifiedNewsFeedProps) => {
             </Badge>
           </CardTitle>
           
-          {/* Filter Buttons */}
+          {/* Filter Buttons - removed 'breaking' option */}
           <div className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             {[
               { id: 'all', label: 'All' },
-              { id: 'breaking', label: 'Breaking' },
               { id: 'positive', label: 'Positive' },
               { id: 'negative', label: 'Negative' }
             ].map((filterOption) => (

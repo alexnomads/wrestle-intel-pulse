@@ -7,7 +7,6 @@ import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { useWrestlerAnalysis } from "@/hooks/useWrestlerAnalysis";
 import { WrestlerCard } from "./wrestler-tracker/WrestlerCard";
-import { FederationFilter } from "./wrestler-tracker/FederationFilter";
 import { FederationComparison } from "./wrestler-tracker/FederationComparison";
 import { getPopularityScore, get24hChange } from "./wrestler-tracker/utils";
 
@@ -16,7 +15,8 @@ interface RealTimeWrestlerTrackerProps {
 }
 
 export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrackerProps) => {
-  const [selectedFederation, setSelectedFederation] = useState<string>('all');
+  // Force 'all' selection and hide federation filter
+  const selectedFederation = 'all';
   const [timePeriod, setTimePeriod] = useState<string>('30');
 
   const { data: wrestlers = [] } = useSupabaseWrestlers();
@@ -27,6 +27,9 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
     topPushWrestlers,
     worstBuriedWrestlers
   } = useWrestlerAnalysis(wrestlers, newsItems, timePeriod, selectedFederation);
+
+  // Ensure minimum 10 wrestlers are displayed
+  const displayWrestlers = filteredAnalysis.slice(0, Math.max(10, filteredAnalysis.length));
 
   return (
     <Card className="glass-card">
@@ -39,29 +42,19 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
               LIVE
             </Badge>
           </CardTitle>
-          
-          <FederationFilter 
-            selectedFederation={selectedFederation}
-            onFederationChange={setSelectedFederation}
-          />
         </div>
       </CardHeader>
       
       <CardContent>
         <div className="grid gap-4">
-          {/* Top 10 Trending Wrestlers */}
+          {/* Top 10+ Trending Wrestlers */}
           <div className="space-y-3">
             <h3 className="font-semibold text-lg flex items-center">
               <Users className="h-5 w-5 mr-2" />
-              Top 10 Trending Wrestlers
-              {selectedFederation !== 'all' && (
-                <Badge variant="outline" className="ml-2">
-                  {selectedFederation.toUpperCase()}
-                </Badge>
-              )}
+              Top {displayWrestlers.length} Trending Wrestlers
             </h3>
             
-            {filteredAnalysis.slice(0, 10).map((wrestler, index) => {
+            {displayWrestlers.map((wrestler, index) => {
               const popularityScore = getPopularityScore(wrestler);
               const change24h = get24hChange(wrestler);
               
@@ -77,21 +70,18 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
               );
             })}
             
-            {filteredAnalysis.length === 0 && (
+            {displayWrestlers.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
-                No trending wrestlers found for the selected federation.
-                Try selecting "All" or check back in a few minutes.
+                No trending wrestlers found. Check back in a few minutes.
               </div>
             )}
           </div>
 
-          {/* Federation Comparison Summary */}
-          {selectedFederation === 'all' && (
-            <FederationComparison 
-              filteredAnalysis={filteredAnalysis}
-              getPopularityScore={getPopularityScore}
-            />
-          )}
+          {/* Federation Comparison Summary - always show since we're on 'all' */}
+          <FederationComparison 
+            filteredAnalysis={filteredAnalysis}
+            getPopularityScore={getPopularityScore}
+          />
         </div>
       </CardContent>
     </Card>

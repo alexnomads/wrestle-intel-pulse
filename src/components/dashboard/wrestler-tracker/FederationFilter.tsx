@@ -1,4 +1,3 @@
-
 interface Federation {
   id: string;
   name: string;
