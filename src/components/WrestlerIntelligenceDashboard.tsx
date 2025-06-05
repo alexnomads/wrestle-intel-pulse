@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -99,7 +100,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Generate push/burial analysis
   const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
-    name: wrestler.wrestler_name, // Use name to match PushBurialCard interface
+    wrestler_name: wrestler.wrestler_name,
     promotion: wrestler.promotion,
     pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
     burialRisk: wrestler.contractRisk === 'high' ? 8 : 
@@ -129,7 +130,9 @@ export const WrestlerIntelligenceDashboard = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
         <DashboardFilters
+          selectedPromotion={selectedPromotion}
           onPromotionChange={setSelectedPromotion}
+          selectedMetric={selectedMetric}
           onMetricChange={setSelectedMetric}
           onRefresh={handleRefresh}
           isLoading={momentumLoading}
@@ -215,8 +218,8 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.name}
-                        wrestler={wrestler}
+                        key={wrestler.wrestler_name}
+                        data={wrestler}
                         type="push"
                         rank={index + 1}
                       />
@@ -241,8 +244,8 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.name}
-                        wrestler={wrestler}
+                        key={wrestler.wrestler_name}
+                        data={wrestler}
                         type="burial"
                         rank={index + 1}
                       />
@@ -267,7 +270,7 @@ export const WrestlerIntelligenceDashboard = () => {
                 {filteredContractAnalysis.slice(0, 8).map((wrestler) => (
                   <ContractStatusCard
                     key={wrestler.id}
-                    contract={{
+                    data={{
                       wrestlerName: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       status: wrestler.contractStatus,
