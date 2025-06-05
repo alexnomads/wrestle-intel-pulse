@@ -100,7 +100,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Generate push/burial analysis
   const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
-    name: wrestler.wrestler_name,
+    wrestler_name: wrestler.wrestler_name, // Use wrestler_name consistently
     promotion: wrestler.promotion,
     pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
     burialRisk: wrestler.contractRisk === 'high' ? 8 : 
@@ -188,7 +188,7 @@ export const WrestlerIntelligenceDashboard = () => {
                   <MomentumLeaderCard
                     key={wrestler.id}
                     wrestler={{
-                      name: wrestler.wrestler_name,
+                      wrestler_name: wrestler.wrestler_name, // Use wrestler_name consistently
                       promotion: wrestler.promotion,
                       momentum: wrestler.momentumScore,
                       trend: wrestler.momentum === 'rising' ? 'up' : 
@@ -218,7 +218,7 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.name}
+                        key={wrestler.wrestler_name}
                         wrestler={wrestler}
                         type="push"
                         rank={index + 1}
@@ -244,7 +244,7 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.name}
+                        key={wrestler.wrestler_name}
                         wrestler={wrestler}
                         type="burial"
                         rank={index + 1}
