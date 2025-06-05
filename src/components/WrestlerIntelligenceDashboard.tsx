@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,10 @@ export const WrestlerIntelligenceDashboard = () => {
   const { data: wrestlerMomentum = [], isLoading: momentumLoading, refetch } = useWrestlerMomentumAnalysis();
   const { data: trendingTopics = [] } = useAdvancedTrendingTopics();
   const { data: wrestlers = [] } = useSupabaseWrestlers();
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -57,7 +60,7 @@ export const WrestlerIntelligenceDashboard = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={refetch}
+            onClick={handleRefresh}
             disabled={momentumLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${momentumLoading ? 'animate-spin' : ''}`} />

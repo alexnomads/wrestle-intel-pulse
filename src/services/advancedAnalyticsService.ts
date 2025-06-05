@@ -51,7 +51,7 @@ export const detectStorylinesFromNews = async (newsArticles: NewsItem[]): Promis
   const promotions = ['WWE', 'AEW', 'NXT', 'TNA', 'NJPW'];
 
   newsArticles.forEach(article => {
-    const content = `${article.title} ${article.content || ''}`.toLowerCase();
+    const content = `${article.title} ${article.contentSnippet || ''}`.toLowerCase();
     
     // Check if article contains storyline keywords
     const hasStorylineKeywords = storylineKeywords.some(keyword => 
@@ -102,7 +102,7 @@ export const detectStorylinesFromNews = async (newsArticles: NewsItem[]): Promis
         status,
         intensity_score: Math.min(intensity, 10),
         fan_reception_score: Math.min(Math.max(fanReception, 0), 10),
-        start_date: article.published_at || new Date().toISOString(),
+        start_date: article.pubDate || new Date().toISOString(),
         source_articles: [article],
         keywords: storylineKeywords.filter(kw => content.includes(kw)),
         promotion
@@ -156,7 +156,7 @@ export const calculateWrestlerMomentum = async (
 
   // Analyze news articles
   newsArticles.forEach(article => {
-    const content = `${article.title} ${article.content || ''}`.toLowerCase();
+    const content = `${article.title} ${article.contentSnippet || ''}`.toLowerCase();
     
     wrestlerNames.forEach(wrestler => {
       if (content.includes(wrestler.toLowerCase())) {
@@ -262,7 +262,7 @@ export const generateTrendingTopics = async (
 
   // Analyze news articles
   newsArticles.forEach(article => {
-    const content = `${article.title} ${article.content || ''}`.toLowerCase();
+    const content = `${article.title} ${article.contentSnippet || ''}`.toLowerCase();
     
     topicCategories.forEach(category => {
       const hasKeywords = category.keywords.some(keyword => 
@@ -361,10 +361,7 @@ export const performIntelligentSearch = async (
   // Search news articles
   const relevantNews = newsArticles.filter(article => 
     article.title.toLowerCase().includes(searchTerm) ||
-    (article.content && article.content.toLowerCase().includes(searchTerm)) ||
-    (article.wrestler_mentions && article.wrestler_mentions.some(w => 
-      w.toLowerCase().includes(searchTerm)
-    ))
+    (article.contentSnippet && article.contentSnippet.toLowerCase().includes(searchTerm))
   ).slice(0, 10);
 
   // Search Reddit posts

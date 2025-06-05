@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,10 @@ export const StorylineTracker = () => {
   const { data: storylines = [], isLoading: storylinesLoading, refetch: refetchStorylines } = useStorylineAnalysis();
   const { data: trendingTopics = [], isLoading: topicsLoading } = useAdvancedTrendingTopics();
   const { data: newsItems = [] } = useRSSFeeds();
+
+  const handleRefresh = () => {
+    refetchStorylines();
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -70,7 +73,7 @@ export const StorylineTracker = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={refetchStorylines}
+            onClick={handleRefresh}
             disabled={storylinesLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${storylinesLoading ? 'animate-spin' : ''}`} />
