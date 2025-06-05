@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Database, Users, Trophy, ExternalLink } from "lucide-react";
+import { RefreshCw, Database, Users, Trophy, ExternalLink, Calendar, FileText, Zap } from "lucide-react";
 import { usePromotions, useSupabaseWrestlers, useChampions, useScrapeWrestlingData } from "@/hooks/useSupabaseWrestlers";
 import { useToast } from "@/hooks/use-toast";
 import { useScrapeWrestlenomics, useScrapeAllWrestlenomics, useAllWrestlenomicsData } from "@/hooks/useWrestlenomicsData";
+import { useScrapeEvents, useScrapeNews, useRealTimeAnalytics } from "@/hooks/useRealTimeWrestlingData";
 
 export const DataManagement = () => {
   const [isScrapingAll, setIsScrapingAll] = useState(false);
@@ -19,6 +20,11 @@ export const DataManagement = () => {
   const scrapeWrestlenomics = useScrapeWrestlenomics();
   const scrapeAllWrestlenomics = useScrapeAllWrestlenomics();
   const { tvRatings, ticketSales, eloRankings, refetchAll } = useAllWrestlenomicsData();
+  
+  // New real-time data hooks
+  const scrapeEvents = useScrapeEvents();
+  const scrapeNews = useScrapeNews();
+  const { events, news, storylines, refetchAll: refetchRealTimeData } = useRealTimeAnalytics();
 
   const handleScrapePromotion = async (promotionName: string) => {
     setScrapingStatus(prev => ({ ...prev, [promotionName]: true }));
@@ -62,6 +68,58 @@ export const DataManagement = () => {
       title: "All Data Updated",
       description: "Successfully updated data for all promotions",
     });
+  };
+
+  const handleScrapeRealTimeEvents = async () => {
+    try {
+      const result = await scrapeEvents.mutateAsync();
+      
+      if (result.success) {
+        toast({
+          title: "Events Scraping Successful",
+          description: `${result.message}. Check the Events tab to view the latest data.`,
+        });
+        refetchRealTimeData();
+      } else {
+        toast({
+          title: "Scraping Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to scrape events data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleScrapeRealTimeNews = async () => {
+    try {
+      const result = await scrapeNews.mutateAsync();
+      
+      if (result.success) {
+        toast({
+          title: "News Scraping Successful",
+          description: `${result.message}. Check the Overview tab to view the latest news.`,
+        });
+        refetchRealTimeData();
+      } else {
+        toast({
+          title: "Scraping Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to scrape news data",
+        variant: "destructive",
+      });
+    }
   };
 
   const wrestlersByPromotion = wrestlers.reduce((acc, wrestler) => {
@@ -124,11 +182,11 @@ export const DataManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Data Management</h2>
+          <h2 className="text-2xl font-bold text-foreground">Real-Time Data Management</h2>
           <p className="text-muted-foreground">
-            Manage and update wrestling data from official sources. 
+            Manage and update wrestling data from live sources. All data is scraped in real-time from official websites.
             <span className="inline-flex items-center ml-2 text-wrestling-electric">
-              View data in Industry Analytics 
+              View data across all tabs 
               <ExternalLink className="h-3 w-3 ml-1" />
             </span>
           </p>
@@ -141,14 +199,14 @@ export const DataManagement = () => {
           {isScrapingAll ? (
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
           ) : (
-            <Database className="h-4 w-4 mr-2" />
+            <Zap className="h-4 w-4 mr-2" />
           )}
-          Update All Data
+          Update All Real-Time Data
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Enhanced Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="glass-card">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
@@ -180,17 +238,162 @@ export const DataManagement = () => {
         <Card className="glass-card">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg flex items-center justify-center">
-                <Database className="h-6 w-6 text-green-500" />
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-purple-500" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">{promotions.length}</div>
-                <div className="text-sm text-muted-foreground">Promotions</div>
+                <div className="text-2xl font-bold text-foreground">{events.length}</div>
+                <div className="text-sm text-muted-foreground">Live Events</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-foreground">{news.length}</div>
+                <div className="text-sm text-muted-foreground">Latest News</div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Real-Time Data Sources */}
+      <Card className="glass-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Real-Time Data Sources</CardTitle>
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleScrapeRealTimeEvents}
+                disabled={scrapeEvents.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {scrapeEvents.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="h-4 w-4 mr-2" />
+                )}
+                Update Events
+              </Button>
+              <Button
+                onClick={handleScrapeRealTimeNews}
+                disabled={scrapeNews.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {scrapeNews.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                Update News
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-4">
+            <div className="text-sm text-green-400">
+              🔴 LIVE: Data is scraped in real-time from official sources every 15 minutes automatically
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h3 className="font-semibold text-foreground">Wrestling Events</h3>
+                <p className="text-sm text-muted-foreground">
+                  {events.length} live events • WWE, AEW, NXT weekly shows + PPVs
+                </p>
+              </div>
+              <Badge variant="secondary">
+                wwe.com • allelitewrestling.com
+              </Badge>
+            </div>
+            <Button
+              onClick={handleScrapeRealTimeEvents}
+              disabled={scrapeEvents.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {scrapeEvents.isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Update
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h3 className="font-semibold text-foreground">Wrestling News</h3>
+                <p className="text-sm text-muted-foreground">
+                  {news.length} articles • Real-time news from trusted sources
+                </p>
+              </div>
+              <Badge variant="secondary">
+                wrestlinginc.com • 411mania.com
+              </Badge>
+            </div>
+            <Button
+              onClick={handleScrapeRealTimeNews}
+              disabled={scrapeNews.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {scrapeNews.isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Update
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h3 className="font-semibold text-foreground">Active Storylines</h3>
+                <p className="text-sm text-muted-foreground">
+                  {storylines.length} storylines • Auto-detected from news & social media
+                </p>
+              </div>
+              <Badge variant="secondary">
+                AI-powered detection
+              </Badge>
+            </div>
+            <Button
+              onClick={() => {
+                handleScrapeRealTimeNews();
+                toast({
+                  title: "Updating Storylines",
+                  description: "Storylines are auto-detected from latest news data",
+                });
+              }}
+              disabled={scrapeNews.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {scrapeNews.isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Update
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Wrestlenomics Data Sources */}
       <Card className="glass-card">

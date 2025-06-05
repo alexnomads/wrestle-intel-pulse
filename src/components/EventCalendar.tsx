@@ -1,173 +1,243 @@
 
-import { Clock, Calendar, MapPin, Tv } from "lucide-react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getWeeklyShows, getUpcomingEvents } from "@/services/wrestlerService";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, MapPin, Tv, ExternalLink, Ticket, Users } from "lucide-react";
+import { useUpcomingEvents, useWeeklyShows, useRealTimeEvents } from "@/hooks/useRealTimeWrestlingData";
 
 export const EventCalendar = () => {
-  const weeklyShows = getWeeklyShows();
-  const upcomingEvents = getUpcomingEvents();
+  const [selectedView, setSelectedView] = useState<'upcoming' | 'weekly' | 'all'>('upcoming');
+  
+  const { data: upcomingEvents = [], isLoading: loadingUpcoming } = useUpcomingEvents();
+  const { data: weeklyShows = [], isLoading: loadingWeekly } = useWeeklyShows();
+  const { data: allEvents = [], isLoading: loadingAll } = useRealTimeEvents();
 
-  const formatTimeUntil = (dateString: string) => {
-    const eventDate = new Date(dateString);
-    const now = new Date();
-    const diffTime = eventDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 0) return "Today or Past";
-    if (diffDays === 1) return "Tomorrow";
-    if (diffDays < 7) return `${diffDays} days`;
-    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks`;
-    return `${Math.ceil(diffDays / 30)} months`;
-  };
+  const isLoading = loadingUpcoming || loadingWeekly || loadingAll;
 
-  const getNextShowDate = (day: string) => {
-    const today = new Date();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const targetDay = dayNames.indexOf(day);
-    const currentDay = today.getDay();
-    
-    let daysUntil = targetDay - currentDay;
-    if (daysUntil <= 0) daysUntil += 7;
-    
-    const nextShow = new Date(today);
-    nextShow.setDate(today.getDate() + daysUntil);
-    return nextShow.toISOString().split('T')[0];
-  };
-
-  const convertTime = (timeET: string) => {
-    const etHour = parseInt(timeET.split(':')[0]);
-    const ptHour = etHour - 3;
-    const cestHour = etHour + 6;
-    
-    return {
-      et: timeET,
-      pt: `${ptHour < 0 ? ptHour + 12 : ptHour > 12 ? ptHour - 12 : ptHour}:00 PM PT`,
-      cest: `${cestHour > 24 ? cestHour - 24 : cestHour}:00 CEST`
-    };
-  };
-
-  const getPromotionColor = (promotion: string) => {
-    switch (promotion.toLowerCase()) {
-      case "wwe": return "bg-red-600";
-      case "aew": return "bg-yellow-500";
-      case "nxt": return "bg-purple-600";
-      case "tna": return "bg-blue-600";
-      default: return "bg-secondary";
+  const getDisplayEvents = () => {
+    switch (selectedView) {
+      case 'upcoming':
+        return upcomingEvents;
+      case 'weekly':
+        return weeklyShows;
+      case 'all':
+        return allEvents;
+      default:
+        return upcomingEvents;
     }
   };
 
+  const formatEventDate = (dateString: string | null, timeString: string | null) => {
+    if (!dateString) return 'TBD';
+    
+    const date = new Date(dateString);
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    if (timeString) {
+      const time = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      return `${formattedDate} at ${time}`;
+    }
+    
+    return formattedDate;
+  };
+
+  const getDaysUntilEvent = (dateString: string | null) => {
+    if (!dateString) return null;
+    
+    const eventDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = eventDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays > 0) return `In ${diffDays} days`;
+    return 'Past event';
+  };
+
+  const getEventTypeColor = (eventType: string | null) => {
+    switch (eventType) {
+      case 'ple':
+      case 'ppv':
+        return 'bg-wrestling-electric text-black';
+      case 'weekly':
+        return 'bg-blue-500 text-white';
+      case 'special':
+        return 'bg-purple-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wrestling-electric mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Loading real-time events...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const displayEvents = getDisplayEvents();
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Weekly Shows */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-wrestling-electric" />
-            <span>Weekly Shows</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {weeklyShows.map((show) => {
-            const nextShowDate = show.nextDate || getNextShowDate(show.day!);
-            const timeZones = convertTime(show.time!);
-            
-            return (
-              <div key={show.id} className="p-4 bg-secondary/20 rounded-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${getPromotionColor(show.promotion)}`} />
-                    <h4 className="font-semibold text-foreground">{show.name}</h4>
-                  </div>
-                  <Badge variant="outline">{show.promotion}</Badge>
-                </div>
-                
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span>{show.day}s</span>
-                      <span className="text-xs">
-                        {timeZones.et} | {timeZones.pt} | {timeZones.cest}
-                      </span>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Wrestling Events Calendar</h2>
+          <p className="text-muted-foreground">Live event data from official promotion sources</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => setSelectedView('upcoming')}
+            variant={selectedView === 'upcoming' ? 'default' : 'outline'}
+            size="sm"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Upcoming ({upcomingEvents.length})
+          </Button>
+          <Button
+            onClick={() => setSelectedView('weekly')}
+            variant={selectedView === 'weekly' ? 'default' : 'outline'}
+            size="sm"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Weekly Shows ({weeklyShows.length})
+          </Button>
+          <Button
+            onClick={() => setSelectedView('all')}
+            variant={selectedView === 'all' ? 'default' : 'outline'}
+            size="sm"
+          >
+            <Tv className="h-4 w-4 mr-2" />
+            All Events ({allEvents.length})
+          </Button>
+        </div>
+      </div>
+
+      {displayEvents.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Events Found</h3>
+            <p className="text-muted-foreground">
+              {selectedView === 'upcoming' && "No upcoming events scheduled at this time."}
+              {selectedView === 'weekly' && "No weekly shows configured."}
+              {selectedView === 'all' && "No events available in the database."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {displayEvents.map((event) => (
+            <Card key={event.id} className="glass-card hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <CardTitle className="text-xl">{event.name}</CardTitle>
+                      <Badge className={getEventTypeColor(event.event_type)}>
+                        {event.event_type?.toUpperCase() || 'EVENT'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatEventDate(event.event_date, event.event_time)}</span>
+                      </div>
+                      {getDaysUntilEvent(event.event_date) && (
+                        <Badge variant="outline">
+                          {getDaysUntilEvent(event.event_date)}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Tv className="h-4 w-4" />
-                    <span>{show.network}</span>
-                  </div>
+                  {event.promotions && (
+                    <Badge variant="secondary">
+                      {event.promotions.name}
+                    </Badge>
+                  )}
                 </div>
-                
-                <div className="text-sm text-wrestling-electric font-medium">
-                  Next: {formatTimeUntil(nextShowDate)} ({new Date(nextShowDate).toLocaleDateString()})
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {/* Special Events */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MapPin className="h-5 w-5 text-wrestling-gold" />
-            <span>Upcoming Special Events</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {upcomingEvents.map((event) => (
-            <div key={event.id} className="p-4 bg-secondary/20 rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${getPromotionColor(event.promotion)}`} />
-                  <h4 className="font-semibold text-foreground">{event.name}</h4>
-                </div>
-                <Badge className={event.type === 'ple' ? 'bg-wrestling-gold/20 text-wrestling-gold' : 'bg-wrestling-electric/20 text-wrestling-electric'}>
-                  {event.type.toUpperCase()}
-                </Badge>
-              </div>
-              
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>{new Date(event.date!).toLocaleDateString()}</span>
-                  <span className="text-wrestling-electric font-medium">
-                    ({formatTimeUntil(event.date!)})
-                  </span>
-                </div>
-                
-                {event.location && (
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{event.location}</span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {event.main_event && (
+                  <div className="p-3 bg-wrestling-electric/10 border border-wrestling-electric/20 rounded-lg">
+                    <div className="text-sm font-medium text-wrestling-electric mb-1">Main Event</div>
+                    <div className="text-sm">{event.main_event}</div>
                   </div>
                 )}
                 
-                <div className="flex items-center space-x-2">
-                  <Tv className="h-4 w-4" />
-                  <span>{event.network}</span>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {event.location && (
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{event.location}</span>
+                    </div>
+                  )}
+                  
+                  {event.network && (
+                    <div className="flex items-center space-x-2">
+                      <Tv className="h-4 w-4 text-muted-foreground" />
+                      <span>{event.network}</span>
+                    </div>
+                  )}
+                  
+                  {event.venue_capacity && (
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{event.venue_capacity.toLocaleString()} capacity</span>
+                    </div>
+                  )}
+                  
+                  {event.sold_out && (
+                    <div className="flex items-center space-x-2">
+                      <Badge className="bg-red-500 text-white">
+                        SOLD OUT
+                      </Badge>
+                    </div>
+                  )}
                 </div>
-              </div>
-              
-              {event.matches && event.matches.length > 0 && (
-                <div className="pt-2 border-t border-border/50">
-                  <div className="text-xs text-muted-foreground mb-2">Featured Match:</div>
-                  <div className="text-sm text-foreground">
-                    {event.matches[0].title}: {event.matches[0].participants.join(' vs ')}
+
+                {(event.ticket_url || event.card_announced) && (
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center space-x-2">
+                      {event.card_announced && (
+                        <Badge variant="outline" className="text-xs">
+                          Card Announced
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {event.ticket_url && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.open(event.ticket_url!, '_blank')}
+                      >
+                        <Ticket className="h-4 w-4 mr-2" />
+                        Tickets
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
           ))}
-          
-          {upcomingEvents.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No upcoming special events scheduled
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };

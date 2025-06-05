@@ -57,6 +57,53 @@ export type Database = {
           },
         ]
       }
+      contract_status: {
+        Row: {
+          contract_end: string | null
+          contract_start: string | null
+          contract_type: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          salary_tier: string | null
+          status: string
+          updated_at: string
+          wrestler_id: string | null
+        }
+        Insert: {
+          contract_end?: string | null
+          contract_start?: string | null
+          contract_type?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          salary_tier?: string | null
+          status?: string
+          updated_at?: string
+          wrestler_id?: string | null
+        }
+        Update: {
+          contract_end?: string | null
+          contract_start?: string | null
+          contract_type?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          salary_tier?: string | null
+          status?: string
+          updated_at?: string
+          wrestler_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_status_wrestler_id_fkey"
+            columns: ["wrestler_id"]
+            isOneToOne: false
+            referencedRelation: "wrestlers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       elo_rankings: {
         Row: {
           created_at: string
@@ -93,6 +140,54 @@ export type Database = {
         }
         Relationships: []
       }
+      news_articles: {
+        Row: {
+          author: string | null
+          content: string | null
+          created_at: string
+          id: string
+          keywords: string[] | null
+          promotion_mentions: string[] | null
+          published_at: string | null
+          sentiment_score: number | null
+          source: string
+          title: string
+          updated_at: string
+          url: string
+          wrestler_mentions: string[] | null
+        }
+        Insert: {
+          author?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          promotion_mentions?: string[] | null
+          published_at?: string | null
+          sentiment_score?: number | null
+          source: string
+          title: string
+          updated_at?: string
+          url: string
+          wrestler_mentions?: string[] | null
+        }
+        Update: {
+          author?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          promotion_mentions?: string[] | null
+          published_at?: string | null
+          sentiment_score?: number | null
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string
+          wrestler_mentions?: string[] | null
+        }
+        Relationships: []
+      }
       promotions: {
         Row: {
           created_at: string
@@ -119,6 +214,59 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: []
+      }
+      storylines: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          fan_reception_score: number | null
+          id: string
+          intensity_score: number | null
+          participants: string[]
+          promotion_id: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          fan_reception_score?: number | null
+          id?: string
+          intensity_score?: number | null
+          participants: string[]
+          promotion_id?: string | null
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          fan_reception_score?: number | null
+          id?: string
+          intensity_score?: number | null
+          participants?: string[]
+          promotion_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storylines_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_sales: {
         Row: {
@@ -271,6 +419,7 @@ export type Database = {
       }
       wrestling_events: {
         Row: {
+          card_announced: boolean | null
           created_at: string
           day_of_week: number | null
           event_date: string | null
@@ -279,12 +428,18 @@ export type Database = {
           id: string
           is_recurring: boolean | null
           location: string | null
+          main_event: string | null
           name: string
           network: string | null
+          poster_image_url: string | null
           promotion_id: string | null
+          sold_out: boolean | null
+          ticket_url: string | null
           updated_at: string
+          venue_capacity: number | null
         }
         Insert: {
+          card_announced?: boolean | null
           created_at?: string
           day_of_week?: number | null
           event_date?: string | null
@@ -293,12 +448,18 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           location?: string | null
+          main_event?: string | null
           name: string
           network?: string | null
+          poster_image_url?: string | null
           promotion_id?: string | null
+          sold_out?: boolean | null
+          ticket_url?: string | null
           updated_at?: string
+          venue_capacity?: number | null
         }
         Update: {
+          card_announced?: boolean | null
           created_at?: string
           day_of_week?: number | null
           event_date?: string | null
@@ -307,10 +468,15 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           location?: string | null
+          main_event?: string | null
           name?: string
           network?: string | null
+          poster_image_url?: string | null
           promotion_id?: string | null
+          sold_out?: boolean | null
+          ticket_url?: string | null
           updated_at?: string
+          venue_capacity?: number | null
         }
         Relationships: [
           {
@@ -318,6 +484,50 @@ export type Database = {
             columns: ["promotion_id"]
             isOneToOne: false
             referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wrestling_matches: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          match_order: number | null
+          match_type: string
+          participants: string[]
+          title: string | null
+          updated_at: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          match_order?: number | null
+          match_type: string
+          participants: string[]
+          title?: string | null
+          updated_at?: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          match_order?: number | null
+          match_type?: string
+          participants?: string[]
+          title?: string | null
+          updated_at?: string
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wrestling_matches_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "wrestling_events"
             referencedColumns: ["id"]
           },
         ]
