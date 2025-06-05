@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +101,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Generate push/burial analysis
   const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
-    wrestler_name: wrestler.wrestler_name,
+    name: wrestler.wrestler_name,
     promotion: wrestler.promotion,
     pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
     burialRisk: wrestler.contractRisk === 'high' ? 8 : 
@@ -218,8 +219,8 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.wrestler_name}
-                        data={wrestler}
+                        key={wrestler.name}
+                        wrestler={wrestler}
                         type="push"
                         rank={index + 1}
                       />
@@ -244,8 +245,8 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.wrestler_name}
-                        data={wrestler}
+                        key={wrestler.name}
+                        wrestler={wrestler}
                         type="burial"
                         rank={index + 1}
                       />
@@ -270,7 +271,7 @@ export const WrestlerIntelligenceDashboard = () => {
                 {filteredContractAnalysis.slice(0, 8).map((wrestler) => (
                   <ContractStatusCard
                     key={wrestler.id}
-                    data={{
+                    contract={{
                       wrestlerName: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       status: wrestler.contractStatus,
@@ -290,3 +291,4 @@ export const WrestlerIntelligenceDashboard = () => {
     </div>
   );
 };
+
