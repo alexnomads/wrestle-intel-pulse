@@ -25,30 +25,53 @@ export const StorylineTracker = () => {
     ? storylines 
     : storylines.filter(storyline => storyline.promotion.toLowerCase() === selectedPromotion);
 
-  // Mock booking patterns data (this would need additional implementation)
-  const bookingPatterns = [
-    {
-      promotion: 'WWE',
-      pattern: 'Celebrity Integration',
-      frequency: 85,
-      effectiveness: 6.5,
-      examples: ['Bad Bunny matches', 'Logan Paul storylines']
-    },
-    {
-      promotion: 'AEW',
-      pattern: 'Long-term Storytelling',
-      frequency: 78,
-      effectiveness: 8.2,
-      examples: ['Hangman Page arc', 'MJF character development']
-    },
-    {
-      promotion: 'NXT',
-      pattern: 'Tournament Structure',
-      frequency: 65,
-      effectiveness: 7.8,
-      examples: ['Breakout Tournament', 'Heritage Cup']
-    }
-  ];
+  // Generate booking patterns from actual storyline data
+  const generateBookingPatterns = () => {
+    if (storylines.length === 0) return [];
+    
+    const promotionPatterns = new Map();
+    
+    storylines.forEach(storyline => {
+      if (!promotionPatterns.has(storyline.promotion)) {
+        promotionPatterns.set(storyline.promotion, {
+          promotion: storyline.promotion,
+          patterns: [],
+          totalStorylines: 0,
+          avgIntensity: 0,
+          avgFanReception: 0
+        });
+      }
+      
+      const pattern = promotionPatterns.get(storyline.promotion);
+      pattern.totalStorylines++;
+      pattern.avgIntensity += storyline.intensity_score;
+      pattern.avgFanReception += storyline.fan_reception_score;
+      
+      // Detect pattern types based on keywords
+      if (storyline.keywords.includes('championship') || storyline.keywords.includes('title')) {
+        pattern.patterns.push('Championship Focus');
+      }
+      if (storyline.keywords.includes('feud') || storyline.keywords.includes('vs')) {
+        pattern.patterns.push('Rivalry Building');
+      }
+      if (storyline.keywords.includes('team') || storyline.keywords.includes('alliance')) {
+        pattern.patterns.push('Faction Dynamics');
+      }
+    });
+    
+    return Array.from(promotionPatterns.values()).map(pattern => ({
+      promotion: pattern.promotion,
+      pattern: pattern.patterns.length > 0 ? pattern.patterns[0] : 'General Storytelling',
+      frequency: Math.min(pattern.totalStorylines * 15, 100),
+      effectiveness: Math.min(pattern.avgFanReception / pattern.totalStorylines, 10),
+      examples: storylines
+        .filter(s => s.promotion === pattern.promotion)
+        .slice(0, 2)
+        .map(s => s.title)
+    }));
+  };
+
+  const bookingPatterns = generateBookingPatterns();
 
   if (storylinesLoading && topicsLoading) {
     return (
@@ -92,19 +115,39 @@ export const StorylineTracker = () => {
         </TabsContent>
 
         <TabsContent value="trending" className="space-y-6">
-          <div className="grid gap-4">
-            {trendingTopics.map((topic, index) => (
-              <TrendingTopicCard key={index} topic={topic} />
-            ))}
-          </div>
+          {trendingTopics.length === 0 ? (
+            <Card className="glass-card">
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground">
+                  No trending topics available. Try refreshing the news data to generate trending topics.
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {trendingTopics.map((topic, index) => (
+                <TrendingTopicCard key={index} topic={topic} />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="booking" className="space-y-6">
-          <div className="grid gap-6">
-            {bookingPatterns.map((pattern, index) => (
-              <BookingPatternCard key={index} pattern={pattern} />
-            ))}
-          </div>
+          {bookingPatterns.length === 0 ? (
+            <Card className="glass-card">
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground">
+                  No booking patterns available. Generate storylines from news data to see patterns.
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6">
+              {bookingPatterns.map((pattern, index) => (
+                <BookingPatternCard key={index} pattern={pattern} />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">
@@ -121,9 +164,9 @@ export const StorylineTracker = () => {
                   </p>
                 </div>
                 <div className="p-4 bg-secondary/50 rounded-lg">
-                  <h3 className="font-semibold text-foreground mb-2">Detection Algorithm</h3>
+                  <h3 className="font-semibold text-foreground mb-2">Active Storylines</h3>
                   <p className="text-sm text-muted-foreground">
-                    Storylines are detected using keyword analysis, wrestler mention patterns, and sentiment scoring
+                    {storylines.length} storylines detected using keyword analysis and wrestler mention patterns
                   </p>
                 </div>
                 <div className="p-4 bg-secondary/50 rounded-lg">

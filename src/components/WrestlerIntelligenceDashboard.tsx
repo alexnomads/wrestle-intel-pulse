@@ -77,7 +77,7 @@ export const WrestlerIntelligenceDashboard = () => {
             <div className="grid gap-6">
               {wrestlerMomentum.slice(0, 15).map((momentum, index) => (
                 <WrestlerProfileCard
-                  key={index}
+                  key={`${momentum.wrestler_name}-${index}`}
                   momentum={momentum}
                   getStatusColor={getStatusColor}
                   getSentimentColor={getSentimentColor}
@@ -92,14 +92,14 @@ export const WrestlerIntelligenceDashboard = () => {
             {wrestlerMomentum
               .sort((a, b) => b.push_burial_score - a.push_burial_score)
               .map((momentum, index) => (
-                <PushBurialCard key={index} momentum={momentum} />
+                <PushBurialCard key={`${momentum.wrestler_name}-${index}`} momentum={momentum} />
               ))}
           </div>
         </TabsContent>
 
         <TabsContent value="contract-monitor" className="space-y-6">
           <div className="grid gap-4">
-            {['expiring', 'negotiating', 'active', 'unknown'].map((status) => {
+            {['active', 'expiring', 'negotiating', 'unknown'].map((status) => {
               const statusWrestlers = wrestlerMomentum.filter(w => w.contract_status === status);
               if (statusWrestlers.length === 0) return null;
               
@@ -122,25 +122,31 @@ export const WrestlerIntelligenceDashboard = () => {
                 <CardTitle>Trending Topics</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4">
-                  {trendingTopics.slice(0, 5).map((topic, index) => (
-                    <div key={index} className="p-4 bg-secondary/50 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-foreground">{topic.title}</h3>
-                        <Badge variant="outline">{topic.mentions} mentions</Badge>
-                      </div>
-                      {topic.related_wrestlers.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {topic.related_wrestlers.slice(0, 4).map((wrestler, wIndex) => (
-                            <Badge key={wIndex} variant="secondary" className="text-xs">
-                              {wrestler}
-                            </Badge>
-                          ))}
+                {trendingTopics.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No trending topics available. Try refreshing the news data.
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {trendingTopics.slice(0, 5).map((topic, index) => (
+                      <div key={index} className="p-4 bg-secondary/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold text-foreground">{topic.title}</h3>
+                          <Badge variant="outline">{topic.mentions} mentions</Badge>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        {topic.related_wrestlers.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {topic.related_wrestlers.slice(0, 4).map((wrestler, wIndex) => (
+                              <Badge key={wIndex} variant="secondary" className="text-xs">
+                                {wrestler}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -149,14 +155,20 @@ export const WrestlerIntelligenceDashboard = () => {
                 <CardTitle>Momentum Leaders</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {wrestlerMomentum
-                    .sort((a, b) => b.momentum_change - a.momentum_change)
-                    .slice(0, 8)
-                    .map((wrestler, index) => (
-                      <MomentumLeaderCard key={index} wrestler={wrestler} index={index} />
-                    ))}
-                </div>
+                {wrestlerMomentum.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No wrestler momentum data available. Try refreshing the news data.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {wrestlerMomentum
+                      .sort((a, b) => b.momentum_change - a.momentum_change)
+                      .slice(0, 8)
+                      .map((wrestler, index) => (
+                        <MomentumLeaderCard key={`${wrestler.wrestler_name}-${index}`} wrestler={wrestler} index={index} />
+                      ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
