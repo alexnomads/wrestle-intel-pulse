@@ -2,11 +2,14 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, TrendingDown, Flame, Users, BarChart3, ExternalLink, Info } from "lucide-react";
+import { Flame, Users } from "lucide-react";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { useWrestlerAnalysis } from "@/hooks/useWrestlerAnalysis";
+import { WrestlerCard } from "./wrestler-tracker/WrestlerCard";
+import { FederationFilter } from "./wrestler-tracker/FederationFilter";
+import { FederationComparison } from "./wrestler-tracker/FederationComparison";
+import { getPopularityScore, get24hChange } from "./wrestler-tracker/utils";
 
 interface RealTimeWrestlerTrackerProps {
   refreshTrigger: Date;
@@ -25,86 +28,6 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
     worstBuriedWrestlers
   } = useWrestlerAnalysis(wrestlers, newsItems, timePeriod, selectedFederation);
 
-  const federations = [
-    { id: 'all', name: 'All', color: 'bg-gray-500' },
-    { id: 'wwe', name: 'WWE', color: 'bg-yellow-500' },
-    { id: 'aew', name: 'AEW', color: 'bg-black' },
-    { id: 'tna', name: 'TNA', color: 'bg-blue-500' }
-  ];
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'push': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'burial': return <TrendingDown className="h-4 w-4 text-red-500" />;
-      default: return <BarChart3 className="h-4 w-4 text-yellow-500" />;
-    }
-  };
-
-  const getPopularityScore = (wrestler: any) => {
-    return Math.round((wrestler.totalMentions * 10) + (wrestler.sentimentScore * 0.5));
-  };
-
-  const get24hChange = (wrestler: any) => {
-    // Simulate 24h change based on trend
-    const baseChange = wrestler.trend === 'push' ? 15 : wrestler.trend === 'burial' ? -12 : 3;
-    return baseChange + Math.floor(Math.random() * 10 - 5);
-  };
-
-  const MentionsPopup = ({ wrestler }: { wrestler: any }) => (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="ml-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-          <Info className="h-2 w-2 text-white" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-        <div className="space-y-3">
-          <h4 className="font-semibold text-foreground">Recent Mentions for {wrestler.wrestler_name}</h4>
-          <div className="text-sm text-muted-foreground">
-            {wrestler.totalMentions} mentions in the last {timePeriod} days
-          </div>
-          
-          {wrestler.relatedNews && wrestler.relatedNews.length > 0 ? (
-            <div className="space-y-2">
-              {wrestler.relatedNews.slice(0, 8).map((news: any, index: number) => (
-                <div key={index} className="border-l-2 border-blue-400 pl-3 py-1">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-foreground mb-1 leading-tight">
-                        {news.title.substring(0, 100)}{news.title.length > 100 ? '...' : ''}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {news.source} • {new Date(news.pubDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <a 
-                      href={news.link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                </div>
-              ))}
-              {wrestler.relatedNews.length > 8 && (
-                <div className="text-xs text-muted-foreground text-center pt-2 border-t border-gray-200 dark:border-gray-700">
-                  And {wrestler.relatedNews.length - 8} more articles...
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              No detailed coverage links available
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -117,22 +40,10 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
             </Badge>
           </CardTitle>
           
-          {/* Federation Filter */}
-          <div className="flex space-x-2">
-            {federations.map((fed) => (
-              <button
-                key={fed.id}
-                onClick={() => setSelectedFederation(fed.id)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  selectedFederation === fed.id
-                    ? 'bg-wrestling-electric text-white'
-                    : 'bg-secondary text-foreground hover:bg-secondary/80'
-                }`}
-              >
-                {fed.name}
-              </button>
-            ))}
-          </div>
+          <FederationFilter 
+            selectedFederation={selectedFederation}
+            onFederationChange={setSelectedFederation}
+          />
         </div>
       </CardHeader>
       
@@ -155,69 +66,14 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
               const change24h = get24hChange(wrestler);
               
               return (
-                <div 
+                <WrestlerCard
                   key={wrestler.id}
-                  className={`flex items-center justify-between p-4 rounded-lg transition-all ${
-                    wrestler.isOnFire 
-                      ? 'bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/40 dark:to-orange-900/40 border-2 border-orange-400' 
-                      : 'bg-secondary/30 hover:bg-secondary/50'
-                  }`}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 bg-gradient-to-br from-wrestling-electric to-wrestling-purple rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">#{index + 1}</span>
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="font-semibold text-foreground">{wrestler.wrestler_name}</h4>
-                        {wrestler.isOnFire && (
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30">
-                            <Flame className="h-3 w-3 mr-1" />
-                            HOT
-                          </Badge>
-                        )}
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${
-                            wrestler.promotion.toLowerCase().includes('wwe') ? 'border-yellow-400 text-yellow-600' :
-                            wrestler.promotion.toLowerCase().includes('aew') ? 'border-black text-black dark:border-white dark:text-white' :
-                            wrestler.promotion.toLowerCase().includes('tna') ? 'border-blue-400 text-blue-600' :
-                            'border-gray-400 text-gray-600'
-                          }`}
-                        >
-                          {wrestler.promotion}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <span>{wrestler.totalMentions} mentions</span>
-                        <MentionsPopup wrestler={wrestler} />
-                        <span className="ml-2">• {wrestler.sentimentScore}% sentiment</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="flex items-center space-x-1">
-                        {getTrendIcon(wrestler.trend)}
-                        <span className="text-lg font-bold text-wrestling-electric">
-                          {popularityScore}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">Popularity Score</div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className={`text-sm font-medium ${
-                        change24h > 0 ? 'text-green-500' : change24h < 0 ? 'text-red-500' : 'text-yellow-500'
-                      }`}>
-                        {change24h > 0 ? '+' : ''}{change24h}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">24h Change</div>
-                    </div>
-                  </div>
-                </div>
+                  wrestler={wrestler}
+                  index={index}
+                  timePeriod={timePeriod}
+                  popularityScore={popularityScore}
+                  change24h={change24h}
+                />
               );
             })}
             
@@ -231,27 +87,10 @@ export const RealTimeWrestlerTracker = ({ refreshTrigger }: RealTimeWrestlerTrac
 
           {/* Federation Comparison Summary */}
           {selectedFederation === 'all' && (
-            <div className="pt-4 border-t border-secondary/50">
-              <h4 className="font-medium text-foreground mb-3">Federation Popularity Comparison</h4>
-              <div className="grid grid-cols-3 gap-4">
-                {['WWE', 'AEW', 'TNA'].map((fed) => {
-                  const fedWrestlers = filteredAnalysis.filter(w => 
-                    w.promotion.toLowerCase().includes(fed.toLowerCase())
-                  );
-                  const avgPopularity = fedWrestlers.length > 0 
-                    ? Math.round(fedWrestlers.reduce((sum, w) => sum + getPopularityScore(w), 0) / fedWrestlers.length)
-                    : 0;
-                  
-                  return (
-                    <div key={fed} className="text-center p-3 bg-secondary/20 rounded-lg">
-                      <div className="text-lg font-bold text-wrestling-electric">{avgPopularity}</div>
-                      <div className="text-sm text-muted-foreground">{fed} Avg Score</div>
-                      <div className="text-xs text-muted-foreground">{fedWrestlers.length} wrestlers</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <FederationComparison 
+              filteredAnalysis={filteredAnalysis}
+              getPopularityScore={getPopularityScore}
+            />
           )}
         </div>
       </CardContent>
