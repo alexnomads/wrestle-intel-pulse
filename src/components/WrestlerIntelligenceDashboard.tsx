@@ -1,17 +1,18 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useWrestlerMomentumAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
+import { useWrestlerAnalysis } from "@/hooks/useWrestlerAnalysis";
 import { MomentumLeaderCard } from "./wrestler-intelligence/MomentumLeaderCard";
 import { PushBurialCard } from "./wrestler-intelligence/PushBurialCard";
 import { ContractStatusCard } from "./wrestler-intelligence/ContractStatusCard";
 import { DashboardFilters } from "./wrestler-intelligence/DashboardFilters";
 import { EmptyWrestlerState } from "./wrestler-intelligence/EmptyWrestlerState";
-import { analyzeSentiment, extractWrestlerMentions } from "@/services/wrestlingDataService";
+import { MetricsOverview } from "./wrestler-intelligence/MetricsOverview";
+import { PushBurialCharts } from "./wrestler-intelligence/PushBurialCharts";
 
 type TimePeriod = '30' | '60' | '180' | '365';
 
@@ -25,108 +26,14 @@ export const WrestlerIntelligenceDashboard = () => {
   const { data: wrestlers = [] } = useSupabaseWrestlers();
   const { data: newsItems = [] } = useRSSFeeds();
 
-  // Filter wrestlers by promotion
-  const filteredWrestlers = selectedPromotion === 'all' 
-    ? wrestlers 
-    : wrestlers.filter(wrestler => 
-        wrestler.brand?.toLowerCase().includes(selectedPromotion.toLowerCase()) ||
-        (wrestler.promotion_id && wrestlers.find(w => w.promotion_id === wrestler.promotion_id))
-      );
-
-  // Filter news by time period
-  const getNewsItemsForPeriod = () => {
-    const periodDays = parseInt(selectedTimePeriod);
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - periodDays);
-    
-    return newsItems.filter(item => {
-      const itemDate = new Date(item.pubDate);
-      return itemDate >= cutoffDate;
-    });
-  };
-
-  const periodNewsItems = getNewsItemsForPeriod();
-
-  // Generate push/burial analysis from real data
-  const generatePushBurialAnalysis = () => {
-    if (!wrestlers.length) return [];
-    
-    return wrestlers.map(wrestler => {
-      // Find mentions in the selected time period
-      const wrestlerNews = periodNewsItems.filter(item => 
-        extractWrestlerMentions(`${item.title} ${item.contentSnippet}`).includes(wrestler.name)
-      );
-      
-      let pushScore = 0;
-      let burialScore = 0;
-      let totalMentions = wrestlerNews.length;
-      
-      // Analyze sentiment of each mention
-      wrestlerNews.forEach(item => {
-        const sentiment = analyzeSentiment(`${item.title} ${item.contentSnippet}`);
-        if (sentiment.score > 0.6) {
-          pushScore += (sentiment.score - 0.5) * 2; // Convert to 0-1 scale
-        } else if (sentiment.score < 0.4) {
-          burialScore += (0.5 - sentiment.score) * 2; // Convert to 0-1 scale
-        }
-      });
-
-      // Calculate final scores
-      const pushPercentage = totalMentions > 0 ? (pushScore / totalMentions) * 100 : 0;
-      const burialPercentage = totalMentions > 0 ? (burialScore / totalMentions) * 100 : 0;
-      
-      let trend: 'push' | 'burial' | 'stable' = 'stable';
-      if (pushPercentage > burialPercentage && pushPercentage > 30) {
-        trend = 'push';
-      } else if (burialPercentage > pushPercentage && burialPercentage > 30) {
-        trend = 'burial';
-      }
-
-      return {
-        id: wrestler.id,
-        wrestler_name: wrestler.name,
-        promotion: wrestler.brand || 'Unknown',
-        pushScore: Math.min(pushPercentage, 100),
-        burialScore: Math.min(burialPercentage, 100),
-        trend,
-        totalMentions,
-        sentimentScore: Math.round((pushPercentage - burialPercentage + 100) / 2),
-        isChampion: wrestler.is_champion || false,
-        championshipTitle: wrestler.championship_title || null,
-        evidence: totalMentions > 10 ? 'High Media Coverage' :
-                 totalMentions > 5 ? 'Moderate Coverage' :
-                 totalMentions > 0 ? 'Limited Coverage' : 'No Recent Coverage'
-      };
-    });
-  };
-
-  const pushBurialAnalysis = generatePushBurialAnalysis();
-  
-  // Filter analysis by promotion
-  const filteredAnalysis = selectedPromotion === 'all'
-    ? pushBurialAnalysis
-    : pushBurialAnalysis.filter(wrestler => 
-        wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
-      );
-
-  // Get top push wrestlers ordered by mentions
-  const getTopPushWrestlers = () => {
-    return filteredAnalysis
-      .filter(wrestler => wrestler.trend === 'push' && wrestler.totalMentions > 0)
-      .sort((a, b) => b.totalMentions - a.totalMentions) // Order by most mentions first
-      .slice(0, 10);
-  };
-
-  // Get worst buried wrestlers ordered by mentions
-  const getWorstBuriedWrestlers = () => {
-    return filteredAnalysis
-      .filter(wrestler => wrestler.trend === 'burial' && wrestler.totalMentions > 0)
-      .sort((a, b) => b.totalMentions - a.totalMentions) // Order by most mentions first (most talked about)
-      .slice(0, 10);
-  };
-
-  const topPushWrestlers = getTopPushWrestlers();
-  const worstBuriedWrestlers = getWorstBuriedWrestlers();
+  // Analysis hook
+  const {
+    filteredWrestlers,
+    periodNewsItems,
+    filteredAnalysis,
+    topPushWrestlers,
+    worstBuriedWrestlers
+  } = useWrestlerAnalysis(wrestlers, newsItems, selectedTimePeriod, selectedPromotion);
 
   // Generate push/burial data for cards
   const pushBurialData = filteredAnalysis.map(wrestler => ({
@@ -189,123 +96,21 @@ export const WrestlerIntelligenceDashboard = () => {
       ) : (
         <div className="grid gap-6">
           {/* Key Metrics Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="glass-card">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-wrestling-electric">{filteredWrestlers.length}</div>
-                <div className="text-sm text-muted-foreground">Total Wrestlers</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-400">
-                  {filteredAnalysis.filter(w => w.trend === 'push').length}
-                </div>
-                <div className="text-sm text-muted-foreground">Getting Push</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-400">
-                  {filteredAnalysis.filter(w => w.trend === 'burial').length}
-                </div>
-                <div className="text-sm text-muted-foreground">Being Buried</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {periodNewsItems.length}
-                </div>
-                <div className="text-sm text-muted-foreground">News Articles ({selectedTimePeriod}d)</div>
-              </CardContent>
-            </Card>
-          </div>
+          <MetricsOverview
+            totalWrestlers={filteredWrestlers.length}
+            pushingWrestlers={filteredAnalysis.filter(w => w.trend === 'push').length}
+            buriedWrestlers={filteredAnalysis.filter(w => w.trend === 'burial').length}
+            newsArticles={periodNewsItems.length}
+            timePeriod={selectedTimePeriod}
+          />
 
           {/* PUSH Top 10 and BURIED Worst 10 Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center text-green-400">
-                  <TrendingUp className="h-5 w-5 mr-2" />
-                  PUSH Top 10 - Most Mentioned ({selectedPromotion === 'all' ? 'All Federations' : selectedPromotion.toUpperCase()})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {topPushWrestlers.length > 0 ? (
-                    topPushWrestlers.map((wrestler, index) => (
-                      <div key={wrestler.id} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                            #{index + 1}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-foreground">{wrestler.wrestler_name}</h4>
-                            <p className="text-sm text-muted-foreground">{wrestler.promotion}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                            {wrestler.totalMentions} mentions
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {wrestler.pushScore.toFixed(1)}% positive
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No wrestlers receiving significant push in the last {selectedTimePeriod} days
-                      {selectedPromotion !== 'all' && ` for ${selectedPromotion.toUpperCase()}`}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center text-red-400">
-                  <TrendingDown className="h-5 w-5 mr-2" />
-                  BURIED Worst 10 - Most Mentioned ({selectedPromotion === 'all' ? 'All Federations' : selectedPromotion.toUpperCase()})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {worstBuriedWrestlers.length > 0 ? (
-                    worstBuriedWrestlers.map((wrestler, index) => (
-                      <div key={wrestler.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                            #{index + 1}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-foreground">{wrestler.wrestler_name}</h4>
-                            <p className="text-sm text-muted-foreground">{wrestler.promotion}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-red-600 dark:text-red-400">
-                            {wrestler.totalMentions} mentions
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {wrestler.burialScore.toFixed(1)}% negative
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No wrestlers being significantly buried in the last {selectedTimePeriod} days
-                      {selectedPromotion !== 'all' && ` for ${selectedPromotion.toUpperCase()}`}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <PushBurialCharts
+            topPushWrestlers={topPushWrestlers}
+            worstBuriedWrestlers={worstBuriedWrestlers}
+            selectedPromotion={selectedPromotion}
+            selectedTimePeriod={selectedTimePeriod}
+          />
 
           {/* Push/Burial Leaders */}
           <Card className="glass-card">
