@@ -82,8 +82,11 @@ export const analyzeTrendingWrestlers = (
         if (newsItem.title.toLowerCase().includes('injury')) {
           stats.reasons.push('Injury report');
         }
-        if (sentiment.keywords.length > 0) {
-          stats.reasons.push(`Media sentiment: ${sentiment.keywords.slice(0, 3).join(', ')}`);
+        // Remove the sentiment.keywords reference since it doesn't exist
+        if (sentiment.score > 0.7) {
+          stats.reasons.push('Positive media coverage');
+        } else if (sentiment.score < 0.3) {
+          stats.reasons.push('Negative media coverage');
         }
       }
     });
