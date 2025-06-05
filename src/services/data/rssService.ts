@@ -16,7 +16,10 @@ const RSS_FEEDS = [
   { url: 'https://www.cagesideseats.com/rss/current', source: 'Cageside Seats' },
   { url: 'https://www.wwe.com/feeds/all', source: 'WWE.com' },
   { url: 'https://www.allelitewrestling.com/rss', source: 'AEW.com' },
-  { url: 'https://www.impactwrestling.com/feed/', source: 'Impact Wrestling' }
+  { url: 'https://www.impactwrestling.com/feed/', source: 'Impact Wrestling' },
+  { url: 'https://www.wrestletalk.com/feed', source: 'WrestleTalk' },
+  { url: 'https://www.postwrestling.com/feed', source: 'POST Wrestling' },
+  { url: 'https://www.voicesofwrestling.com/feed', source: 'Voices of Wrestling' }
 ];
 
 const parseRSSFeed = (xmlString: string): any[] => {
@@ -51,43 +54,89 @@ const parseRSSFeed = (xmlString: string): any[] => {
 
 export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
   const allNews: NewsItem[] = [];
+  const maxRetries = 2;
   
   for (const feed of RSS_FEEDS) {
-    try {
-      console.log(`Fetching RSS feed from ${feed.source}...`);
-      const corsProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
-      const response = await fetch(corsProxy);
-      const data = await response.json();
-      
-      if (!data.contents) {
-        console.error(`No content received from ${feed.source}`);
-        continue;
+    let retryCount = 0;
+    let success = false;
+    
+    while (retryCount < maxRetries && !success) {
+      try {
+        console.log(`Fetching RSS feed from ${feed.source} (attempt ${retryCount + 1})...`);
+        
+        // Try multiple CORS proxies for better reliability
+        const corsProxies = [
+          `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`,
+          `https://cors-anywhere.herokuapp.com/${feed.url}`,
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(feed.url)}`
+        ];
+        
+        let response;
+        let data;
+        
+        for (const proxy of corsProxies) {
+          try {
+            response = await fetch(proxy, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/rss+xml, application/xml, text/xml',
+              }
+            });
+            
+            if (response.ok) {
+              data = await response.json();
+              if (data.contents || data.content) {
+                break;
+              }
+            }
+          } catch (proxyError) {
+            console.warn(`Proxy ${proxy} failed for ${feed.source}:`, proxyError);
+            continue;
+          }
+        }
+        
+        if (!data || (!data.contents && !data.content)) {
+          throw new Error(`No content received from any proxy for ${feed.source}`);
+        }
+        
+        const xmlContent = data.contents || data.content || data;
+        const parsedItems = parseRSSFeed(xmlContent);
+        
+        const newsItems: NewsItem[] = parsedItems.slice(0, 8).map(item => ({
+          title: item.title || '',
+          link: item.link || '',
+          pubDate: item.pubDate || new Date().toISOString(),
+          contentSnippet: item.contentSnippet || '',
+          source: feed.source,
+          guid: item.guid || item.link || '',
+          author: item.author || '',
+          category: item.category || ''
+        }));
+        
+        allNews.push(...newsItems);
+        console.log(`Successfully fetched ${newsItems.length} items from ${feed.source}`);
+        success = true;
+        
+      } catch (error) {
+        retryCount++;
+        console.error(`Error fetching RSS feed from ${feed.source} (attempt ${retryCount}):`, error);
+        
+        if (retryCount >= maxRetries) {
+          console.error(`Failed to fetch from ${feed.source} after ${maxRetries} attempts`);
+        } else {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
-      
-      const parsedItems = parseRSSFeed(data.contents);
-      
-      const newsItems: NewsItem[] = parsedItems.slice(0, 5).map(item => ({
-        title: item.title || '',
-        link: item.link || '',
-        pubDate: item.pubDate || '',
-        contentSnippet: item.contentSnippet || '',
-        source: feed.source,
-        guid: item.guid || item.link || '',
-        author: item.author || '',
-        category: item.category || ''
-      }));
-      
-      allNews.push(...newsItems);
-      console.log(`Fetched ${newsItems.length} items from ${feed.source}`);
-    } catch (error) {
-      console.error(`Error fetching RSS feed from ${feed.source}:`, error);
     }
   }
   
   // Sort by publication date (newest first) and remove duplicates
   const uniqueNews = allNews.filter((item, index, self) => 
-    index === self.findIndex(t => t.title === item.title)
+    index === self.findIndex(t => t.title === item.title || t.guid === item.guid)
   );
+  
+  console.log(`Total RSS news items fetched: ${uniqueNews.length} from ${RSS_FEEDS.length} sources`);
   
   return uniqueNews.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 };
