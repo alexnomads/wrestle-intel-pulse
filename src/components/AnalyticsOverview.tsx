@@ -1,43 +1,98 @@
 
 import { BarChart3, Users, Zap, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAnalyticsOverview } from "@/hooks/useAnalyticsOverview";
 
 interface AnalyticsOverviewProps {
   onNavigate: (tab: string) => void;
 }
 
 export const AnalyticsOverview = ({ onNavigate }: AnalyticsOverviewProps) => {
+  const { data: analytics, isLoading, error } = useAnalyticsOverview();
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const formatChange = (change: number): string => {
+    const sign = change >= 0 ? '+' : '';
+    return `${sign}${change}%`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="w-12 h-12 rounded-lg" />
+                <Skeleton className="w-12 h-4" />
+              </div>
+              <div>
+                <Skeleton className="w-16 h-8 mb-1" />
+                <Skeleton className="w-24 h-4" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !analytics) {
+    console.error('Analytics error:', error);
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="glass-card">
+          <CardContent className="p-6">
+            <div className="text-center text-muted-foreground">
+              Unable to load analytics data
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const stats = [
     {
       icon: Users,
       label: "Active Wrestlers",
-      value: "2,847",
-      change: "+12%",
-      positive: true,
+      value: analytics.activeWrestlers.toString(),
+      change: formatChange(analytics.wrestlerChange),
+      positive: analytics.wrestlerChange >= 0,
       navigateTo: "rosters"
     },
     {
       icon: Zap,
       label: "Live Events",
-      value: "156",
-      change: "+8%",
-      positive: true,
+      value: analytics.liveEvents.toString(),
+      change: formatChange(analytics.eventsChange),
+      positive: analytics.eventsChange >= 0,
       navigateTo: "events"
     },
     {
       icon: BarChart3,
       label: "Daily Mentions",
-      value: "47.2K",
-      change: "+23%",
-      positive: true,
+      value: formatNumber(analytics.dailyMentions),
+      change: formatChange(analytics.mentionsChange),
+      positive: analytics.mentionsChange >= 0,
       navigateTo: null
     },
     {
       icon: TrendingUp,
       label: "Sentiment Score",
-      value: "87%",
-      change: "-2%",
-      positive: false,
+      value: `${analytics.sentimentScore}%`,
+      change: formatChange(analytics.sentimentChange),
+      positive: analytics.sentimentChange >= 0,
       navigateTo: null
     }
   ];
