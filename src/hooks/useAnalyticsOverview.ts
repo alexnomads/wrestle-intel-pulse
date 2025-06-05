@@ -5,18 +5,14 @@ import { useRSSFeeds } from './useWrestlingData';
 import { useRealTimeEvents } from './useRealTimeWrestlingData';
 
 interface AnalyticsOverviewData {
-  activeWrestlers: number;
-  liveEvents: number;
+  totalWrestlers: number;
+  upcomingEvents: number;
   dailyMentions: number;
   sentimentScore: number;
-  wrestlerChange: number;
-  eventsChange: number;
-  mentionsChange: number;
-  sentimentChange: number;
 }
 
 const calculateSentimentScore = (newsItems: any[]): number => {
-  if (!newsItems || newsItems.length === 0) return 0;
+  if (!newsItems || newsItems.length === 0) return 75; // Default neutral-positive score
   
   const articlesWithSentiment = newsItems.filter(item => 
     item.sentiment_score !== null && item.sentiment_score !== undefined
@@ -33,33 +29,60 @@ const calculateSentimentScore = (newsItems: any[]): number => {
 };
 
 const calculateDailyMentions = (newsItems: any[]): number => {
-  if (!newsItems || newsItems.length === 0) return 0;
+  if (!newsItems || newsItems.length === 0) {
+    console.log('No news items available for mentions calculation');
+    return 0;
+  }
   
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   
+  console.log('Total news items:', newsItems.length);
+  console.log('Sample news item:', newsItems[0]);
+  
   const todayMentions = newsItems.filter(item => {
-    const publishedDate = new Date(item.published_at || item.created_at);
-    return publishedDate.toDateString() === today.toDateString();
+    const publishedDate = new Date(item.published_at || item.pubDate || item.created_at);
+    const isToday = publishedDate.toDateString() === today.toDateString();
+    if (isToday) {
+      console.log('Found today mention:', item.title);
+    }
+    return isToday;
   });
   
-  // Estimate mentions based on articles (each article could have multiple mentions)
-  return todayMentions.length * 1200; // Rough estimate
+  console.log('Today mentions count:', todayMentions.length);
+  
+  // Count actual mentions in titles and content
+  const totalMentions = newsItems.reduce((count, item) => {
+    const content = `${item.title || ''} ${item.contentSnippet || item.content || ''}`.toLowerCase();
+    
+    // Count wrestling-related terms
+    const wrestlingTerms = ['wrestler', 'wrestling', 'wwe', 'aew', 'champion', 'championship', 'match', 'event'];
+    const mentionCount = wrestlingTerms.reduce((termCount, term) => {
+      const matches = (content.match(new RegExp(term, 'g')) || []).length;
+      return termCount + matches;
+    }, 0);
+    
+    return count + Math.max(mentionCount, 1); // At least 1 mention per article
+  }, 0);
+  
+  console.log('Total calculated mentions:', totalMentions);
+  return totalMentions;
 };
 
 export const useAnalyticsOverview = (): { data: AnalyticsOverviewData | null; isLoading: boolean; error: any } => {
-  const { data: newsItems = [] } = useRSSFeeds();
+  const { data: newsItems = [], isLoading: newsLoading } = useRSSFeeds();
   const { data: events = [] } = useRealTimeEvents();
   
   return useQuery({
     queryKey: ['analytics-overview', newsItems.length, events.length],
     queryFn: async (): Promise<AnalyticsOverviewData> => {
-      // Get active wrestlers count
+      console.log('Calculating analytics overview...');
+      
+      // Get total wrestlers count
       const { data: wrestlersData, error: wrestlersError } = await supabase
         .from('wrestlers')
-        .select('id', { count: 'exact' })
-        .eq('status', 'Active');
+        .select('id', { count: 'exact' });
 
       if (wrestlersError) {
         console.error('Error fetching wrestlers:', wrestlersError);
@@ -80,30 +103,27 @@ export const useAnalyticsOverview = (): { data: AnalyticsOverviewData | null; is
       }
 
       // Calculate metrics
-      const activeWrestlers = wrestlersData?.length || 0;
-      const liveEvents = eventsData?.length || 0;
+      const totalWrestlers = wrestlersData?.length || 0;
+      const upcomingEvents = eventsData?.length || 0;
       const dailyMentions = calculateDailyMentions(newsItems);
       const sentimentScore = calculateSentimentScore(newsItems);
 
-      // Calculate percentage changes (simplified - using random for now as we need historical data)
-      const wrestlerChange = Math.round((Math.random() - 0.5) * 30); // -15% to +15%
-      const eventsChange = Math.round((Math.random() - 0.5) * 20); // -10% to +10%
-      const mentionsChange = Math.round((Math.random() - 0.5) * 50); // -25% to +25%
-      const sentimentChange = Math.round((Math.random() - 0.5) * 10); // -5% to +5%
+      console.log('Analytics calculated:', {
+        totalWrestlers,
+        upcomingEvents,
+        dailyMentions,
+        sentimentScore
+      });
 
       return {
-        activeWrestlers,
-        liveEvents,
+        totalWrestlers,
+        upcomingEvents,
         dailyMentions,
-        sentimentScore,
-        wrestlerChange,
-        eventsChange,
-        mentionsChange,
-        sentimentChange
+        sentimentScore
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
-    enabled: true,
+    enabled: !newsLoading && true,
   });
 };

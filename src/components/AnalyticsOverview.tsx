@@ -21,11 +21,6 @@ export const AnalyticsOverview = ({ onNavigate }: AnalyticsOverviewProps) => {
     return num.toString();
   };
 
-  const formatChange = (change: number): string => {
-    const sign = change >= 0 ? '+' : '';
-    return `${sign}${change}%`;
-  };
-
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -34,7 +29,6 @@ export const AnalyticsOverview = ({ onNavigate }: AnalyticsOverviewProps) => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Skeleton className="w-12 h-12 rounded-lg" />
-                <Skeleton className="w-12 h-4" />
               </div>
               <div>
                 <Skeleton className="w-16 h-8 mb-1" />
@@ -65,35 +59,31 @@ export const AnalyticsOverview = ({ onNavigate }: AnalyticsOverviewProps) => {
   const stats = [
     {
       icon: Users,
-      label: "Active Wrestlers",
-      value: analytics.activeWrestlers.toString(),
-      change: formatChange(analytics.wrestlerChange),
-      positive: analytics.wrestlerChange >= 0,
-      navigateTo: "rosters"
+      label: "Wrestlers Database",
+      value: analytics.totalWrestlers.toString(),
+      navigateTo: "rosters",
+      description: "Total wrestlers across all promotions"
     },
     {
       icon: Zap,
-      label: "Live Events",
-      value: analytics.liveEvents.toString(),
-      change: formatChange(analytics.eventsChange),
-      positive: analytics.eventsChange >= 0,
-      navigateTo: "events"
+      label: "Upcoming Events",
+      value: analytics.upcomingEvents.toString(),
+      navigateTo: "events",
+      description: "Events in the next 30 days"
     },
     {
       icon: BarChart3,
-      label: "Daily Mentions",
+      label: "Wrestling Mentions",
       value: formatNumber(analytics.dailyMentions),
-      change: formatChange(analytics.mentionsChange),
-      positive: analytics.mentionsChange >= 0,
-      navigateTo: null
+      navigateTo: null,
+      description: "Total mentions in recent news"
     },
     {
       icon: TrendingUp,
-      label: "Sentiment Score",
+      label: "News Sentiment",
       value: `${analytics.sentimentScore}%`,
-      change: formatChange(analytics.sentimentChange),
-      positive: analytics.sentimentChange >= 0,
-      navigateTo: null
+      navigateTo: null,
+      description: "Average positive sentiment in wrestling news"
     }
   ];
 
@@ -116,13 +106,11 @@ export const AnalyticsOverview = ({ onNavigate }: AnalyticsOverviewProps) => {
               <div className="w-12 h-12 bg-gradient-to-br from-wrestling-electric/20 to-wrestling-purple/20 rounded-lg flex items-center justify-center">
                 <stat.icon className="h-6 w-6 text-primary" />
               </div>
-              <div className={`text-sm font-medium ${stat.positive ? 'text-green-400' : 'text-red-400'}`}>
-                {stat.change}
-              </div>
             </div>
             <div>
               <div className="text-2xl font-bold text-foreground mb-1">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="text-sm text-muted-foreground mb-1">{stat.label}</div>
+              <div className="text-xs text-muted-foreground opacity-75">{stat.description}</div>
             </div>
             {stat.navigateTo && (
               <div className="text-xs text-wrestling-electric mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
