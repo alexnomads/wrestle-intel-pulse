@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,14 +9,15 @@ import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { MomentumLeaderCard } from "./wrestler-intelligence/MomentumLeaderCard";
 import { PushBurialCard } from "./wrestler-intelligence/PushBurialCard";
 import { ContractStatusCard } from "./wrestler-intelligence/ContractStatusCard";
-import { WrestlerProfileCard } from "./wrestler-intelligence/WrestlerProfileCard";
 import { DashboardFilters } from "./wrestler-intelligence/DashboardFilters";
 import { EmptyWrestlerState } from "./wrestler-intelligence/EmptyWrestlerState";
 import { analyzeSentiment, extractWrestlerMentions } from "@/services/wrestlingDataService";
 
+type TimePeriod = '30' | '60' | '180' | '365';
+
 export const WrestlerIntelligenceDashboard = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
-  const [selectedMetric, setSelectedMetric] = useState('momentum');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('30');
   
   // Real data hooks
   const { data: wrestlerMomentum = [], isLoading: momentumLoading, refetch: refetchMomentum } = useWrestlerMomentumAnalysis();
@@ -33,84 +33,90 @@ export const WrestlerIntelligenceDashboard = () => {
         (wrestler.promotion_id && wrestlers.find(w => w.promotion_id === wrestler.promotion_id))
       );
 
-  // Generate real contract analysis from wrestler data
-  const generateContractAnalysis = () => {
+  // Filter news by time period
+  const getNewsItemsForPeriod = () => {
+    const periodDays = parseInt(selectedTimePeriod);
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - periodDays);
+    
+    return newsItems.filter(item => {
+      const itemDate = new Date(item.pubDate || item.published_at || item.created_at);
+      return itemDate >= cutoffDate;
+    });
+  };
+
+  const periodNewsItems = getNewsItemsForPeriod();
+
+  // Generate push/burial analysis from real data
+  const generatePushBurialAnalysis = () => {
     if (!wrestlers.length) return [];
     
     return wrestlers.map(wrestler => {
-      // Calculate momentum from news mentions
-      const wrestlerNews = newsItems.filter(item => 
+      // Find mentions in the selected time period
+      const wrestlerNews = periodNewsItems.filter(item => 
         extractWrestlerMentions(`${item.title} ${item.contentSnippet}`).includes(wrestler.name)
       );
       
-      let momentum = 'stable';
-      let momentumScore = 5;
+      let pushScore = 0;
+      let burialScore = 0;
+      let totalMentions = wrestlerNews.length;
       
-      if (wrestlerNews.length >= 5) {
-        momentum = 'rising';
-        momentumScore = Math.min(7 + wrestlerNews.length * 0.5, 10);
-      } else if (wrestlerNews.length <= 1) {
-        momentum = 'declining';
-        momentumScore = Math.max(3 - wrestlerNews.length, 1);
-      }
+      // Analyze sentiment of each mention
+      wrestlerNews.forEach(item => {
+        const sentiment = analyzeSentiment(`${item.title} ${item.contentSnippet}`);
+        if (sentiment.score > 0.6) {
+          pushScore += (sentiment.score - 0.5) * 2; // Convert to 0-1 scale
+        } else if (sentiment.score < 0.4) {
+          burialScore += (0.5 - sentiment.score) * 2; // Convert to 0-1 scale
+        }
+      });
 
-      // Analyze sentiment from news
-      let avgSentiment = 0.5;
-      if (wrestlerNews.length > 0) {
-        const sentiments = wrestlerNews.map(item => 
-          analyzeSentiment(`${item.title} ${item.contentSnippet}`).score
-        );
-        avgSentiment = sentiments.reduce((sum, score) => sum + score, 0) / sentiments.length;
-      }
-
-      // Determine contract status based on various factors
-      let contractStatus = 'active';
-      let contractRisk = 'low';
+      // Calculate final scores
+      const pushPercentage = totalMentions > 0 ? (pushScore / totalMentions) * 100 : 0;
+      const burialPercentage = totalMentions > 0 ? (burialScore / totalMentions) * 100 : 0;
       
-      if (wrestler.status === 'Released' || wrestler.status === 'Inactive') {
-        contractStatus = 'expired';
-        contractRisk = 'high';
-      } else if (momentum === 'declining' && avgSentiment < 0.4) {
-        contractRisk = 'medium';
+      let trend: 'push' | 'burial' | 'stable' = 'stable';
+      if (pushPercentage > burialPercentage && pushPercentage > 30) {
+        trend = 'push';
+      } else if (burialPercentage > pushPercentage && burialPercentage > 30) {
+        trend = 'burial';
       }
 
       return {
         id: wrestler.id,
         wrestler_name: wrestler.name,
         promotion: wrestler.brand || 'Unknown',
-        momentum,
-        momentumScore,
-        sentimentScore: Math.round(avgSentiment * 100),
-        newsVolume: wrestlerNews.length,
-        contractStatus,
-        contractRisk,
+        pushScore: Math.min(pushPercentage, 100),
+        burialScore: Math.min(burialPercentage, 100),
+        trend,
+        totalMentions,
+        sentimentScore: Math.round((pushPercentage - burialPercentage + 100) / 2),
         isChampion: wrestler.is_champion || false,
-        championshipTitle: wrestler.championship_title || null
+        championshipTitle: wrestler.championship_title || null,
+        evidence: totalMentions > 10 ? 'High Media Coverage' :
+                 totalMentions > 5 ? 'Moderate Coverage' :
+                 totalMentions > 0 ? 'Limited Coverage' : 'No Recent Coverage'
       };
-    }).sort((a, b) => b.momentumScore - a.momentumScore);
+    }).sort((a, b) => (b.pushScore + b.totalMentions) - (a.pushScore + a.totalMentions));
   };
 
-  const contractAnalysis = generateContractAnalysis();
+  const pushBurialAnalysis = generatePushBurialAnalysis();
   
-  // Filter contract analysis by promotion
-  const filteredContractAnalysis = selectedPromotion === 'all'
-    ? contractAnalysis
-    : contractAnalysis.filter(wrestler => 
+  // Filter analysis by promotion
+  const filteredAnalysis = selectedPromotion === 'all'
+    ? pushBurialAnalysis
+    : pushBurialAnalysis.filter(wrestler => 
         wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
       );
 
-  // Generate push/burial analysis
-  const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
+  // Generate push/burial data for cards
+  const pushBurialData = filteredAnalysis.map(wrestler => ({
     name: wrestler.wrestler_name,
     promotion: wrestler.promotion,
-    pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
-    burialRisk: wrestler.contractRisk === 'high' ? 8 : 
-                wrestler.contractRisk === 'medium' ? 5 : 2,
-    trend: wrestler.momentum === 'rising' ? 'push' as const : 
-           wrestler.momentum === 'declining' ? 'burial' as const : 'stable' as const,
-    evidence: wrestler.isChampion ? 'Current Champion' : 
-              wrestler.newsVolume > 5 ? 'High Media Coverage' :
-              wrestler.newsVolume < 2 ? 'Limited Coverage' : 'Regular Coverage'
+    pushScore: wrestler.pushScore,
+    burialRisk: wrestler.burialScore,
+    trend: wrestler.trend,
+    evidence: wrestler.evidence
   }));
 
   const handleRefresh = () => {
@@ -130,14 +136,33 @@ export const WrestlerIntelligenceDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
-        <DashboardFilters
-          selectedPromotion={selectedPromotion}
-          onPromotionChange={setSelectedPromotion}
-          selectedMetric={selectedMetric}
-          onMetricChange={setSelectedMetric}
-          onRefresh={handleRefresh}
-          isLoading={momentumLoading}
-        />
+        <div className="flex items-center space-x-4">
+          {/* Time Period Filter */}
+          <div className="flex space-x-2">
+            {(['30', '60', '180', '365'] as TimePeriod[]).map((period) => (
+              <button
+                key={period}
+                onClick={() => setSelectedTimePeriod(period)}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  selectedTimePeriod === period
+                    ? 'bg-wrestling-electric text-white'
+                    : 'bg-secondary text-foreground hover:bg-secondary/80'
+                }`}
+              >
+                {period} Days
+              </button>
+            ))}
+          </div>
+          
+          <DashboardFilters
+            selectedPromotion={selectedPromotion}
+            onPromotionChange={setSelectedPromotion}
+            selectedMetric="push"
+            onMetricChange={() => {}}
+            onRefresh={handleRefresh}
+            isLoading={momentumLoading}
+          />
+        </div>
       </div>
 
       {filteredWrestlers.length === 0 ? (
@@ -155,48 +180,48 @@ export const WrestlerIntelligenceDashboard = () => {
             <Card className="glass-card">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-400">
-                  {filteredContractAnalysis.filter(w => w.momentum === 'rising').length}
+                  {filteredAnalysis.filter(w => w.trend === 'push').length}
                 </div>
-                <div className="text-sm text-muted-foreground">Rising Stars</div>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-400">
-                  {filteredContractAnalysis.filter(w => w.isChampion).length}
-                </div>
-                <div className="text-sm text-muted-foreground">Champions</div>
+                <div className="text-sm text-muted-foreground">Getting Push</div>
               </CardContent>
             </Card>
             <Card className="glass-card">
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-red-400">
-                  {filteredContractAnalysis.filter(w => w.contractRisk === 'high').length}
+                  {filteredAnalysis.filter(w => w.trend === 'burial').length}
                 </div>
-                <div className="text-sm text-muted-foreground">At Risk</div>
+                <div className="text-sm text-muted-foreground">Being Buried</div>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-yellow-400">
+                  {periodNewsItems.length}
+                </div>
+                <div className="text-sm text-muted-foreground">News Articles ({selectedTimePeriod}d)</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Momentum Leaders */}
+          {/* Push/Burial Leaders */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Momentum Leaders</CardTitle>
+              <CardTitle>Push/Burial Analysis - Last {selectedTimePeriod} Days</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {filteredContractAnalysis.slice(0, 10).map((wrestler, index) => (
+                {filteredAnalysis.slice(0, 10).map((wrestler, index) => (
                   <MomentumLeaderCard
                     key={wrestler.id}
                     wrestler={{
                       wrestler_name: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
-                      momentum: wrestler.momentumScore,
-                      trend: wrestler.momentum === 'rising' ? 'up' : 
-                             wrestler.momentum === 'declining' ? 'down' : 'stable',
-                      weeklyChange: wrestler.momentum === 'rising' ? 15 : 
-                                   wrestler.momentum === 'declining' ? -10 : 0,
-                      newsVolume: wrestler.newsVolume,
+                      momentum: wrestler.pushScore,
+                      trend: wrestler.trend === 'push' ? 'up' : 
+                             wrestler.trend === 'burial' ? 'down' : 'stable',
+                      weeklyChange: wrestler.trend === 'push' ? wrestler.pushScore : 
+                                   wrestler.trend === 'burial' ? -wrestler.burialScore : 0,
+                      newsVolume: wrestler.totalMentions,
                       sentiment: wrestler.sentimentScore
                     }}
                     rank={index + 1}
@@ -210,11 +235,11 @@ export const WrestlerIntelligenceDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Push Analysis</CardTitle>
+                <CardTitle>Top Pushes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pushBurialAnalysis
+                  {pushBurialData
                     .filter(w => w.trend === 'push')
                     .slice(0, 5)
                     .map((wrestler, index) => (
@@ -225,9 +250,9 @@ export const WrestlerIntelligenceDashboard = () => {
                         rank={index + 1}
                       />
                     ))}
-                  {pushBurialAnalysis.filter(w => w.trend === 'push').length === 0 && (
+                  {pushBurialData.filter(w => w.trend === 'push').length === 0 && (
                     <div className="text-center text-muted-foreground py-4">
-                      No wrestlers currently receiving a strong push
+                      No wrestlers currently receiving a strong push in the last {selectedTimePeriod} days
                     </div>
                   )}
                 </div>
@@ -236,12 +261,12 @@ export const WrestlerIntelligenceDashboard = () => {
 
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Burial Risk</CardTitle>
+                <CardTitle>Burial Watch</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {pushBurialAnalysis
-                    .filter(w => w.trend === 'burial' || w.burialRisk > 5)
+                  {pushBurialData
+                    .filter(w => w.trend === 'burial')
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
@@ -251,9 +276,9 @@ export const WrestlerIntelligenceDashboard = () => {
                         rank={index + 1}
                       />
                     ))}
-                  {pushBurialAnalysis.filter(w => w.trend === 'burial' || w.burialRisk > 5).length === 0 && (
+                  {pushBurialData.filter(w => w.trend === 'burial').length === 0 && (
                     <div className="text-center text-muted-foreground py-4">
-                      No wrestlers currently at high burial risk
+                      No wrestlers currently being buried in the last {selectedTimePeriod} days
                     </div>
                   )}
                 </div>
@@ -261,25 +286,25 @@ export const WrestlerIntelligenceDashboard = () => {
             </Card>
           </div>
 
-          {/* Contract Status Analysis */}
+          {/* Media Coverage Analysis */}
           <Card className="glass-card">
             <CardHeader>
-              <CardTitle>Contract Status Overview</CardTitle>
+              <CardTitle>Media Coverage Overview - Last {selectedTimePeriod} Days</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {filteredContractAnalysis.slice(0, 8).map((wrestler) => (
+                {filteredAnalysis.slice(0, 8).map((wrestler) => (
                   <ContractStatusCard
                     key={wrestler.id}
                     contract={{
                       wrestlerName: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
-                      status: wrestler.contractStatus,
-                      expirationDate: 'Unknown',
-                      marketValue: wrestler.momentumScore > 7 ? 'High' : 
-                                  wrestler.momentumScore > 4 ? 'Medium' : 'Low',
-                      leverage: wrestler.isChampion ? 'High' : 
-                               wrestler.momentum === 'rising' ? 'Medium' : 'Low'
+                      status: wrestler.trend === 'push' ? 'Rising' : 
+                             wrestler.trend === 'burial' ? 'Declining' : 'Stable',
+                      expirationDate: `${wrestler.totalMentions} mentions`,
+                      marketValue: wrestler.pushScore > 50 ? 'High Push' : 
+                                  wrestler.burialScore > 50 ? 'High Burial Risk' : 'Neutral',
+                      leverage: wrestler.isChampion ? 'Champion' : wrestler.evidence
                     }}
                   />
                 ))}
@@ -291,4 +316,3 @@ export const WrestlerIntelligenceDashboard = () => {
     </div>
   );
 };
-

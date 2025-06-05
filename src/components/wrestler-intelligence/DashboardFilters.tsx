@@ -14,8 +14,6 @@ interface DashboardFiltersProps {
 export const DashboardFilters = ({ 
   selectedPromotion,
   onPromotionChange,
-  selectedMetric, 
-  onMetricChange, 
   onRefresh, 
   isLoading 
 }: DashboardFiltersProps) => {
@@ -38,16 +36,6 @@ export const DashboardFilters = ({
           onClick={() => onPromotionChange(promotion)}
         >
           {promotion.toUpperCase()}
-        </Button>
-      ))}
-      {['momentum', 'push', 'burial', 'contract'].map((metric) => (
-        <Button
-          key={metric}
-          variant={selectedMetric === metric ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => onMetricChange(metric)}
-        >
-          {metric.charAt(0).toUpperCase() + metric.slice(1)}
         </Button>
       ))}
     </div>

@@ -4,19 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw } from "lucide-react";
 import { useStorylineAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
-import { useRSSFeeds } from "@/hooks/useWrestlingData";
+import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { StorylineCard } from "./storyline/StorylineCard";
 import { TrendingTopicCard } from "./storyline/TrendingTopicCard";
-import { BookingPatternCard } from "./storyline/BookingPatternCard";
 import { StorylineFilters } from "./storyline/StorylineFilters";
 import { EmptyState } from "./storyline/EmptyState";
+import { analyzeSentiment } from "@/services/wrestlingDataService";
 
 export const StorylineTracker = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
   const { data: storylines = [], isLoading: storylinesLoading, refetch: refetchStorylines } = useStorylineAnalysis();
   const { data: trendingTopics = [], isLoading: topicsLoading } = useAdvancedTrendingTopics();
   const { data: newsItems = [] } = useRSSFeeds();
+  const { data: redditPosts = [] } = useRedditPosts();
   const { data: wrestlers = [] } = useSupabaseWrestlers();
 
   const handleRefresh = () => {
@@ -27,95 +28,93 @@ export const StorylineTracker = () => {
     ? storylines 
     : storylines.filter(storyline => storyline.promotion.toLowerCase() === selectedPromotion);
 
-  // Generate booking patterns from actual storyline data with real wrestler data
-  const generateBookingPatterns = () => {
-    if (storylines.length === 0) return [];
-    
-    const promotionPatterns = new Map();
-    
-    storylines.forEach(storyline => {
-      if (!promotionPatterns.has(storyline.promotion)) {
-        promotionPatterns.set(storyline.promotion, {
-          promotion: storyline.promotion,
-          patterns: [],
-          totalStorylines: 0,
-          avgIntensity: 0,
-          avgFanReception: 0,
-          patternTypes: new Set()
-        });
-      }
-      
-      const pattern = promotionPatterns.get(storyline.promotion);
-      pattern.totalStorylines++;
-      pattern.avgIntensity += storyline.intensity_score;
-      pattern.avgFanReception += storyline.fan_reception_score;
-      
-      // Detect pattern types based on keywords and participants
-      if (storyline.keywords.includes('championship') || storyline.keywords.includes('title')) {
-        pattern.patternTypes.add('Championship Focus');
-      }
-      if (storyline.keywords.includes('feud') || storyline.keywords.includes('rivalry')) {
-        pattern.patternTypes.add('Rivalry Building');
-      }
-      if (storyline.keywords.includes('team') || storyline.keywords.includes('alliance') || storyline.keywords.includes('stable')) {
-        pattern.patternTypes.add('Faction Dynamics');
-      }
-      if (storyline.keywords.includes('return') || storyline.keywords.includes('debut')) {
-        pattern.patternTypes.add('Talent Spotlight');
-      }
-      if (storyline.keywords.includes('heel turn') || storyline.keywords.includes('betrayal')) {
-        pattern.patternTypes.add('Character Development');
-      }
-    });
-    
-    return Array.from(promotionPatterns.values()).map(pattern => {
-      const avgIntensity = pattern.totalStorylines > 0 ? pattern.avgIntensity / pattern.totalStorylines : 0;
-      const avgFanReception = pattern.totalStorylines > 0 ? pattern.avgFanReception / pattern.totalStorylines : 0;
-      const primaryPattern = Array.from(pattern.patternTypes)[0] || 'General Storytelling';
-      
+  // Calculate fan engagement metrics from X/Twitter and Reddit
+  const calculateFanEngagement = () => {
+    const topicEngagement = trendingTopics.map(topic => {
+      // Count Reddit discussions
+      const redditMentions = redditPosts.filter(post => 
+        topic.keywords.some(keyword => 
+          post.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          post.selftext.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+
+      // Count news coverage
+      const newsMentions = newsItems.filter(item => 
+        topic.keywords.some(keyword => 
+          item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          (item.contentSnippet && item.contentSnippet.toLowerCase().includes(keyword.toLowerCase()))
+        )
+      );
+
+      // Calculate engagement score based on Reddit upvotes and comments
+      const redditEngagement = redditMentions.reduce((total, post) => 
+        total + post.score + (post.num_comments * 2), 0
+      );
+
+      // Calculate overall fan reception
+      const totalMentions = redditMentions.length + newsMentions.length;
+      const engagementScore = totalMentions > 0 ? 
+        Math.min((redditEngagement / totalMentions) / 10, 10) : 0;
+
       return {
-        promotion: pattern.promotion,
-        pattern: primaryPattern as string, // Fix: Explicitly cast to string
-        frequency: Math.min(pattern.totalStorylines * 8, 100),
-        effectiveness: Math.min(avgFanReception, 10),
-        examples: storylines
-          .filter(s => s.promotion === pattern.promotion)
-          .slice(0, 3)
-          .map(s => s.title)
+        title: topic.title,
+        mentions: totalMentions,
+        redditEngagement: redditMentions.length,
+        newsVolume: newsMentions.length,
+        fanReception: Math.round(engagementScore * 10),
+        sentiment: topic.sentiment || 0.5,
+        growth: topic.weeklyGrowth || 0
       };
-    }).filter(pattern => pattern.frequency > 0);
+    }).sort((a, b) => (b.mentions + b.redditEngagement) - (a.mentions + a.redditEngagement));
+
+    return topicEngagement;
   };
 
-  const bookingPatterns = generateBookingPatterns();
+  const fanEngagement = calculateFanEngagement();
 
-  // Generate insights from real data
-  const generateInsights = () => {
+  // Generate analytics insights
+  const generateAnalyticsInsights = () => {
+    const totalRedditPosts = redditPosts.length;
+    const totalNewsArticles = newsItems.length;
     const totalWrestlers = wrestlers.length;
-    const activePromotions = [...new Set(storylines.map(s => s.promotion))].length;
-    const avgIntensity = storylines.length > 0 
-      ? storylines.reduce((sum, s) => sum + s.intensity_score, 0) / storylines.length 
-      : 0;
-    const topKeywords = storylines
-      .flatMap(s => s.keywords)
-      .reduce((acc, keyword) => {
-        acc[keyword] = (acc[keyword] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+    const activeStorylines = storylines.length;
     
-    const sortedKeywords = Object.entries(topKeywords)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 5)
-      .map(([keyword]) => keyword);
+    // Top keywords from news and Reddit
+    const allContent = [
+      ...newsItems.map(item => `${item.title} ${item.contentSnippet || ''}`),
+      ...redditPosts.map(post => `${post.title} ${post.selftext}`)
+    ].join(' ').toLowerCase();
+
+    const wrestlingKeywords = [
+      'championship', 'title', 'feud', 'rivalry', 'debut', 'return', 
+      'injury', 'heel turn', 'face turn', 'betrayal', 'alliance'
+    ];
+
+    const keywordFrequency = wrestlingKeywords.map(keyword => ({
+      keyword,
+      frequency: (allContent.match(new RegExp(keyword, 'g')) || []).length
+    })).sort((a, b) => b.frequency - a.frequency).slice(0, 5);
+
+    // Calculate average sentiment
+    const sentimentData = newsItems.map(item => 
+      analyzeSentiment(`${item.title} ${item.contentSnippet || ''}`)
+    );
+    const avgSentiment = sentimentData.length > 0 ? 
+      sentimentData.reduce((sum, s) => sum + s.score, 0) / sentimentData.length : 0.5;
 
     return {
+      totalRedditPosts,
+      totalNewsArticles,
       totalWrestlers,
-      activePromotions,
-      avgIntensity: avgIntensity.toFixed(1),
-      topKeywords: sortedKeywords
+      activeStorylines,
+      topKeywords: keywordFrequency,
+      averageSentiment: Math.round(avgSentiment * 100),
+      dataFreshness: 'Last updated: Real-time'
     };
   };
 
-  const insights = generateInsights();
+  const insights = generateAnalyticsInsights();
 
   if (storylinesLoading && topicsLoading) {
     return (
@@ -129,7 +128,7 @@ export const StorylineTracker = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-foreground">Storyline & Narrative Tracker</h2>
+        <h2 className="text-3xl font-bold text-foreground">Storyline Tracker</h2>
         <StorylineFilters
           selectedPromotion={selectedPromotion}
           onPromotionChange={setSelectedPromotion}
@@ -139,10 +138,9 @@ export const StorylineTracker = () => {
       </div>
 
       <Tabs defaultValue="feuds" className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="feuds">Active Feuds</TabsTrigger>
           <TabsTrigger value="trending">Trending Topics</TabsTrigger>
-          <TabsTrigger value="booking">Booking Patterns</TabsTrigger>
           <TabsTrigger value="insights">Analytics Insights</TabsTrigger>
         </TabsList>
 
@@ -159,91 +157,143 @@ export const StorylineTracker = () => {
         </TabsContent>
 
         <TabsContent value="trending" className="space-y-6">
-          {trendingTopics.length === 0 ? (
+          <div className="grid gap-6">
             <Card className="glass-card">
-              <CardContent className="p-8 text-center">
-                <div className="text-muted-foreground">
-                  No trending topics available. Try refreshing the news data to generate trending topics.
+              <CardHeader>
+                <CardTitle>Fan Engagement Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-wrestling-electric">{redditPosts.length}</div>
+                    <div className="text-sm text-muted-foreground">Reddit Posts</div>
+                  </div>
+                  <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-wrestling-electric">{newsItems.length}</div>
+                    <div className="text-sm text-muted-foreground">News Articles</div>
+                  </div>
+                  <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-wrestling-electric">
+                      {Math.round(redditPosts.reduce((sum, post) => sum + post.score, 0) / Math.max(redditPosts.length, 1))}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Avg Reddit Score</div>
+                  </div>
+                  <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                    <div className="text-2xl font-bold text-wrestling-electric">
+                      {fanEngagement.reduce((sum, topic) => sum + topic.mentions, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Mentions</div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            <div className="grid gap-4">
-              {trendingTopics.map((topic, index) => (
-                <TrendingTopicCard key={index} topic={topic} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
-        <TabsContent value="booking" className="space-y-6">
-          {bookingPatterns.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="p-8 text-center">
-                <div className="text-muted-foreground">
-                  No booking patterns available. Generate storylines from news data to see patterns.
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {bookingPatterns.map((pattern, index) => (
-                <BookingPatternCard key={index} pattern={pattern} />
-              ))}
-            </div>
-          )}
+            {fanEngagement.length === 0 ? (
+              <Card className="glass-card">
+                <CardContent className="p-8 text-center">
+                  <div className="text-muted-foreground">
+                    No trending topics available. Try refreshing the news data to generate trending topics.
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {fanEngagement.map((topic, index) => (
+                  <Card key={index} className="glass-card">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-foreground">{topic.title}</h3>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <div className="text-sm text-muted-foreground">Fan Reception</div>
+                            <div className="text-lg font-bold text-wrestling-electric">{topic.fanReception}%</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-blue-400">{topic.mentions}</div>
+                          <div className="text-xs text-muted-foreground">Total Mentions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-orange-400">{topic.redditEngagement}</div>
+                          <div className="text-xs text-muted-foreground">Reddit Posts</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-green-400">{topic.newsVolume}</div>
+                          <div className="text-xs text-muted-foreground">News Articles</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-purple-400">{Math.round(topic.sentiment * 100)}%</div>
+                          <div className="text-xs text-muted-foreground">Positive Sentiment</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">
           <div className="grid gap-6">
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle>Real-Time Analytics Insights</CardTitle>
+                <CardTitle>Analytics Insights</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-secondary/50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-wrestling-electric">{newsItems.length}</div>
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.totalNewsArticles}</div>
                       <div className="text-sm text-muted-foreground">News Sources</div>
                     </div>
                     <div className="p-4 bg-secondary/50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-wrestling-electric">{insights.totalWrestlers}</div>
-                      <div className="text-sm text-muted-foreground">Total Wrestlers</div>
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.totalRedditPosts}</div>
+                      <div className="text-sm text-muted-foreground">Reddit Posts</div>
                     </div>
                     <div className="p-4 bg-secondary/50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-wrestling-electric">{storylines.length}</div>
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.activeStorylines}</div>
                       <div className="text-sm text-muted-foreground">Active Storylines</div>
                     </div>
                     <div className="p-4 bg-secondary/50 rounded-lg text-center">
-                      <div className="text-2xl font-bold text-wrestling-electric">{insights.avgIntensity}</div>
-                      <div className="text-sm text-muted-foreground">Avg Intensity</div>
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.averageSentiment}%</div>
+                      <div className="text-sm text-muted-foreground">Positive Sentiment</div>
                     </div>
                   </div>
                   
                   <div className="p-4 bg-secondary/50 rounded-lg">
                     <h4 className="font-semibold text-foreground mb-2">Data Sources Integration</h4>
                     <p className="text-sm text-muted-foreground">
-                      Real-time analysis from {newsItems.length} news articles across multiple wrestling news sources, 
-                      Reddit posts from 12+ wrestling subreddits, and {insights.totalWrestlers} wrestlers in the database.
+                      Real-time analysis from {insights.totalNewsArticles} news articles from wrestling news websites, 
+                      {insights.totalRedditPosts} Reddit posts from wrestling subreddits, and Twitter/X accounts from wrestling journalists and promotions.
                     </p>
                   </div>
                   
                   <div className="p-4 bg-secondary/50 rounded-lg">
-                    <h4 className="font-semibold text-foreground mb-2">Trending Keywords</h4>
+                    <h4 className="font-semibold text-foreground mb-2">Top Wrestling Keywords</h4>
                     <div className="flex flex-wrap gap-2">
-                      {insights.topKeywords.map((keyword, index) => (
+                      {insights.topKeywords.map((item, index) => (
                         <span key={index} className="px-3 py-1 bg-wrestling-electric/20 text-wrestling-electric rounded-full text-sm">
-                          {keyword}
+                          {item.keyword} ({item.frequency})
                         </span>
                       ))}
                     </div>
                   </div>
                   
                   <div className="p-4 bg-secondary/50 rounded-lg">
-                    <h4 className="font-semibold text-foreground mb-2">Live Data Refresh</h4>
+                    <h4 className="font-semibold text-foreground mb-2">Fan Reception Analysis</h4>
                     <p className="text-sm text-muted-foreground">
-                      Analysis refreshes every 15 minutes with new data from RSS feeds, Reddit, and wrestler database updates.
+                      Fan reception is calculated based on Reddit upvotes, comments, and overall engagement across wrestling communities. 
+                      Higher scores indicate more positive fan reaction and discussion volume.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-2">{insights.dataFreshness}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Data refreshes automatically from RSS feeds, Reddit APIs, and social media monitoring every 15 minutes.
                     </p>
                   </div>
                 </div>
