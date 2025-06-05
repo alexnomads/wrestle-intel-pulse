@@ -8,7 +8,7 @@ interface ProcessedNewsContent {
   sentiment: { score: number };
 }
 
-// More precise wrestler name matching function
+// Improved wrestler name matching function - balanced precision
 const isWrestlerMentioned = (wrestlerName: string, content: string): boolean => {
   const normalizedWrestlerName = wrestlerName.toLowerCase().trim();
   const normalizedContent = content.toLowerCase();
@@ -16,48 +16,81 @@ const isWrestlerMentioned = (wrestlerName: string, content: string): boolean => 
   // Split wrestler name into parts
   const nameParts = normalizedWrestlerName.split(' ').filter(part => part.length > 0);
   
-  // For single names (rare), require exact match
+  // For single names (rare), require exact match with word boundaries
   if (nameParts.length === 1) {
     const singleName = nameParts[0];
-    // Only match if it's a distinctive name (more than 4 characters) and appears as a whole word
-    if (singleName.length > 4) {
+    // Only match if it's a distinctive name (more than 3 characters) and appears as a whole word
+    if (singleName.length > 3) {
       const regex = new RegExp(`\\b${singleName}\\b`, 'i');
       return regex.test(normalizedContent);
     }
     return false;
   }
   
-  // For multi-part names, require both first and last name to be present
+  // For multi-part names, use a more flexible approach
   if (nameParts.length >= 2) {
     const firstName = nameParts[0];
     const lastName = nameParts[nameParts.length - 1];
     
-    // Create regex patterns for whole word matches
+    // Check for exact full name match first (highest priority)
+    const fullNameRegex = new RegExp(`\\b${normalizedWrestlerName.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (fullNameRegex.test(normalizedContent)) {
+      return true;
+    }
+    
+    // Check for "First Last" pattern (most common)
+    const firstLastRegex = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, 'i');
+    if (firstLastRegex.test(normalizedContent)) {
+      return true;
+    }
+    
+    // For unique combinations, check if both names appear (with more distance allowed)
     const firstNameRegex = new RegExp(`\\b${firstName}\\b`, 'i');
     const lastNameRegex = new RegExp(`\\b${lastName}\\b`, 'i');
     
-    // Both first and last name must be present in the content
     const hasFirstName = firstNameRegex.test(normalizedContent);
     const hasLastName = lastNameRegex.test(normalizedContent);
     
     if (hasFirstName && hasLastName) {
-      // Additional check: they should be relatively close to each other (within 100 characters)
-      const firstNameMatch = normalizedContent.match(firstNameRegex);
-      const lastNameMatch = normalizedContent.match(lastNameRegex);
+      // Check if this is a unique enough combination to avoid false positives
+      // Common first names that need stricter matching
+      const commonFirstNames = ['adam', 'john', 'mike', 'chris', 'kevin', 'matt', 'mark', 'steve', 'daniel', 'bryan'];
       
-      if (firstNameMatch && lastNameMatch) {
-        const firstNameIndex = normalizedContent.indexOf(firstNameMatch[0]);
-        const lastNameIndex = normalizedContent.indexOf(lastNameMatch[0]);
-        const distance = Math.abs(firstNameIndex - lastNameIndex);
+      if (commonFirstNames.includes(firstName)) {
+        // For common first names, require closer proximity (within 50 characters)
+        const firstNameMatch = normalizedContent.match(firstNameRegex);
+        const lastNameMatch = normalizedContent.match(lastNameRegex);
         
-        // Names should be within 100 characters of each other
-        return distance <= 100;
+        if (firstNameMatch && lastNameMatch) {
+          const firstNameIndex = normalizedContent.indexOf(firstNameMatch[0]);
+          const lastNameIndex = normalizedContent.indexOf(lastNameMatch[0]);
+          const distance = Math.abs(firstNameIndex - lastNameIndex);
+          
+          return distance <= 50;
+        }
+      } else {
+        // For unique first names, allow more distance (within 150 characters)
+        const firstNameMatch = normalizedContent.match(firstNameRegex);
+        const lastNameMatch = normalizedContent.match(lastNameRegex);
+        
+        if (firstNameMatch && lastNameMatch) {
+          const firstNameIndex = normalizedContent.indexOf(firstNameMatch[0]);
+          const lastNameIndex = normalizedContent.indexOf(lastNameMatch[0]);
+          const distance = Math.abs(firstNameIndex - lastNameIndex);
+          
+          return distance <= 150;
+        }
       }
     }
     
-    // Also check for exact full name match
-    const fullNameRegex = new RegExp(`\\b${normalizedWrestlerName.replace(/\s+/g, '\\s+')}\\b`, 'i');
-    return fullNameRegex.test(normalizedContent);
+    // Check for common wrestling name patterns
+    // "Lastname" only for distinctive surnames
+    if (lastName.length > 5 && !['johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis'].includes(lastName)) {
+      const lastNameOnlyRegex = new RegExp(`\\b${lastName}\\b`, 'i');
+      if (lastNameOnlyRegex.test(normalizedContent)) {
+        return true;
+      }
+    }
   }
   
   return false;
@@ -72,7 +105,7 @@ export const performWrestlerAnalysis = (
     return [];
   }
   
-  console.log('Starting precise push/burial analysis for', wrestlers.length, 'wrestlers');
+  console.log('Starting balanced push/burial analysis for', wrestlers.length, 'wrestlers with', newsItems.length, 'news items');
   
   // Pre-process all news content for faster analysis
   const allContent: ProcessedNewsContent[] = newsItems.map(item => ({
@@ -81,11 +114,11 @@ export const performWrestlerAnalysis = (
     sentiment: analyzeSentiment(`${item.title} ${item.contentSnippet}`)
   }));
   
-  console.log('Pre-processed', allContent.length, 'news items');
+  console.log('Pre-processed', allContent.length, 'news items for analysis');
   
   const wrestlerMentions = new Map<string, WrestlerAnalysis>();
   
-  // Batch process wrestler mentions with precise matching
+  // Batch process wrestler mentions with balanced matching
   wrestlers.forEach(wrestler => {
     const wrestlerName = wrestler.name;
     let mentions = 0;
@@ -97,13 +130,13 @@ export const performWrestlerAnalysis = (
     console.log(`Analyzing mentions for: ${wrestlerName}`);
     
     allContent.forEach(({ content, item, sentiment }) => {
-      // Use precise name matching
+      // Use balanced name matching
       if (isWrestlerMentioned(wrestlerName, content)) {
         mentions++;
         totalSentiment += sentiment.score;
         relatedNews.push(item);
         
-        console.log(`✓ Found mention of ${wrestlerName} in: "${item.title.substring(0, 60)}..."`);
+        console.log(`✓ Found mention of ${wrestlerName} in: "${item.title.substring(0, 50)}..."`);
         
         // Enhanced scoring for push indicators
         if (sentiment.score > 0.6) {
@@ -134,15 +167,15 @@ export const performWrestlerAnalysis = (
       let trend: 'push' | 'burial' | 'stable' = 'stable';
       if (mentions >= 1) {
         // More sensitive trending detection
-        if (pushPercentage > burialPercentage && (pushPercentage > 5 || avgSentiment > 0.6)) {
+        if (pushPercentage > burialPercentage && (pushPercentage > 3 || avgSentiment > 0.55)) {
           trend = 'push';
-        } else if (burialPercentage > pushPercentage && (burialPercentage > 5 || avgSentiment < 0.4)) {
+        } else if (burialPercentage > pushPercentage && (burialPercentage > 3 || avgSentiment < 0.45)) {
           trend = 'burial';
         }
       }
       
       const momentumScore = mentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
-      const isOnFire = mentions >= 2 && avgSentiment > 0.65 && pushPercentage > 25;
+      const isOnFire = mentions >= 2 && avgSentiment > 0.6 && pushPercentage > 20;
       
       wrestlerMentions.set(wrestler.id, {
         id: wrestler.id,
@@ -167,7 +200,7 @@ export const performWrestlerAnalysis = (
         }))
       });
       
-      console.log(`✓ ${wrestler.name}: ${mentions} precise mentions, Trend: ${trend}, Push: ${pushPercentage.toFixed(1)}%, Burial: ${burialPercentage.toFixed(1)}%, Sentiment: ${avgSentiment.toFixed(2)}`);
+      console.log(`✓ ${wrestler.name}: ${mentions} mentions, Trend: ${trend}, Push: ${pushPercentage.toFixed(1)}%, Burial: ${burialPercentage.toFixed(1)}%, Sentiment: ${avgSentiment.toFixed(2)}`);
     } else {
       console.log(`✗ ${wrestler.name}: No mentions found`);
     }
@@ -175,7 +208,7 @@ export const performWrestlerAnalysis = (
   
   const analysis = Array.from(wrestlerMentions.values());
   
-  console.log('Precise analysis complete:', {
+  console.log('Balanced analysis complete:', {
     totalAnalyzed: wrestlers.length,
     withMentions: analysis.length,
     pushTrend: analysis.filter(a => a.trend === 'push').length,
