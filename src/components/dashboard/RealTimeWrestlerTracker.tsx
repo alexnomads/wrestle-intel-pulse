@@ -7,7 +7,6 @@ import { RefreshCw, Users, TrendingUp } from 'lucide-react';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
 import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
-import { WrestlerCard } from './wrestler-tracker/WrestlerCard';
 
 interface Props {
   refreshTrigger?: Date;
@@ -25,30 +24,8 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
     filteredAnalysis
   } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all'); // 24 hours, all promotions
 
-  // Ensure we always show at least 10 wrestlers with proper type mapping
-  const displayWrestlers = filteredAnalysis.length >= 10 
-    ? filteredAnalysis.slice(0, 15) // Show top 15 if we have enough
-    : [
-        ...filteredAnalysis,
-        ...wrestlers.slice(0, 10 - filteredAnalysis.length).map(w => ({
-          id: w.id,
-          wrestler_name: w.name,
-          promotion: 'WWE', // Default promotion
-          totalMentions: Math.floor(Math.random() * 20) + 5,
-          sentimentScore: Math.floor(Math.random() * 40) + 50,
-          trend: 'stable' as const,
-          isOnFire: false,
-          momentumScore: Math.floor(Math.random() * 50) + 25,
-          popularityScore: Math.floor(Math.random() * 40) + 20,
-          change24h: Math.floor(Math.random() * 20) - 10,
-          relatedNews: [],
-          isChampion: false,
-          championshipTitle: null,
-          evidence: '',
-          pushScore: 0,
-          burialScore: 0
-        }))
-      ];
+  // Show top trending wrestlers in a simpler format for overview
+  const topWrestlers = filteredAnalysis.slice(0, 10);
 
   const handleRefresh = async () => {
     await refetch();
@@ -92,7 +69,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" />
-            <span>Top {displayWrestlers.length} Trending Wrestlers</span>
+            <span>Top {topWrestlers.length} Trending Wrestlers</span>
           </div>
           <div className="text-sm text-muted-foreground">
             Last updated: {lastUpdate.toLocaleTimeString()}
@@ -110,49 +87,55 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
           </div>
         ) : (
           <>
-            {/* Treemap Container */}
-            <div className="mb-6">
-              <div 
-                className="flex flex-wrap gap-3 justify-center items-start p-4 bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-lg border border-gray-700/30"
-                style={{ minHeight: '400px' }}
-              >
-                {displayWrestlers.map((wrestler, index) => (
-                  <WrestlerCard
-                    key={wrestler.id}
-                    wrestler={wrestler}
-                    index={index}
-                    totalWrestlers={displayWrestlers.length}
-                  />
-                ))}
-              </div>
+            {/* Simple list view for overview */}
+            <div className="space-y-3">
+              {topWrestlers.map((wrestler, index) => (
+                <div key={wrestler.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-lg font-bold text-wrestling-electric">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{wrestler.wrestler_name}</div>
+                      <div className="text-sm text-muted-foreground">{wrestler.promotion}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">{wrestler.totalMentions} mentions</div>
+                    <div className={`text-sm ${wrestler.change24h > 0 ? 'text-green-500' : wrestler.change24h < 0 ? 'text-red-500' : 'text-yellow-500'}`}>
+                      {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-wrestling-electric">
-                  {displayWrestlers.length}
+                  {topWrestlers.length}
                 </div>
                 <div className="text-sm text-muted-foreground">Active Wrestlers</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-green-500">
-                  {displayWrestlers.filter(w => w.change24h > 0).length}
+                  {topWrestlers.filter(w => w.change24h > 0).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Trending Up</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-red-500">
-                  {displayWrestlers.filter(w => w.change24h < 0).length}
+                  {topWrestlers.filter(w => w.change24h < 0).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Trending Down</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-orange-500">
-                  {displayWrestlers.filter(w => w.isOnFire).length}
+                  {topWrestlers.filter(w => w.isOnFire).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Hot Topics</div>
               </div>
