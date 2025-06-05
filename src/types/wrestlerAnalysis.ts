@@ -30,6 +30,8 @@ export interface WrestlerAnalysis {
   evidence: string;
   isOnFire: boolean;
   momentumScore: number;
+  popularityScore: number;
+  change24h: number;
   relatedNews: Array<{
     title: string;
     link: string;

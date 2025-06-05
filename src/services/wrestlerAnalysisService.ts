@@ -178,6 +178,14 @@ export const performWrestlerAnalysis = (
       const momentumScore = mentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
       const isOnFire = mentions >= 2 && avgSentiment > 0.6 && pushPercentage > 15;
       
+      // Calculate popularity score based on mentions and sentiment
+      const popularityScore = Math.round(mentions * 10 + (avgSentiment * 50));
+      
+      // Calculate 24h change (mock calculation based on sentiment and trend)
+      const change24h = trend === 'push' ? Math.round(pushPercentage / 2) : 
+                       trend === 'burial' ? -Math.round(burialPercentage / 2) : 
+                       Math.round((Math.random() - 0.5) * 10);
+      
       wrestlerMentions.set(wrestler.id, {
         id: wrestler.id,
         wrestler_name: wrestler.name,
@@ -193,6 +201,8 @@ export const performWrestlerAnalysis = (
                  mentions > 2 ? 'Moderate Coverage' : 'Limited Coverage',
         isOnFire,
         momentumScore,
+        popularityScore,
+        change24h,
         relatedNews: relatedNews.slice(0, 10).map(news => ({
           title: news.title,
           link: news.link || '#',

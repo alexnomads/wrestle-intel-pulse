@@ -8,14 +8,12 @@ import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
 import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
 import { WrestlerCard } from './wrestler-tracker/WrestlerCard';
-import { FederationFilter } from './wrestler-tracker/FederationFilter';
 
 interface Props {
   refreshTrigger?: Date;
 }
 
 export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => {
-  const [selectedFederation, setSelectedFederation] = useState('All');
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   // Data hooks
@@ -24,11 +22,10 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
 
   // Analysis hook - get top wrestlers from last 24 hours
   const {
-    filteredAnalysis,
-    isLoading: analysisLoading
+    filteredAnalysis
   } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all'); // 24 hours, all promotions
 
-  // Ensure we always show at least 10 wrestlers
+  // Ensure we always show at least 10 wrestlers with proper type mapping
   const displayWrestlers = filteredAnalysis.length >= 10 
     ? filteredAnalysis.slice(0, 15) // Show top 15 if we have enough
     : [
@@ -65,7 +62,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
     }
   }, [refreshTrigger]);
 
-  const isLoading = wrestlersLoading || newsLoading || analysisLoading;
+  const isLoading = wrestlersLoading || newsLoading;
 
   return (
     <Card className="glass-card">
@@ -141,14 +138,14 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-green-500">
-                  {displayWrestlers.filter(w => (w.change24h || 0) > 0).length}
+                  {displayWrestlers.filter(w => w.change24h > 0).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Trending Up</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-red-500">
-                  {displayWrestlers.filter(w => (w.change24h || 0) < 0).length}
+                  {displayWrestlers.filter(w => w.change24h < 0).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Trending Down</div>
               </div>
