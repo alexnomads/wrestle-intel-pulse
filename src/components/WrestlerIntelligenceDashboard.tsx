@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +74,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
       return {
         id: wrestler.id,
-        wrestler_name: wrestler.name, // Fix: Use wrestler_name to match WrestlerMomentum interface
+        wrestler_name: wrestler.name,
         promotion: wrestler.brand || 'Unknown',
         momentum,
         momentumScore,
@@ -100,7 +99,7 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Generate push/burial analysis
   const pushBurialAnalysis = filteredContractAnalysis.map(wrestler => ({
-    wrestler_name: wrestler.wrestler_name, // Use wrestler_name consistently
+    name: wrestler.wrestler_name, // Use name to match PushBurialCard interface
     promotion: wrestler.promotion,
     pushScore: wrestler.isChampion ? 9 : wrestler.momentumScore,
     burialRisk: wrestler.contractRisk === 'high' ? 8 : 
@@ -130,9 +129,7 @@ export const WrestlerIntelligenceDashboard = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
         <DashboardFilters
-          selectedPromotion={selectedPromotion}
           onPromotionChange={setSelectedPromotion}
-          selectedMetric={selectedMetric}
           onMetricChange={setSelectedMetric}
           onRefresh={handleRefresh}
           isLoading={momentumLoading}
@@ -188,7 +185,7 @@ export const WrestlerIntelligenceDashboard = () => {
                   <MomentumLeaderCard
                     key={wrestler.id}
                     wrestler={{
-                      wrestler_name: wrestler.wrestler_name, // Use wrestler_name consistently
+                      wrestler_name: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       momentum: wrestler.momentumScore,
                       trend: wrestler.momentum === 'rising' ? 'up' : 
@@ -218,7 +215,7 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.wrestler_name}
+                        key={wrestler.name}
                         wrestler={wrestler}
                         type="push"
                         rank={index + 1}
@@ -244,7 +241,7 @@ export const WrestlerIntelligenceDashboard = () => {
                     .slice(0, 5)
                     .map((wrestler, index) => (
                       <PushBurialCard
-                        key={wrestler.wrestler_name}
+                        key={wrestler.name}
                         wrestler={wrestler}
                         type="burial"
                         rank={index + 1}
@@ -274,7 +271,7 @@ export const WrestlerIntelligenceDashboard = () => {
                       wrestlerName: wrestler.wrestler_name,
                       promotion: wrestler.promotion,
                       status: wrestler.contractStatus,
-                      expirationDate: 'Unknown', // This would come from real contract data
+                      expirationDate: 'Unknown',
                       marketValue: wrestler.momentumScore > 7 ? 'High' : 
                                   wrestler.momentumScore > 4 ? 'Medium' : 'Low',
                       leverage: wrestler.isChampion ? 'High' : 
