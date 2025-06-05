@@ -1,61 +1,45 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, AlertCircle } from "lucide-react";
-import { useWrestlerMomentumAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
+import { RefreshCw, AlertCircle, Clock } from "lucide-react";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
 import { useWrestlerAnalysis } from "@/hooks/useWrestlerAnalysis";
-import { MomentumLeaderCard } from "./wrestler-intelligence/MomentumLeaderCard";
-import { ContractStatusCard } from "./wrestler-intelligence/ContractStatusCard";
-import { DashboardFilters } from "./wrestler-intelligence/DashboardFilters";
-import { EmptyWrestlerState } from "./wrestler-intelligence/EmptyWrestlerState";
-import { MetricsOverview } from "./wrestler-intelligence/MetricsOverview";
-import { PushBurialCharts } from "./wrestler-intelligence/PushBurialCharts";
-
-type TimePeriod = '30' | '60' | '180' | '365';
+import { WrestlerHeatmap } from "./wrestler-intelligence/WrestlerHeatmap";
 
 export const WrestlerIntelligenceDashboard = () => {
-  const [selectedPromotion, setSelectedPromotion] = useState('all');
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>('30');
+  // Fixed to last 24 hours for real-time heatmap
+  const selectedTimePeriod = '1'; // 24 hours
+  const selectedPromotion = 'all'; // All promotions
   
   // Real data hooks
-  const { data: wrestlerMomentum = [], isLoading: momentumLoading, refetch: refetchMomentum } = useWrestlerMomentumAnalysis();
-  const { data: trendingTopics = [] } = useAdvancedTrendingTopics();
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
-  const { data: newsItems = [], isLoading: newsLoading, error: newsError } = useRSSFeeds();
+  const { data: newsItems = [], isLoading: newsLoading, error: newsError, refetch } = useRSSFeeds();
 
-  // Log data for debugging
-  console.log('Dashboard Data:', {
-    wrestlers: wrestlers.length,
-    newsItems: newsItems.length,
-    wrestlersLoading,
-    newsLoading,
-    newsError,
-    selectedTimePeriod,
-    selectedPromotion
-  });
-
-  // Analysis hook
+  // Analysis hook - get top wrestlers from last 24 hours
   const {
-    filteredWrestlers,
-    periodNewsItems,
-    filteredAnalysis,
-    topPushWrestlers,
-    worstBuriedWrestlers
+    filteredAnalysis
   } = useWrestlerAnalysis(wrestlers, newsItems, selectedTimePeriod, selectedPromotion);
 
   const handleRefresh = () => {
-    refetchMomentum();
+    refetch();
   };
 
-  const isLoading = momentumLoading || wrestlersLoading || newsLoading;
+  const isLoading = wrestlersLoading || newsLoading;
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-4 py-2 bg-wrestling-electric text-white rounded hover:bg-wrestling-electric/80 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
         
         <Card className="glass-card">
@@ -65,9 +49,7 @@ export const WrestlerIntelligenceDashboard = () => {
               <span className="text-lg">Loading wrestling intelligence data...</span>
             </div>
             <div className="text-sm text-muted-foreground">
-              {wrestlersLoading && "Loading wrestlers database..."}
-              {newsLoading && "Fetching latest wrestling news..."}
-              {momentumLoading && "Analyzing wrestler momentum..."}
+              Analyzing wrestler mentions from the last 24 hours...
             </div>
           </CardContent>
         </Card>
@@ -81,32 +63,13 @@ export const WrestlerIntelligenceDashboard = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
-          <div className="flex items-center space-x-4">
-            <div className="flex space-x-2">
-              {(['30', '60', '180', '365'] as TimePeriod[]).map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setSelectedTimePeriod(period)}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    selectedTimePeriod === period
-                      ? 'bg-wrestling-electric text-white'
-                      : 'bg-secondary text-foreground hover:bg-secondary/80'
-                  }`}
-                >
-                  {period} Days
-                </button>
-              ))}
-            </div>
-            
-            <DashboardFilters
-              selectedPromotion={selectedPromotion}
-              onPromotionChange={setSelectedPromotion}
-              selectedMetric="push"
-              onMetricChange={() => {}}
-              onRefresh={handleRefresh}
-              isLoading={momentumLoading}
-            />
-          </div>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center space-x-2 px-4 py-2 bg-wrestling-electric text-white rounded hover:bg-wrestling-electric/80 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Retry</span>
+          </button>
         </div>
 
         <Card className="glass-card">
@@ -133,128 +96,89 @@ export const WrestlerIntelligenceDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
-        <div className="flex items-center space-x-4">
-          {/* Time Period Filter */}
-          <div className="flex space-x-2">
-            {(['30', '60', '180', '365'] as TimePeriod[]).map((period) => (
-              <button
-                key={period}
-                onClick={() => setSelectedTimePeriod(period)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  selectedTimePeriod === period
-                    ? 'bg-wrestling-electric text-white'
-                    : 'bg-secondary text-foreground hover:bg-secondary/80'
-                }`}
-              >
-                {period} Days
-              </button>
-            ))}
+        <div className="flex items-center space-x-3">
+          <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>Last 24 Hours</span>
           </div>
-          
-          <DashboardFilters
-            selectedPromotion={selectedPromotion}
-            onPromotionChange={setSelectedPromotion}
-            selectedMetric="push"
-            onMetricChange={() => {}}
-            onRefresh={handleRefresh}
-            isLoading={momentumLoading}
-          />
         </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center space-x-2 px-4 py-2 bg-wrestling-electric text-white rounded hover:bg-wrestling-electric/80 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
-      {filteredWrestlers.length === 0 ? (
-        <EmptyWrestlerState />
+      {filteredAnalysis.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="p-8 text-center">
+            <div className="text-lg font-semibold text-foreground mb-2">No Recent Activity</div>
+            <div className="text-sm text-muted-foreground">
+              No wrestler mentions found in the last 24 hours. Check back later for updates.
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6">
-          {/* Key Metrics Overview */}
-          <MetricsOverview
-            totalWrestlers={filteredWrestlers.length}
-            pushingWrestlers={filteredAnalysis.filter(w => w.trend === 'push').length}
-            buriedWrestlers={filteredAnalysis.filter(w => w.trend === 'burial').length}
-            newsArticles={periodNewsItems.length}
-            timePeriod={selectedTimePeriod}
-          />
+          {/* Main Heatmap Visualization */}
+          <WrestlerHeatmap wrestlers={filteredAnalysis} />
 
-          {/* Show data status */}
+          {/* Data Status */}
           {newsItems.length > 0 && (
             <Card className="glass-card">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Data Status: {newsItems.length} news articles analyzed • {filteredAnalysis.length} wrestlers with mentions</span>
+                  <span>
+                    Data Status: {newsItems.length} news articles analyzed • {filteredAnalysis.length} wrestlers with mentions in last 24h
+                  </span>
                   <span>Last updated: {new Date().toLocaleTimeString()}</span>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* PUSH Top 10 and BURIED Worst 10 Charts */}
-          <PushBurialCharts
-            topPushWrestlers={topPushWrestlers}
-            worstBuriedWrestlers={worstBuriedWrestlers}
-            selectedPromotion={selectedPromotion}
-            selectedTimePeriod={selectedTimePeriod}
-          />
-
-          {/* Push/Burial Leaders */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Push/Burial Analysis - Last {selectedTimePeriod} Days</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {filteredAnalysis.slice(0, 10).map((wrestler, index) => (
-                  <MomentumLeaderCard
-                    key={wrestler.id}
-                    wrestler={{
-                      wrestler_name: wrestler.wrestler_name,
-                      promotion: wrestler.promotion,
-                      momentum: wrestler.pushScore,
-                      trend: wrestler.trend === 'push' ? 'up' : 
-                             wrestler.trend === 'burial' ? 'down' : 'stable',
-                      weeklyChange: wrestler.trend === 'push' ? wrestler.pushScore : 
-                                   wrestler.trend === 'burial' ? -wrestler.burialScore : 0,
-                      newsVolume: wrestler.totalMentions,
-                      sentiment: wrestler.sentimentScore
-                    }}
-                    rank={index + 1}
-                  />
-                ))}
-                {filteredAnalysis.length === 0 && (
-                  <div className="text-center text-muted-foreground py-8">
-                    No wrestler analysis available for the selected time period.
-                    Try selecting a longer time period or check back later for more news data.
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Media Coverage Analysis */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Media Coverage Overview - Last {selectedTimePeriod} Days</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {filteredAnalysis.slice(0, 15).map((wrestler) => (
-                  <ContractStatusCard
-                    key={wrestler.id}
-                    contract={{
-                      wrestlerName: wrestler.wrestler_name,
-                      promotion: wrestler.promotion,
-                      status: wrestler.trend === 'push' ? 'Rising' : 
-                             wrestler.trend === 'burial' ? 'Declining' : 'Stable',
-                      expirationDate: `${wrestler.totalMentions} mentions`,
-                      marketValue: wrestler.pushScore > 50 ? 'High Push' : 
-                                  wrestler.burialScore > 50 ? 'High Burial Risk' : 'Neutral',
-                      leverage: wrestler.isChampion ? 'Champion' : wrestler.evidence
-                    }}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="glass-card">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-wrestling-electric">
+                  {filteredAnalysis.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Active Wrestlers</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-green-500">
+                  {filteredAnalysis.filter(w => w.trend === 'push').length}
+                </div>
+                <div className="text-sm text-muted-foreground">Trending Up</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-red-500">
+                  {filteredAnalysis.filter(w => w.trend === 'burial').length}
+                </div>
+                <div className="text-sm text-muted-foreground">Trending Down</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-card">
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-orange-500">
+                  {filteredAnalysis.filter(w => w.isOnFire).length}
+                </div>
+                <div className="text-sm text-muted-foreground">Hot Topics</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
