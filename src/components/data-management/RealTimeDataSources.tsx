@@ -23,56 +23,44 @@ export const RealTimeDataSources = ({
   const scrapeNews = useScrapeNews();
   const { toast } = useToast();
 
-  const handleScrapeRealTimeEvents = async () => {
+  const handleScrapeEvents = async () => {
     try {
+      console.log('Starting events scraping...');
       const result = await scrapeEvents.mutateAsync();
       
-      if (result.success) {
+      console.log('Events scraping result:', result);
+      
+      if (result?.success) {
         toast({
-          title: "Events Scraping Successful",
-          description: `${result.message}. Check the Events tab to view the latest data.`,
+          title: "Events Update Successful",
+          description: `${result.message || 'Events updated successfully'}. Check the Events tab to view the latest data.`,
         });
-        onDataUpdate();
+        // Force data refresh
+        setTimeout(() => {
+          onDataUpdate();
+        }, 1000);
       } else {
         toast({
-          title: "Scraping Failed",
-          description: result.message,
+          title: "Events Update Failed",
+          description: result?.message || 'Unknown error occurred',
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Events scraping error:', error);
       toast({
         title: "Error",
-        description: "Failed to scrape events data",
+        description: "Failed to update events data. Check console for details.",
         variant: "destructive",
       });
     }
   };
 
-  const handleScrapeRealTimeNews = async () => {
-    try {
-      const result = await scrapeNews.mutateAsync();
-      
-      if (result.success) {
-        toast({
-          title: "News Scraping Successful",
-          description: `${result.message}. Check the Overview tab to view the latest news.`,
-        });
-        onDataUpdate();
-      } else {
-        toast({
-          title: "Scraping Failed",
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to scrape news data",
-        variant: "destructive",
-      });
-    }
+  const handleScrapeNews = async () => {
+    toast({
+      title: "News Feature Coming Soon",
+      description: "News scraping functionality is not implemented yet.",
+    });
   };
 
   return (
@@ -82,7 +70,7 @@ export const RealTimeDataSources = ({
           <CardTitle>Real-Time Data Sources</CardTitle>
           <div className="flex space-x-2">
             <Button
-              onClick={handleScrapeRealTimeEvents}
+              onClick={handleScrapeEvents}
               disabled={scrapeEvents.isPending}
               variant="outline"
               size="sm"
@@ -95,7 +83,7 @@ export const RealTimeDataSources = ({
               Update Events
             </Button>
             <Button
-              onClick={handleScrapeRealTimeNews}
+              onClick={handleScrapeNews}
               disabled={scrapeNews.isPending}
               variant="outline"
               size="sm"
@@ -113,7 +101,7 @@ export const RealTimeDataSources = ({
       <CardContent className="space-y-4">
         <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-4">
           <div className="text-sm text-green-400">
-            🔴 LIVE: Data is scraped in real-time from official sources every 15 minutes automatically
+            🔴 LIVE: Wrestling events are generated automatically for weekly shows
           </div>
         </div>
 
@@ -122,15 +110,15 @@ export const RealTimeDataSources = ({
             <div>
               <h3 className="font-semibold text-foreground">Wrestling Events</h3>
               <p className="text-sm text-muted-foreground">
-                {eventsCount} live events • WWE, AEW, NXT weekly shows + PPVs
+                {eventsCount} events • WWE, AEW, NXT, TNA weekly shows
               </p>
             </div>
             <Badge variant="secondary">
-              wwe.com • allelitewrestling.com
+              Generated Weekly Shows
             </Badge>
           </div>
           <Button
-            onClick={handleScrapeRealTimeEvents}
+            onClick={handleScrapeEvents}
             disabled={scrapeEvents.isPending}
             variant="outline"
             size="sm"
@@ -149,24 +137,20 @@ export const RealTimeDataSources = ({
             <div>
               <h3 className="font-semibold text-foreground">Wrestling News</h3>
               <p className="text-sm text-muted-foreground">
-                {newsCount} articles • Real-time news from trusted sources
+                Feature coming soon • Real-time news from trusted sources
               </p>
             </div>
             <Badge variant="secondary">
-              wrestlinginc.com • 411mania.com
+              Coming Soon
             </Badge>
           </div>
           <Button
-            onClick={handleScrapeRealTimeNews}
-            disabled={scrapeNews.isPending}
+            onClick={handleScrapeNews}
+            disabled={true}
             variant="outline"
             size="sm"
           >
-            {scrapeNews.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
+            <RefreshCw className="h-4 w-4" />
             Update
           </Button>
         </div>
@@ -176,30 +160,19 @@ export const RealTimeDataSources = ({
             <div>
               <h3 className="font-semibold text-foreground">Active Storylines</h3>
               <p className="text-sm text-muted-foreground">
-                {storylinesCount} storylines • Auto-detected from news & social media
+                Feature coming soon • Auto-detected from news & social media
               </p>
             </div>
             <Badge variant="secondary">
-              AI-powered detection
+              Coming Soon
             </Badge>
           </div>
           <Button
-            onClick={() => {
-              handleScrapeRealTimeNews();
-              toast({
-                title: "Updating Storylines",
-                description: "Storylines are auto-detected from latest news data",
-              });
-            }}
-            disabled={scrapeNews.isPending}
+            disabled={true}
             variant="outline"
             size="sm"
           >
-            {scrapeNews.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
+            <RefreshCw className="h-4 w-4" />
             Update
           </Button>
         </div>

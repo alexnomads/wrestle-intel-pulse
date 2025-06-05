@@ -3,15 +3,17 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Tv, ExternalLink, Ticket, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Tv, RefreshCw, Users } from "lucide-react";
 import { useUpcomingEvents, useWeeklyShows, useRealTimeEvents } from "@/hooks/useRealTimeWrestlingData";
+import { useToast } from "@/hooks/use-toast";
 
 export const EventCalendar = () => {
   const [selectedView, setSelectedView] = useState<'upcoming' | 'weekly' | 'all'>('upcoming');
   
-  const { data: upcomingEvents = [], isLoading: loadingUpcoming } = useUpcomingEvents();
-  const { data: weeklyShows = [], isLoading: loadingWeekly } = useWeeklyShows();
-  const { data: allEvents = [], isLoading: loadingAll } = useRealTimeEvents();
+  const { data: upcomingEvents = [], isLoading: loadingUpcoming, refetch: refetchUpcoming } = useUpcomingEvents();
+  const { data: weeklyShows = [], isLoading: loadingWeekly, refetch: refetchWeekly } = useWeeklyShows();
+  const { data: allEvents = [], isLoading: loadingAll, refetch: refetchAll } = useRealTimeEvents();
+  const { toast } = useToast();
 
   const isLoading = loadingUpcoming || loadingWeekly || loadingAll;
 
@@ -26,6 +28,17 @@ export const EventCalendar = () => {
       default:
         return upcomingEvents;
     }
+  };
+
+  const handleRefresh = () => {
+    console.log('Refreshing events data...');
+    refetchUpcoming();
+    refetchWeekly();
+    refetchAll();
+    toast({
+      title: "Refreshing Events",
+      description: "Loading latest event data...",
+    });
   };
 
   const formatEventDate = (dateString: string | null, timeString: string | null) => {
@@ -84,7 +97,7 @@ export const EventCalendar = () => {
       <div className="space-y-6">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wrestling-electric mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Loading real-time events...</p>
+          <p className="text-muted-foreground mt-2">Loading wrestling events...</p>
         </div>
       </div>
     );
@@ -97,9 +110,18 @@ export const EventCalendar = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Wrestling Events Calendar</h2>
-          <p className="text-muted-foreground">Live event data from official promotion sources</p>
+          <p className="text-muted-foreground">Weekly wrestling shows and upcoming events</p>
         </div>
         <div className="flex space-x-2">
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Button
             onClick={() => setSelectedView('upcoming')}
             variant={selectedView === 'upcoming' ? 'default' : 'outline'}
@@ -132,11 +154,15 @@ export const EventCalendar = () => {
           <CardContent className="p-8 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No Events Found</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               {selectedView === 'upcoming' && "No upcoming events scheduled at this time."}
               {selectedView === 'weekly' && "No weekly shows configured."}
-              {selectedView === 'all' && "No events available in the database."}
+              {selectedView === 'all' && "No events available. Try updating the events data."}
             </p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Events
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -210,27 +236,11 @@ export const EventCalendar = () => {
                   )}
                 </div>
 
-                {(event.ticket_url || event.card_announced) && (
+                {event.is_recurring && (
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex items-center space-x-2">
-                      {event.card_announced && (
-                        <Badge variant="outline" className="text-xs">
-                          Card Announced
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {event.ticket_url && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => window.open(event.ticket_url!, '_blank')}
-                      >
-                        <Ticket className="h-4 w-4 mr-2" />
-                        Tickets
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </Button>
-                    )}
+                    <Badge variant="outline" className="text-xs">
+                      Weekly Show
+                    </Badge>
                   </div>
                 )}
               </CardContent>

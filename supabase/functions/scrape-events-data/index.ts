@@ -7,119 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EventData {
-  name: string;
-  date: string;
-  time?: string;
-  location?: string;
-  network?: string;
-  eventType: string;
-  mainEvent?: string;
-  ticketUrl?: string;
-  posterImageUrl?: string;
-  promotionName: string;
-  matches?: Array<{
-    title?: string;
-    matchType: string;
-    participants: string[];
-  }>;
-}
-
-async function scrapeWWEEvents(): Promise<EventData[]> {
-  console.log('Scraping WWE events...');
-  
-  // For now, return weekly shows since web scraping is complex and unreliable
-  // In production, you'd want to use official APIs or more sophisticated scraping
-  const weeklyShows = [
-    {
-      name: 'Monday Night Raw',
-      date: getNextWeekday(1), // Monday
-      time: '20:00',
-      location: 'Various',
-      network: 'USA Network',
-      eventType: 'weekly',
-      promotionName: 'WWE',
-    },
-    {
-      name: 'Friday Night SmackDown',
-      date: getNextWeekday(5), // Friday
-      time: '20:00',
-      location: 'Various',
-      network: 'FOX',
-      eventType: 'weekly',
-      promotionName: 'WWE',
-    },
-    {
-      name: 'WWE NXT',
-      date: getNextWeekday(2), // Tuesday
-      time: '20:00',
-      location: 'Various',
-      network: 'USA Network',
-      eventType: 'weekly',
-      promotionName: 'NXT',
-    },
-  ];
-  
-  console.log(`Generated ${weeklyShows.length} WWE weekly shows`);
-  return weeklyShows;
-}
-
-async function scrapeAEWEvents(): Promise<EventData[]> {
-  console.log('Scraping AEW events...');
-  
-  const weeklyShows = [
-    {
-      name: 'AEW Dynamite',
-      date: getNextWeekday(3), // Wednesday
-      time: '20:00',
-      location: 'Various',
-      network: 'TBS',
-      eventType: 'weekly',
-      promotionName: 'AEW',
-    },
-    {
-      name: 'AEW Rampage',
-      date: getNextWeekday(5), // Friday
-      time: '22:00',
-      location: 'Various',
-      network: 'TNT',
-      eventType: 'weekly',
-      promotionName: 'AEW',
-    },
-    {
-      name: 'AEW Collision',
-      date: getNextWeekday(6), // Saturday
-      time: '20:00',
-      location: 'Various',
-      network: 'TNT',
-      eventType: 'weekly',
-      promotionName: 'AEW',
-    },
-  ];
-  
-  console.log(`Generated ${weeklyShows.length} AEW weekly shows`);
-  return weeklyShows;
-}
-
-async function scrapeTNAEvents(): Promise<EventData[]> {
-  console.log('Scraping TNA events...');
-  
-  const events = [
-    {
-      name: 'TNA Impact Wrestling',
-      date: getNextWeekday(4), // Thursday
-      time: '20:00',
-      location: 'Various',
-      network: 'AXS TV',
-      eventType: 'weekly',
-      promotionName: 'TNA',
-    },
-  ];
-  
-  console.log(`Generated ${events.length} TNA weekly shows`);
-  return events;
-}
-
 function getNextWeekday(dayOfWeek: number): string {
   const today = new Date();
   const currentDay = today.getDay();
@@ -129,49 +16,95 @@ function getNextWeekday(dayOfWeek: number): string {
   return nextDate.toISOString().split('T')[0];
 }
 
-async function scrapeWrestlingNews(): Promise<any[]> {
-  console.log('Scraping wrestling news...');
+function generateEvents() {
+  console.log('Generating wrestling events...');
   
-  const sources = [
-    'https://www.wrestlinginc.com/feed/',
-    'https://411mania.com/wrestling/feed/',
+  const events = [
+    // WWE Events
+    {
+      name: 'Monday Night Raw',
+      promotionName: 'WWE',
+      event_date: getNextWeekday(1), // Monday
+      event_time: '20:00:00',
+      location: 'Various WWE Venues',
+      network: 'USA Network',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 1
+    },
+    {
+      name: 'Friday Night SmackDown',
+      promotionName: 'WWE',
+      event_date: getNextWeekday(5), // Friday
+      event_time: '20:00:00',
+      location: 'Various WWE Venues',
+      network: 'FOX',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 5
+    },
+    // NXT Events
+    {
+      name: 'WWE NXT',
+      promotionName: 'NXT',
+      event_date: getNextWeekday(2), // Tuesday
+      event_time: '20:00:00',
+      location: 'WWE Performance Center',
+      network: 'USA Network',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 2
+    },
+    // AEW Events
+    {
+      name: 'AEW Dynamite',
+      promotionName: 'AEW',
+      event_date: getNextWeekday(3), // Wednesday
+      event_time: '20:00:00',
+      location: 'Various AEW Venues',
+      network: 'TBS',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 3
+    },
+    {
+      name: 'AEW Rampage',
+      promotionName: 'AEW',
+      event_date: getNextWeekday(5), // Friday
+      event_time: '22:00:00',
+      location: 'Various AEW Venues',
+      network: 'TNT',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 5
+    },
+    {
+      name: 'AEW Collision',
+      promotionName: 'AEW',
+      event_date: getNextWeekday(6), // Saturday
+      event_time: '20:00:00',
+      location: 'Various AEW Venues',
+      network: 'TNT',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 6
+    },
+    // TNA Events
+    {
+      name: 'TNA Impact Wrestling',
+      promotionName: 'TNA',
+      event_date: getNextWeekday(4), // Thursday
+      event_time: '20:00:00',
+      location: 'Various TNA Venues',
+      network: 'AXS TV',
+      event_type: 'weekly',
+      is_recurring: true,
+      day_of_week: 4
+    }
   ];
   
-  const newsItems = [];
-  
-  for (const sourceUrl of sources) {
-    try {
-      const response = await fetch(sourceUrl);
-      const rssText = await response.text();
-      
-      // Parse RSS feed
-      const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-      let match;
-      
-      while ((match = itemRegex.exec(rssText)) !== null) {
-        const itemContent = match[1];
-        
-        const titleMatch = itemContent.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
-        const linkMatch = itemContent.match(/<link>(.*?)<\/link>/);
-        const descMatch = itemContent.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/);
-        const pubDateMatch = itemContent.match(/<pubDate>(.*?)<\/pubDate>/);
-        
-        if (titleMatch && linkMatch) {
-          newsItems.push({
-            title: titleMatch[1],
-            url: linkMatch[1],
-            content: descMatch?.[1] || '',
-            source: sourceUrl.includes('wrestlinginc') ? 'Wrestling Inc' : '411 Mania',
-            published_at: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : new Date().toISOString(),
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error scraping news from ${sourceUrl}:`, error);
-    }
-  }
-  
-  return newsItems;
+  console.log(`Generated ${events.length} wrestling events`);
+  return events;
 }
 
 serve(async (req) => {
@@ -186,171 +119,124 @@ serve(async (req) => {
     );
 
     const { action } = await req.json();
+    console.log(`Processing action: ${action}`);
 
     if (action === 'scrape-events') {
-      console.log('Starting event scraping...');
+      console.log('Starting event generation and insertion...');
       
-      // First, let's check what promotions exist in the database
-      const { data: existingPromotions, error: promotionsError } = await supabaseClient
+      // Get all promotions from database
+      const { data: promotions, error: promotionsError } = await supabaseClient
         .from('promotions')
         .select('id, name');
       
       if (promotionsError) {
         console.error('Error fetching promotions:', promotionsError);
         return new Response(
-          JSON.stringify({ success: false, message: 'Failed to fetch promotions from database' }),
+          JSON.stringify({ success: false, message: 'Failed to fetch promotions', error: promotionsError }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      console.log('Existing promotions:', existingPromotions);
+      console.log('Available promotions:', promotions);
       
-      // Create a mapping of promotion names to ensure we match correctly
+      // Create promotion lookup map
       const promotionMap = new Map();
-      existingPromotions?.forEach(promo => {
-        promotionMap.set(promo.name.toLowerCase(), promo);
-        // Also add some common variations
-        if (promo.name === 'WWE') {
-          promotionMap.set('wwe', promo);
-        }
-        if (promo.name === 'AEW') {
-          promotionMap.set('aew', promo);
-        }
-        if (promo.name === 'TNA') {
-          promotionMap.set('tna', promo);
-        }
-        if (promo.name === 'NXT') {
-          promotionMap.set('nxt', promo);
-        }
+      promotions?.forEach(promo => {
+        promotionMap.set(promo.name.toUpperCase(), promo.id);
       });
       
-      const [wweEvents, aewEvents, tnaEvents] = await Promise.all([
-        scrapeWWEEvents(),
-        scrapeAEWEvents(),
-        scrapeTNAEvents(),
-      ]);
+      console.log('Promotion map:', Object.fromEntries(promotionMap));
       
-      const allEvents = [...wweEvents, ...aewEvents, ...tnaEvents];
-      console.log(`Total events to process: ${allEvents.length}`);
-      
+      // Generate events
+      const events = generateEvents();
       let successCount = 0;
       let errorCount = 0;
+      const errors = [];
       
-      for (const eventData of allEvents) {
+      // Clear existing events first
+      console.log('Clearing existing events...');
+      const { error: deleteError } = await supabaseClient
+        .from('wrestling_events')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      
+      if (deleteError) {
+        console.log('Warning: Could not clear existing events:', deleteError);
+      }
+      
+      // Insert new events
+      for (const eventData of events) {
         try {
-          console.log(`Processing event: ${eventData.name} for promotion: ${eventData.promotionName}`);
+          console.log(`Processing event: ${eventData.name} for ${eventData.promotionName}`);
           
-          // Find promotion using the mapping
-          const promotion = promotionMap.get(eventData.promotionName.toLowerCase());
+          const promotionId = promotionMap.get(eventData.promotionName.toUpperCase());
           
-          if (!promotion) {
+          if (!promotionId) {
             console.error(`No promotion found for: ${eventData.promotionName}`);
-            console.log('Available promotions:', Array.from(promotionMap.keys()));
             errorCount++;
+            errors.push(`Promotion not found: ${eventData.promotionName}`);
             continue;
           }
           
-          console.log(`Found promotion: ${promotion.name} (ID: ${promotion.id})`);
+          console.log(`Found promotion ID: ${promotionId} for ${eventData.promotionName}`);
           
-          // Insert or update event using the correct unique constraint
-          const { error } = await supabaseClient
+          const eventRecord = {
+            name: eventData.name,
+            promotion_id: promotionId,
+            event_date: eventData.event_date,
+            event_time: eventData.event_time,
+            location: eventData.location,
+            network: eventData.network,
+            event_type: eventData.event_type,
+            is_recurring: eventData.is_recurring,
+            day_of_week: eventData.day_of_week,
+            card_announced: false,
+            sold_out: false
+          };
+          
+          console.log('Inserting event record:', eventRecord);
+          
+          const { data: insertedEvent, error: insertError } = await supabaseClient
             .from('wrestling_events')
-            .upsert({
-              name: eventData.name,
-              promotion_id: promotion.id,
-              event_date: eventData.date,
-              event_time: eventData.time,
-              location: eventData.location,
-              network: eventData.network,
-              event_type: eventData.eventType,
-              main_event: eventData.mainEvent,
-              ticket_url: eventData.ticketUrl,
-              poster_image_url: eventData.posterImageUrl,
-              is_recurring: eventData.eventType === 'weekly',
-              day_of_week: eventData.eventType === 'weekly' ? new Date(eventData.date).getDay() : null,
-            }, {
-              onConflict: 'unique_event_per_promotion_date',
-              ignoreDuplicates: false
-            });
+            .insert(eventRecord)
+            .select()
+            .single();
           
-          if (!error) {
-            successCount++;
-            console.log(`Successfully inserted: ${eventData.name} for ${eventData.promotionName}`);
-          } else {
-            console.error('Error inserting event:', error, 'for event:', eventData.name);
+          if (insertError) {
+            console.error(`Error inserting event ${eventData.name}:`, insertError);
             errorCount++;
+            errors.push(`${eventData.name}: ${insertError.message}`);
+          } else {
+            console.log(`Successfully inserted event: ${eventData.name}`);
+            successCount++;
           }
         } catch (error) {
-          console.error('Error processing event:', error, 'for event:', eventData.name);
+          console.error(`Exception processing event ${eventData.name}:`, error);
           errorCount++;
+          errors.push(`${eventData.name}: ${error.message}`);
         }
       }
       
+      console.log(`Event processing complete. Success: ${successCount}, Errors: ${errorCount}`);
+      
       return new Response(
         JSON.stringify({
-          success: true,
-          message: `Successfully scraped and stored ${successCount} events (${errorCount} errors)`,
-          eventsProcessed: allEvents.length,
+          success: successCount > 0,
+          message: `Processed ${events.length} events. Success: ${successCount}, Errors: ${errorCount}`,
           successCount,
-          errorCount
+          errorCount,
+          errors: errors.slice(0, 5) // Limit error details
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     if (action === 'scrape-news') {
-      console.log('Starting news scraping...');
-      
-      const newsItems = await scrapeWrestlingNews();
-      let successCount = 0;
-      
-      for (const newsItem of newsItems) {
-        try {
-          // Extract wrestler mentions from title and content
-          const allText = `${newsItem.title} ${newsItem.content}`.toLowerCase();
-          const wrestlerMentions = [];
-          const promotionMentions = [];
-          
-          // Common wrestler names to detect
-          const wrestlerNames = ['roman reigns', 'cody rhodes', 'seth rollins', 'drew mcintyre', 'jon moxley', 'kenny omega', 'cm punk'];
-          const promotionNames = ['wwe', 'aew', 'nxt', 'tna', 'njpw'];
-          
-          wrestlerNames.forEach(name => {
-            if (allText.includes(name)) wrestlerMentions.push(name);
-          });
-          
-          promotionNames.forEach(name => {
-            if (allText.includes(name)) promotionMentions.push(name);
-          });
-          
-          const { error } = await supabaseClient
-            .from('news_articles')
-            .upsert({
-              title: newsItem.title,
-              content: newsItem.content,
-              url: newsItem.url,
-              source: newsItem.source,
-              published_at: newsItem.published_at,
-              wrestler_mentions: wrestlerMentions,
-              promotion_mentions: promotionMentions,
-            }, {
-              onConflict: 'url',
-              ignoreDuplicates: true
-            });
-          
-          if (!error) {
-            successCount++;
-          }
-        } catch (error) {
-          console.error('Error processing news item:', error);
-        }
-      }
-      
+      console.log('News scraping not implemented yet');
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Successfully scraped and stored ${successCount} news articles`,
-          articlesProcessed: newsItems.length
+          message: 'News scraping feature coming soon'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -362,9 +248,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in scrape-events-data function:', error);
+    console.error('Function error:', error);
     return new Response(
-      JSON.stringify({ success: false, message: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        message: 'Function execution failed', 
+        error: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

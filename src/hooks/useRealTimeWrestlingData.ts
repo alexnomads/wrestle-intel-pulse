@@ -4,144 +4,129 @@ import {
   getAllRealTimeEvents,
   getUpcomingRealTimeEvents,
   getWeeklyShows,
-  getLatestNews,
-  getNewsByWrestler,
-  getNewsByPromotion,
-  getActiveStorylines,
-  getStorylinesByPromotion,
-  getActiveContracts,
-  getExpiringContracts,
   scrapeEventsData,
-  scrapeNewsData,
-  getWrestlerSentimentAnalysis,
 } from '@/services/realTimeWrestlingService';
 
-// Event hooks
+// Event hooks - completely rewritten
 export const useRealTimeEvents = () => {
   return useQuery({
-    queryKey: ['real-time-events'],
+    queryKey: ['wrestling-events-all'],
     queryFn: getAllRealTimeEvents,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
+    retry: 3,
+    retryDelay: 1000,
   });
 };
 
 export const useUpcomingEvents = () => {
   return useQuery({
-    queryKey: ['upcoming-real-time-events'],
+    queryKey: ['wrestling-events-upcoming'],
     queryFn: getUpcomingRealTimeEvents,
     staleTime: 5 * 60 * 1000,
     refetchInterval: 15 * 60 * 1000,
+    retry: 3,
+    retryDelay: 1000,
   });
 };
 
 export const useWeeklyShows = () => {
   return useQuery({
-    queryKey: ['weekly-shows'],
+    queryKey: ['wrestling-events-weekly'],
     queryFn: getWeeklyShows,
     staleTime: 30 * 60 * 1000, // 30 minutes
+    retry: 3,
+    retryDelay: 1000,
   });
 };
 
-// News hooks
+// Scraping mutation
+export const useScrapeEvents = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: scrapeEventsData,
+    onSuccess: (data) => {
+      console.log('Events scraping completed:', data);
+      // Invalidate and refetch all event queries
+      queryClient.invalidateQueries({ queryKey: ['wrestling-events-all'] });
+      queryClient.invalidateQueries({ queryKey: ['wrestling-events-upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['wrestling-events-weekly'] });
+    },
+    onError: (error) => {
+      console.error('Events scraping failed:', error);
+    }
+  });
+};
+
+// Placeholder hooks for news (not implemented)
 export const useLatestNews = (limit: number = 20) => {
   return useQuery({
     queryKey: ['latest-news', limit],
-    queryFn: () => getLatestNews(limit),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    queryFn: () => Promise.resolve([]),
+    enabled: false, // Disabled until implemented
   });
 };
 
 export const useNewsByWrestler = (wrestlerName: string) => {
   return useQuery({
     queryKey: ['news-by-wrestler', wrestlerName],
-    queryFn: () => getNewsByWrestler(wrestlerName),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!wrestlerName,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
 export const useNewsByPromotion = (promotionName: string) => {
   return useQuery({
     queryKey: ['news-by-promotion', promotionName],
-    queryFn: () => getNewsByPromotion(promotionName),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!promotionName,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
-// Storyline hooks
 export const useActiveStorylines = () => {
   return useQuery({
     queryKey: ['active-storylines'],
-    queryFn: getActiveStorylines,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
 export const useStorylinesByPromotion = (promotionName: string) => {
   return useQuery({
     queryKey: ['storylines-by-promotion', promotionName],
-    queryFn: () => getStorylinesByPromotion(promotionName),
-    staleTime: 10 * 60 * 1000,
-    enabled: !!promotionName,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
-// Contract hooks
 export const useActiveContracts = () => {
   return useQuery({
     queryKey: ['active-contracts'],
-    queryFn: getActiveContracts,
-    staleTime: 30 * 60 * 1000, // 30 minutes
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
 export const useExpiringContracts = () => {
   return useQuery({
     queryKey: ['expiring-contracts'],
-    queryFn: getExpiringContracts,
-    staleTime: 30 * 60 * 1000,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
-// Analytics hooks
 export const useWrestlerSentiment = (wrestlerName: string) => {
   return useQuery({
     queryKey: ['wrestler-sentiment', wrestlerName],
-    queryFn: () => getWrestlerSentimentAnalysis(wrestlerName),
-    staleTime: 10 * 60 * 1000,
-    enabled: !!wrestlerName,
-  });
-};
-
-// Scraping mutations
-export const useScrapeEvents = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: scrapeEventsData,
-    onSuccess: () => {
-      // Invalidate and refetch event queries
-      queryClient.invalidateQueries({ queryKey: ['real-time-events'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-real-time-events'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-shows'] });
-    },
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
   });
 };
 
 export const useScrapeNews = () => {
-  const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: scrapeNewsData,
-    onSuccess: () => {
-      // Invalidate and refetch news queries
-      queryClient.invalidateQueries({ queryKey: ['latest-news'] });
-      queryClient.invalidateQueries({ queryKey: ['news-by-wrestler'] });
-      queryClient.invalidateQueries({ queryKey: ['news-by-promotion'] });
-    },
+    mutationFn: () => Promise.resolve({ success: true, message: 'News scraping not implemented yet' }),
   });
 };
 
@@ -149,24 +134,20 @@ export const useScrapeNews = () => {
 export const useRealTimeAnalytics = () => {
   const events = useRealTimeEvents();
   const upcomingEvents = useUpcomingEvents();
-  const news = useLatestNews(10);
-  const storylines = useActiveStorylines();
-  const contracts = useExpiringContracts();
+  const weeklyShows = useWeeklyShows();
   
   return {
     events: events.data || [],
     upcomingEvents: upcomingEvents.data || [],
-    news: news.data || [],
-    storylines: storylines.data || [],
-    expiringContracts: contracts.data || [],
-    isLoading: events.isLoading || news.isLoading || storylines.isLoading,
-    error: events.error || news.error || storylines.error,
+    news: [], // Not implemented yet
+    storylines: [], // Not implemented yet
+    expiringContracts: [], // Not implemented yet
+    isLoading: events.isLoading,
+    error: events.error,
     refetchAll: () => {
       events.refetch();
       upcomingEvents.refetch();
-      news.refetch();
-      storylines.refetch();
-      contracts.refetch();
+      weeklyShows.refetch();
     }
   };
 };
