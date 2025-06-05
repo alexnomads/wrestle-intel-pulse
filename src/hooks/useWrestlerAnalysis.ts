@@ -6,6 +6,8 @@ interface NewsItem {
   title: string;
   contentSnippet: string;
   pubDate: string;
+  link?: string;
+  source?: string;
 }
 
 interface Wrestler {
@@ -31,6 +33,12 @@ export interface WrestlerAnalysis {
   evidence: string;
   isOnFire: boolean;
   momentumScore: number;
+  relatedNews: Array<{
+    title: string;
+    link: string;
+    source: string;
+    pubDate: string;
+  }>;
 }
 
 export const useWrestlerAnalysis = (
@@ -126,33 +134,38 @@ export const useWrestlerAnalysis = (
           totalSentiment += sentiment.score;
           relatedNews.push(item);
           
-          // Enhanced scoring
+          // Enhanced scoring for push indicators
           if (sentiment.score > 0.6) {
             let multiplier = 1;
             if (content.includes('champion') || content.includes('title')) multiplier = 1.5;
             if (content.includes('main event')) multiplier = 1.3;
+            if (content.includes('winner') || content.includes('victory')) multiplier = 1.2;
             pushScore += (sentiment.score - 0.5) * 2 * multiplier;
           }
           
+          // Enhanced scoring for burial indicators
           if (sentiment.score < 0.4) {
             let multiplier = 1;
             if (content.includes('fired') || content.includes('released')) multiplier = 2;
-            if (content.includes('buried')) multiplier = 1.8;
+            if (content.includes('buried') || content.includes('jobber')) multiplier = 1.8;
+            if (content.includes('lose') || content.includes('defeat')) multiplier = 1.3;
+            if (content.includes('injury') || content.includes('suspended')) multiplier = 1.5;
             burialScore += (0.5 - sentiment.score) * 2 * multiplier;
           }
         }
       });
       
       if (mentions > 0) {
-        const pushPercentage = (pushScore / mentions) * 100;
-        const burialPercentage = (burialScore / mentions) * 100;
+        const pushPercentage = Math.min((pushScore / mentions) * 100, 100);
+        const burialPercentage = Math.min((burialScore / mentions) * 100, 100);
         const avgSentiment = totalSentiment / mentions;
         
         let trend: 'push' | 'burial' | 'stable' = 'stable';
         if (mentions >= 1) {
-          if (pushPercentage > burialPercentage && pushPercentage > 10) {
+          // More sensitive trending detection
+          if (pushPercentage > burialPercentage && (pushPercentage > 5 || avgSentiment > 0.6)) {
             trend = 'push';
-          } else if (burialPercentage > pushPercentage && burialPercentage > 10) {
+          } else if (burialPercentage > pushPercentage && (burialPercentage > 5 || avgSentiment < 0.4)) {
             trend = 'burial';
           }
         }
@@ -164,8 +177,8 @@ export const useWrestlerAnalysis = (
           id: wrestler.id,
           wrestler_name: wrestler.name,
           promotion: wrestler.brand || 'Unknown',
-          pushScore: Math.min(pushPercentage, 100),
-          burialScore: Math.min(burialPercentage, 100),
+          pushScore: pushPercentage,
+          burialScore: burialPercentage,
           trend,
           totalMentions: mentions,
           sentimentScore: Math.round(avgSentiment * 100),
@@ -174,10 +187,16 @@ export const useWrestlerAnalysis = (
           evidence: mentions > 5 ? 'High Media Coverage' :
                    mentions > 2 ? 'Moderate Coverage' : 'Limited Coverage',
           isOnFire,
-          momentumScore
+          momentumScore,
+          relatedNews: relatedNews.slice(0, 10).map(news => ({
+            title: news.title,
+            link: news.link || '#',
+            source: news.source || 'Unknown',
+            pubDate: news.pubDate
+          }))
         });
         
-        console.log(`Wrestler: ${wrestler.name}, Mentions: ${mentions}, Trend: ${trend}, Sentiment: ${avgSentiment.toFixed(2)}`);
+        console.log(`Wrestler: ${wrestler.name}, Mentions: ${mentions}, Trend: ${trend}, Push: ${pushPercentage.toFixed(1)}%, Burial: ${burialPercentage.toFixed(1)}%, Sentiment: ${avgSentiment.toFixed(2)}`);
       }
     });
     

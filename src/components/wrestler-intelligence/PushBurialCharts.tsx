@@ -1,7 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Flame } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { TrendingUp, TrendingDown, Flame, ExternalLink } from "lucide-react";
 
 interface WrestlerAnalysis {
   id: string;
@@ -13,6 +14,12 @@ interface WrestlerAnalysis {
   trend: 'push' | 'burial' | 'stable';
   isOnFire: boolean;
   sentimentScore: number;
+  relatedNews?: Array<{
+    title: string;
+    link: string;
+    source: string;
+    pubDate: string;
+  }>;
 }
 
 interface PushBurialChartsProps {
@@ -29,6 +36,60 @@ export const PushBurialCharts = ({
   selectedTimePeriod 
 }: PushBurialChartsProps) => {
   const promotionLabel = selectedPromotion === 'all' ? 'All Federations' : selectedPromotion.toUpperCase();
+
+  const MediaCoveragePopup = ({ wrestler }: { wrestler: WrestlerAnalysis }) => (
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <button className="text-xs text-blue-400 hover:text-blue-300 underline">
+          View Coverage
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 max-h-96 overflow-y-auto">
+        <div className="space-y-3">
+          <h4 className="font-semibold text-foreground">Media Coverage for {wrestler.wrestler_name}</h4>
+          <div className="text-sm text-muted-foreground">
+            {wrestler.totalMentions} mentions in the last {selectedTimePeriod} days
+          </div>
+          
+          {wrestler.relatedNews && wrestler.relatedNews.length > 0 ? (
+            <div className="space-y-2">
+              {wrestler.relatedNews.slice(0, 5).map((news, index) => (
+                <div key={index} className="border-l-2 border-blue-400 pl-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-foreground mb-1">
+                        {news.title.substring(0, 80)}...
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {news.source} • {new Date(news.pubDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <a 
+                      href={news.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="ml-2 text-blue-400 hover:text-blue-300"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+              {wrestler.relatedNews.length > 5 && (
+                <div className="text-xs text-muted-foreground text-center">
+                  And {wrestler.relatedNews.length - 5} more articles...
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No detailed coverage links available
+            </div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -60,7 +121,9 @@ export const PushBurialCharts = ({
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <h4 className="font-semibold text-foreground">{wrestler.wrestler_name}</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                          {wrestler.wrestler_name}
+                        </h4>
                         {wrestler.isOnFire && (
                           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                             <Flame className="h-3 w-3 mr-1" />
@@ -68,14 +131,17 @@ export const PushBurialCharts = ({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{wrestler.promotion}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{wrestler.promotion}</p>
+                      <div className="mt-1">
+                        <MediaCoveragePopup wrestler={wrestler} />
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-green-600 dark:text-green-400">
                       {wrestler.totalMentions} mentions
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
                       {wrestler.pushScore.toFixed(1)}% positive • {wrestler.sentimentScore}% sentiment
                     </div>
                   </div>
@@ -114,15 +180,20 @@ export const PushBurialCharts = ({
                       #{index + 1}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground">{wrestler.wrestler_name}</h4>
-                      <p className="text-sm text-muted-foreground">{wrestler.promotion}</p>
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                        {wrestler.wrestler_name}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{wrestler.promotion}</p>
+                      <div className="mt-1">
+                        <MediaCoveragePopup wrestler={wrestler} />
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-red-600 dark:text-red-400">
                       {wrestler.totalMentions} mentions
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
                       {wrestler.burialScore.toFixed(1)}% negative • {wrestler.sentimentScore}% sentiment
                     </div>
                   </div>
