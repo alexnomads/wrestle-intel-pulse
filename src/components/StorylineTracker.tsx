@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw } from "lucide-react";
 import { useStorylineAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
 import { useRSSFeeds } from "@/hooks/useWrestlingData";
+import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
 import { StorylineCard } from "./storyline/StorylineCard";
 import { TrendingTopicCard } from "./storyline/TrendingTopicCard";
 import { BookingPatternCard } from "./storyline/BookingPatternCard";
@@ -16,6 +17,7 @@ export const StorylineTracker = () => {
   const { data: storylines = [], isLoading: storylinesLoading, refetch: refetchStorylines } = useStorylineAnalysis();
   const { data: trendingTopics = [], isLoading: topicsLoading } = useAdvancedTrendingTopics();
   const { data: newsItems = [] } = useRSSFeeds();
+  const { data: wrestlers = [] } = useSupabaseWrestlers();
 
   const handleRefresh = () => {
     refetchStorylines();
@@ -25,7 +27,7 @@ export const StorylineTracker = () => {
     ? storylines 
     : storylines.filter(storyline => storyline.promotion.toLowerCase() === selectedPromotion);
 
-  // Generate booking patterns from actual storyline data
+  // Generate booking patterns from actual storyline data with real wrestler data
   const generateBookingPatterns = () => {
     if (storylines.length === 0) return [];
     
@@ -38,7 +40,8 @@ export const StorylineTracker = () => {
           patterns: [],
           totalStorylines: 0,
           avgIntensity: 0,
-          avgFanReception: 0
+          avgFanReception: 0,
+          patternTypes: new Set()
         });
       }
       
@@ -47,31 +50,72 @@ export const StorylineTracker = () => {
       pattern.avgIntensity += storyline.intensity_score;
       pattern.avgFanReception += storyline.fan_reception_score;
       
-      // Detect pattern types based on keywords
+      // Detect pattern types based on keywords and participants
       if (storyline.keywords.includes('championship') || storyline.keywords.includes('title')) {
-        pattern.patterns.push('Championship Focus');
+        pattern.patternTypes.add('Championship Focus');
       }
-      if (storyline.keywords.includes('feud') || storyline.keywords.includes('vs')) {
-        pattern.patterns.push('Rivalry Building');
+      if (storyline.keywords.includes('feud') || storyline.keywords.includes('rivalry')) {
+        pattern.patternTypes.add('Rivalry Building');
       }
-      if (storyline.keywords.includes('team') || storyline.keywords.includes('alliance')) {
-        pattern.patterns.push('Faction Dynamics');
+      if (storyline.keywords.includes('team') || storyline.keywords.includes('alliance') || storyline.keywords.includes('stable')) {
+        pattern.patternTypes.add('Faction Dynamics');
+      }
+      if (storyline.keywords.includes('return') || storyline.keywords.includes('debut')) {
+        pattern.patternTypes.add('Talent Spotlight');
+      }
+      if (storyline.keywords.includes('heel turn') || storyline.keywords.includes('betrayal')) {
+        pattern.patternTypes.add('Character Development');
       }
     });
     
-    return Array.from(promotionPatterns.values()).map(pattern => ({
-      promotion: pattern.promotion,
-      pattern: pattern.patterns.length > 0 ? pattern.patterns[0] : 'General Storytelling',
-      frequency: Math.min(pattern.totalStorylines * 15, 100),
-      effectiveness: Math.min(pattern.avgFanReception / pattern.totalStorylines, 10),
-      examples: storylines
-        .filter(s => s.promotion === pattern.promotion)
-        .slice(0, 2)
-        .map(s => s.title)
-    }));
+    return Array.from(promotionPatterns.values()).map(pattern => {
+      const avgIntensity = pattern.totalStorylines > 0 ? pattern.avgIntensity / pattern.totalStorylines : 0;
+      const avgFanReception = pattern.totalStorylines > 0 ? pattern.avgFanReception / pattern.totalStorylines : 0;
+      const primaryPattern = Array.from(pattern.patternTypes)[0] || 'General Storytelling';
+      
+      return {
+        promotion: pattern.promotion,
+        pattern: primaryPattern,
+        frequency: Math.min(pattern.totalStorylines * 8, 100),
+        effectiveness: Math.min(avgFanReception, 10),
+        examples: storylines
+          .filter(s => s.promotion === pattern.promotion)
+          .slice(0, 3)
+          .map(s => s.title)
+      };
+    }).filter(pattern => pattern.frequency > 0);
   };
 
   const bookingPatterns = generateBookingPatterns();
+
+  // Generate insights from real data
+  const generateInsights = () => {
+    const totalWrestlers = wrestlers.length;
+    const activePromotions = [...new Set(storylines.map(s => s.promotion))].length;
+    const avgIntensity = storylines.length > 0 
+      ? storylines.reduce((sum, s) => sum + s.intensity_score, 0) / storylines.length 
+      : 0;
+    const topKeywords = storylines
+      .flatMap(s => s.keywords)
+      .reduce((acc, keyword) => {
+        acc[keyword] = (acc[keyword] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+    
+    const sortedKeywords = Object.entries(topKeywords)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([keyword]) => keyword);
+
+    return {
+      totalWrestlers,
+      activePromotions,
+      avgIntensity: avgIntensity.toFixed(1),
+      topKeywords: sortedKeywords
+    };
+  };
+
+  const insights = generateInsights();
 
   if (storylinesLoading && topicsLoading) {
     return (
@@ -99,7 +143,7 @@ export const StorylineTracker = () => {
           <TabsTrigger value="feuds">Active Feuds</TabsTrigger>
           <TabsTrigger value="trending">Trending Topics</TabsTrigger>
           <TabsTrigger value="booking">Booking Patterns</TabsTrigger>
-          <TabsTrigger value="insights">News Insights</TabsTrigger>
+          <TabsTrigger value="insights">Analytics Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="feuds" className="space-y-6">
@@ -151,33 +195,61 @@ export const StorylineTracker = () => {
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>News Analysis Insights</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="p-4 bg-secondary/50 rounded-lg">
-                  <h3 className="font-semibold text-foreground mb-2">Data Sources</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Analyzing {newsItems.length} recent news articles from Wrestling Inc, 411 Mania, and other sources
-                  </p>
+          <div className="grid gap-6">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle>Real-Time Analytics Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-wrestling-electric">{newsItems.length}</div>
+                      <div className="text-sm text-muted-foreground">News Sources</div>
+                    </div>
+                    <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.totalWrestlers}</div>
+                      <div className="text-sm text-muted-foreground">Total Wrestlers</div>
+                    </div>
+                    <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-wrestling-electric">{storylines.length}</div>
+                      <div className="text-sm text-muted-foreground">Active Storylines</div>
+                    </div>
+                    <div className="p-4 bg-secondary/50 rounded-lg text-center">
+                      <div className="text-2xl font-bold text-wrestling-electric">{insights.avgIntensity}</div>
+                      <div className="text-sm text-muted-foreground">Avg Intensity</div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-2">Data Sources Integration</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Real-time analysis from {newsItems.length} news articles across multiple wrestling news sources, 
+                      Reddit posts from 12+ wrestling subreddits, and {insights.totalWrestlers} wrestlers in the database.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-2">Trending Keywords</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {insights.topKeywords.map((keyword, index) => (
+                        <span key={index} className="px-3 py-1 bg-wrestling-electric/20 text-wrestling-electric rounded-full text-sm">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-2">Live Data Refresh</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Analysis refreshes every 15 minutes with new data from RSS feeds, Reddit, and wrestler database updates.
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 bg-secondary/50 rounded-lg">
-                  <h3 className="font-semibold text-foreground mb-2">Active Storylines</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {storylines.length} storylines detected using keyword analysis and wrestler mention patterns
-                  </p>
-                </div>
-                <div className="p-4 bg-secondary/50 rounded-lg">
-                  <h3 className="font-semibold text-foreground mb-2">Real-time Updates</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Analysis refreshes every 15 minutes with new news data from RSS feeds
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

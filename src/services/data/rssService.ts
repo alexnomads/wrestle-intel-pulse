@@ -7,7 +7,16 @@ const RSS_FEEDS = [
   { url: 'https://www.fightful.com/wrestling/feed', source: 'Fightful' },
   { url: 'https://www.f4wonline.com/feed', source: 'F4W Online' },
   { url: 'https://www.sescoops.com/feed/', source: 'Sescoops' },
-  { url: 'https://www.pwmania.com/feed', source: 'PWMania' }
+  { url: 'https://www.pwmania.com/feed', source: 'PWMania' },
+  { url: 'https://www.pwtorch.com/site/feed', source: 'PWTorch' },
+  { url: 'https://www.pwinsider.com/rss.php', source: 'PWInsider' },
+  { url: 'https://www.wrestlingheadlines.com/feed/', source: 'Wrestling Headlines' },
+  { url: 'https://www.ringsidenews.com/feed/', source: 'Ringside News' },
+  { url: 'https://www.wrestlezone.com/feed/', source: 'WrestleZone' },
+  { url: 'https://www.cagesideseats.com/rss/current', source: 'Cageside Seats' },
+  { url: 'https://www.wwe.com/feeds/all', source: 'WWE.com' },
+  { url: 'https://www.allelitewrestling.com/rss', source: 'AEW.com' },
+  { url: 'https://www.impactwrestling.com/feed/', source: 'Impact Wrestling' }
 ];
 
 const parseRSSFeed = (xmlString: string): any[] => {
@@ -57,7 +66,7 @@ export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
       
       const parsedItems = parseRSSFeed(data.contents);
       
-      const newsItems: NewsItem[] = parsedItems.slice(0, 10).map(item => ({
+      const newsItems: NewsItem[] = parsedItems.slice(0, 5).map(item => ({
         title: item.title || '',
         link: item.link || '',
         pubDate: item.pubDate || '',
@@ -75,6 +84,10 @@ export const fetchRSSFeeds = async (): Promise<NewsItem[]> => {
     }
   }
   
-  // Sort by publication date (newest first)
-  return allNews.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+  // Sort by publication date (newest first) and remove duplicates
+  const uniqueNews = allNews.filter((item, index, self) => 
+    index === self.findIndex(t => t.title === item.title)
+  );
+  
+  return uniqueNews.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 };
