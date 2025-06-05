@@ -29,6 +29,8 @@ export interface WrestlerAnalysis {
   isChampion: boolean;
   championshipTitle: string | null;
   evidence: string;
+  isOnFire: boolean; // New field to highlight hot wrestlers
+  momentumScore: number; // Combined score for sorting
 }
 
 export const useWrestlerAnalysis = (
@@ -68,9 +70,12 @@ export const useWrestlerAnalysis = (
       let pushScore = 0;
       let burialScore = 0;
       let totalMentions = wrestlerNews.length;
+      let totalSentiment = 0;
       
       wrestlerNews.forEach(item => {
         const sentiment = analyzeSentiment(`${item.title} ${item.contentSnippet}`);
+        totalSentiment += sentiment.score;
+        
         if (sentiment.score > 0.6) {
           pushScore += (sentiment.score - 0.5) * 2;
         } else if (sentiment.score < 0.4) {
@@ -80,6 +85,7 @@ export const useWrestlerAnalysis = (
 
       const pushPercentage = totalMentions > 0 ? (pushScore / totalMentions) * 100 : 0;
       const burialPercentage = totalMentions > 0 ? (burialScore / totalMentions) * 100 : 0;
+      const avgSentiment = totalMentions > 0 ? totalSentiment / totalMentions : 0.5;
       
       let trend: 'push' | 'burial' | 'stable' = 'stable';
       if (pushPercentage > burialPercentage && pushPercentage > 30) {
@@ -87,6 +93,12 @@ export const useWrestlerAnalysis = (
       } else if (burialPercentage > pushPercentage && burialPercentage > 30) {
         trend = 'burial';
       }
+
+      // Calculate momentum score (combination of mentions, sentiment, and trend strength)
+      const momentumScore = totalMentions * (avgSentiment * 2) + (pushPercentage - burialPercentage);
+      
+      // Determine if wrestler is "on fire" (high mentions + positive sentiment + strong trend)
+      const isOnFire = totalMentions >= 5 && avgSentiment > 0.7 && pushPercentage > 50;
 
       return {
         id: wrestler.id,
@@ -96,12 +108,14 @@ export const useWrestlerAnalysis = (
         burialScore: Math.min(burialPercentage, 100),
         trend,
         totalMentions,
-        sentimentScore: Math.round((pushPercentage - burialPercentage + 100) / 2),
+        sentimentScore: Math.round(avgSentiment * 100),
         isChampion: wrestler.is_champion || false,
         championshipTitle: wrestler.championship_title || null,
         evidence: totalMentions > 10 ? 'High Media Coverage' :
                  totalMentions > 5 ? 'Moderate Coverage' :
-                 totalMentions > 0 ? 'Limited Coverage' : 'No Recent Coverage'
+                 totalMentions > 0 ? 'Limited Coverage' : 'No Recent Coverage',
+        isOnFire,
+        momentumScore
       };
     });
   }, [wrestlers, periodNewsItems]);
@@ -117,14 +131,28 @@ export const useWrestlerAnalysis = (
   const topPushWrestlers = useMemo(() => {
     return filteredAnalysis
       .filter(wrestler => wrestler.trend === 'push' && wrestler.totalMentions > 0)
-      .sort((a, b) => b.totalMentions - a.totalMentions)
+      .sort((a, b) => {
+        // Primary sort: mentions (most mentioned first)
+        if (b.totalMentions !== a.totalMentions) {
+          return b.totalMentions - a.totalMentions;
+        }
+        // Secondary sort: momentum score for tie-breaking
+        return b.momentumScore - a.momentumScore;
+      })
       .slice(0, 10);
   }, [filteredAnalysis]);
 
   const worstBuriedWrestlers = useMemo(() => {
     return filteredAnalysis
       .filter(wrestler => wrestler.trend === 'burial' && wrestler.totalMentions > 0)
-      .sort((a, b) => b.totalMentions - a.totalMentions)
+      .sort((a, b) => {
+        // Primary sort: mentions (most mentioned first - most talked about negative)
+        if (b.totalMentions !== a.totalMentions) {
+          return b.totalMentions - a.totalMentions;
+        }
+        // Secondary sort: burial score for tie-breaking
+        return b.burialScore - a.burialScore;
+      })
       .slice(0, 10);
   }, [filteredAnalysis]);
 
