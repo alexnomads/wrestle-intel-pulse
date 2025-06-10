@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Users, TrendingUp } from 'lucide-react';
+import { RefreshCw, Users, TrendingUp, BarChart3 } from 'lucide-react';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
 import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
@@ -47,8 +47,8 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="h-6 w-6 text-wrestling-electric" />
-              <span>Real-Time Wrestler Popularity Tracker</span>
+              <BarChart3 className="h-6 w-6 text-wrestling-electric" />
+              <span>Wrestling Analytics Intelligence</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 LIVE
               </Badge>
@@ -69,7 +69,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" />
-            <span>Top {topWrestlers.length} Trending Wrestlers</span>
+            <span>Real-Time Wrestling Performance Metrics</span>
           </div>
           <div className="text-sm text-muted-foreground">
             Last updated: {lastUpdate.toLocaleTimeString()}
@@ -82,55 +82,69 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center space-x-3">
               <RefreshCw className="h-6 w-6 animate-spin text-wrestling-electric" />
-              <span className="text-lg">Loading wrestler data...</span>
+              <span className="text-lg">Loading analytics data...</span>
             </div>
           </div>
         ) : (
           <>
-            {/* Simple list view for overview */}
-            <div className="space-y-3">
+            {/* Performance Metrics Grid */}
+            <div className="space-y-4">
               {topWrestlers.map((wrestler, index) => (
-                <div key={wrestler.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+                <div key={wrestler.id} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg border border-border/50">
                   <div className="flex items-center space-x-3">
-                    <div className="text-lg font-bold text-wrestling-electric">
+                    <div className="text-lg font-bold text-wrestling-electric w-8">
                       #{index + 1}
                     </div>
                     <div>
-                      <div className="font-semibold">{wrestler.wrestler_name}</div>
-                      <div className="text-sm text-muted-foreground">{wrestler.promotion}</div>
+                      <div className="font-semibold text-lg">{wrestler.wrestler_name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center space-x-2">
+                        <span>{wrestler.promotion}</span>
+                        <span>•</span>
+                        <span>{wrestler.totalMentions} mentions</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{wrestler.totalMentions} mentions</div>
-                    <div className={`text-sm ${wrestler.change24h > 0 ? 'text-green-500' : wrestler.change24h < 0 ? 'text-red-500' : 'text-yellow-500'}`}>
-                      {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Momentum</div>
+                      <div className="font-semibold">{wrestler.momentumScore}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Sentiment</div>
+                      <div className="font-semibold">{wrestler.sentimentScore}%</div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold text-lg ${wrestler.change24h > 0 ? 'text-green-500' : wrestler.change24h < 0 ? 'text-red-500' : 'text-yellow-500'}`}>
+                        {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">24h change</div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Stats Summary */}
+            {/* Enhanced Stats Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-wrestling-electric">
                   {topWrestlers.length}
                 </div>
-                <div className="text-sm text-muted-foreground">Active Wrestlers</div>
+                <div className="text-sm text-muted-foreground">Active Performers</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-green-500">
                   {topWrestlers.filter(w => w.change24h > 0).length}
                 </div>
-                <div className="text-sm text-muted-foreground">Trending Up</div>
+                <div className="text-sm text-muted-foreground">Rising Stars</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
                 <div className="text-2xl font-bold text-red-500">
                   {topWrestlers.filter(w => w.change24h < 0).length}
                 </div>
-                <div className="text-sm text-muted-foreground">Trending Down</div>
+                <div className="text-sm text-muted-foreground">Declining</div>
               </div>
               
               <div className="text-center p-4 bg-secondary/30 rounded-lg">
@@ -143,7 +157,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
 
             {/* Data source info */}
             <div className="mt-4 text-center text-sm text-muted-foreground">
-              Data aggregated from {newsItems.length} news sources • Updated every 15 minutes
+              Performance analytics from {newsItems.length} sources • Real-time sentiment tracking • Updated every 15 minutes
             </div>
           </>
         )}

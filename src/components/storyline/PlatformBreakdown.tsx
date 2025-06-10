@@ -80,15 +80,15 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
   };
 
   const getSentimentColor = (sentiment: number) => {
-    if (sentiment > 0.7) return "text-green-400 border-green-400/30 bg-green-400/10";
-    if (sentiment > 0.6) return "text-green-300 border-green-300/30 bg-green-300/10";
-    if (sentiment > 0.4) return "text-gray-300 border-gray-300/30 bg-gray-300/10";
-    return "text-red-400 border-red-400/30 bg-red-400/10";
+    if (sentiment > 0.7) return "text-green-300 border-green-400/40 bg-green-400/15 hover:bg-green-400/25";
+    if (sentiment > 0.6) return "text-green-200 border-green-300/40 bg-green-300/15 hover:bg-green-300/25";
+    if (sentiment > 0.4) return "text-gray-200 border-gray-300/40 bg-gray-300/15 hover:bg-gray-300/25";
+    return "text-red-300 border-red-400/40 bg-red-400/15 hover:bg-red-400/25";
   };
 
   const getBubbleSize = (volume: number) => {
-    const normalizedSize = (volume / maxVolume) * 1.5 + 0.7;
-    return Math.min(normalizedSize, 2);
+    const normalizedSize = (volume / maxVolume) * 1.2 + 0.8;
+    return Math.min(normalizedSize, 1.8);
   };
 
   const handleHashtagClick = (hashtag: string) => {
@@ -109,9 +109,9 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
           Bubble size = volume • Color = sentiment • Trending arrows show movement
         </p>
       </CardHeader>
-      <CardContent className="h-[300px] overflow-hidden">
+      <CardContent className="h-[300px] overflow-hidden p-4">
         {/* Hashtag bubbles arranged in a compact grid */}
-        <div className="grid grid-cols-2 gap-2 h-full">
+        <div className="grid grid-cols-2 gap-3 h-full">
           {wrestlingHashtags.slice(0, 8).map((hashtag, index) => {
             const size = getBubbleSize(hashtag.volume);
             
@@ -119,10 +119,10 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
               <button
                 key={hashtag.tag}
                 onClick={() => handleHashtagClick(hashtag.tag)}
-                className={`${getSentimentColor(hashtag.sentiment)} hover:scale-110 transition-all duration-300 flex flex-col items-center justify-center space-y-1 px-2 py-2 rounded-lg border-2 hover:shadow-lg group relative cursor-pointer`}
-                style={{ fontSize: `${size * 0.7}rem` }}
+                className={`${getSentimentColor(hashtag.sentiment)} hover:scale-110 transition-all duration-300 flex flex-col items-center justify-center space-y-2 px-3 py-3 rounded-lg border-2 hover:shadow-lg group relative cursor-pointer`}
+                style={{ fontSize: `${Math.max(size * 0.7, 0.75)}rem` }}
               >
-                <div className="absolute top-1 right-1">
+                <div className="absolute top-2 right-2">
                   {getTrendIcon(hashtag.trend)}
                 </div>
                 
@@ -130,9 +130,9 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
                   {hashtag.tag}
                 </div>
                 
-                <div className="text-xs opacity-75 text-center">
-                  <div>{hashtag.volume.toLocaleString()}</div>
-                  <div className={`${hashtag.trend === 'up' ? 'text-green-400' : hashtag.trend === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
+                <div className="text-xs opacity-80 text-center space-y-1">
+                  <div className="font-semibold">{hashtag.volume.toLocaleString()}</div>
+                  <div className={`text-xs ${hashtag.trend === 'up' ? 'text-green-400' : hashtag.trend === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
                     {hashtag.growth}
                   </div>
                 </div>
@@ -142,7 +142,7 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
         </div>
         
         {/* Quick stats at bottom */}
-        <div className="mt-4 pt-2 border-t border-border/50">
+        <div className="mt-4 pt-3 border-t border-border/50">
           <div className="grid grid-cols-2 gap-4 text-center text-xs">
             <div>
               <div className="text-lg font-bold text-wrestling-electric">
