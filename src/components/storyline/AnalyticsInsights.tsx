@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Users, Activity, BarChart3 } from "lucide-react";
 import { RedditPost, NewsItem } from "@/services/data/dataTypes";
-import { SupabaseWrestler } from "@/integrations/supabase/types";
+import { SupabaseWrestler } from "@/services/supabaseWrestlerService";
 import { StorylineAnalysis } from "@/services/advancedAnalyticsService";
 import { analyzeSentiment } from "@/services/wrestlingDataService";
 
