@@ -37,6 +37,29 @@ export const TrendingSection = () => {
     }
   };
 
+  const handleMentionsClick = (topic: any, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent the topic click handler from firing
+    
+    if (topic.sources && topic.sources.length > 0) {
+      // If there are multiple sources, open the first few in new tabs
+      const sourcesToOpen = topic.sources.slice(0, 3); // Limit to 3 sources to avoid spam
+      
+      sourcesToOpen.forEach((source: any, index: number) => {
+        setTimeout(() => {
+          if (source.type === 'news' && source.item.link) {
+            window.open(source.item.link, '_blank');
+          } else if (source.type === 'reddit' && source.item.permalink) {
+            window.open(`https://reddit.com${source.item.permalink}`, '_blank');
+          }
+        }, index * 100); // Small delay between opens to avoid browser blocking
+      });
+    } else {
+      // Fallback: search for the topic
+      const searchQuery = `wrestling "${topic.title}" site:reddit.com OR site:wrestling-news.com`;
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
   const getSentimentColor = (sentiment: number) => {
     if (sentiment > 0.7) return "text-green-400";
     if (sentiment > 0.4) return "text-yellow-400";
@@ -91,7 +114,12 @@ export const TrendingSection = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <div className="text-sm font-medium">{topic.mentions}</div>
+                      <button
+                        onClick={(e) => handleMentionsClick(topic, e)}
+                        className="text-sm font-medium hover:text-wrestling-electric transition-colors cursor-pointer border-b border-transparent hover:border-wrestling-electric"
+                      >
+                        {topic.mentions}
+                      </button>
                       <div className="text-xs text-muted-foreground">mentions</div>
                     </div>
                     <div className="text-right">
