@@ -12,8 +12,6 @@ import { TrendingTopicsContent } from "./storyline/TrendingTopicsContent";
 import { AIAssistant } from "./storyline/AIAssistant";
 import { AnalyticsInsights } from "./storyline/AnalyticsInsights";
 import { MetricsDashboard } from "./storyline/MetricsDashboard";
-import { PromotionHeatmap } from "./storyline/PromotionHeatmap";
-import { PlatformBreakdown } from "./storyline/PlatformBreakdown";
 
 export const StorylineTracker = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
@@ -54,10 +52,6 @@ export const StorylineTracker = () => {
     }
   };
 
-  const handlePromotionClick = (promotion: string) => {
-    setSelectedPromotion(promotion.toLowerCase());
-  };
-
   if (storylinesLoading && topicsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -86,26 +80,6 @@ export const StorylineTracker = () => {
         newsItems={newsItems}
         storylines={storylines}
       />
-
-      {/* Central Visualization Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left Panel - Wrestling Promotion Heatmap (60% width) */}
-        <div className="lg:col-span-3">
-          <PromotionHeatmap 
-            storylines={storylines}
-            redditPosts={redditPosts}
-            newsItems={newsItems}
-            onPromotionClick={handlePromotionClick}
-          />
-        </div>
-        {/* Right Panel - Wrestling Hashtags Analytics (40% width) */}
-        <div className="lg:col-span-2">
-          <PlatformBreakdown 
-            redditPosts={redditPosts}
-            newsItems={newsItems}
-          />
-        </div>
-      </div>
 
       <Tabs defaultValue="feuds" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full">

@@ -7,14 +7,21 @@ import { RefreshCw, Users, TrendingUp } from 'lucide-react';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
 import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
+import { useStorylineAnalysis } from '@/hooks/useAdvancedAnalytics';
+import { useRedditPosts } from '@/hooks/useWrestlingData';
 import { WrestlerCard } from './dashboard/wrestler-tracker/WrestlerCard';
+import { PromotionHeatmap } from './storyline/PromotionHeatmap';
+import { PlatformBreakdown } from './storyline/PlatformBreakdown';
 
 export const WrestlerIntelligenceDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [selectedPromotion, setSelectedPromotion] = useState('all');
 
   // Data hooks
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
   const { data: newsItems = [], isLoading: newsLoading, refetch } = useRSSFeeds();
+  const { data: storylines = [] } = useStorylineAnalysis();
+  const { data: redditPosts = [] } = useRedditPosts();
 
   // Analysis hook - get top wrestlers from last 24 hours
   const {
@@ -51,6 +58,10 @@ export const WrestlerIntelligenceDashboard = () => {
     setLastUpdate(new Date());
   };
 
+  const handlePromotionClick = (promotion: string) => {
+    setSelectedPromotion(promotion.toLowerCase());
+  };
+
   // Auto-refresh effect
   useEffect(() => {
     const interval = setInterval(() => {
@@ -83,6 +94,7 @@ export const WrestlerIntelligenceDashboard = () => {
         </Button>
       </div>
 
+      {/* 1st Section: Wrestler Popularity Treemap */}
       <Card className="glass-card">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -172,6 +184,26 @@ export const WrestlerIntelligenceDashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* 2nd and 3rd Sections: Wrestling Promotion Heatmap and Wrestling Hashtags Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* 2nd Section: Wrestling Promotion Heatmap (60% width) */}
+        <div className="lg:col-span-3">
+          <PromotionHeatmap 
+            storylines={storylines}
+            redditPosts={redditPosts}
+            newsItems={newsItems}
+            onPromotionClick={handlePromotionClick}
+          />
+        </div>
+        {/* 3rd Section: Wrestling Hashtags Analytics (40% width) */}
+        <div className="lg:col-span-2">
+          <PlatformBreakdown 
+            redditPosts={redditPosts}
+            newsItems={newsItems}
+          />
+        </div>
+      </div>
     </div>
   );
 };
