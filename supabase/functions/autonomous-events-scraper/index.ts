@@ -1,6 +1,5 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { DOMParser } from 'https://esm.sh/linkedom@0.14.12'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,21 +20,22 @@ interface WrestlingEvent {
   match_card?: string[];
 }
 
-// Enhanced mock scraping functions with more comprehensive data
+// Enhanced mock scraping functions with correct scheduling
 const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
   console.log('Scraping WWE events...');
   
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate events for the next 3 months (90 days)
-  for (let i = 0; i < 90; i++) {
+  // Generate events for the next 6 months (180 days)
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 1) { // Monday - RAW
+    // Monday = 1 - RAW
+    if (dayOfWeek === 1) {
       events.push({
         event_name: 'Monday Night RAW',
         promotion: 'WWE',
@@ -47,9 +47,12 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
         city: getRandomCity(),
         network: 'USA Network',
         event_type: 'weekly',
-        match_card: ['Championship Match', 'Tag Team Action', 'Women\'s Division Showcase']
+        match_card: ['WWE Championship Match', 'Women\'s Championship', 'Tag Team Action']
       });
-    } else if (dayOfWeek === 5) { // Friday - SmackDown
+    }
+    
+    // Friday = 5 - SmackDown
+    if (dayOfWeek === 5) {
       events.push({
         event_name: 'Friday Night SmackDown',
         promotion: 'WWE',
@@ -61,12 +64,12 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
         city: getRandomCity(),
         network: 'FOX',
         event_type: 'weekly',
-        match_card: ['SmackDown Championship', 'Intercontinental Title Match', 'Women\'s Championship']
+        match_card: ['Universal Championship', 'Intercontinental Championship', 'Women\'s Division']
       });
     }
   }
 
-  // Add some PPV events
+  // Add major WWE PPV events
   const ppvEvents = [
     {
       event_name: 'Royal Rumble 2025',
@@ -85,12 +88,6 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
       date: new Date(2025, 7, 2), // August 2, 2025
       venue: 'MetLife Stadium',
       city: 'East Rutherford, NJ'
-    },
-    {
-      event_name: 'Survivor Series 2025',
-      date: new Date(2025, 10, 22), // November 22, 2025
-      venue: 'Barclays Center',
-      city: 'Brooklyn, NY'
     }
   ];
 
@@ -121,14 +118,15 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate events for the next 3 months
-  for (let i = 0; i < 90; i++) {
+  // Generate events for the next 6 months
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 3) { // Wednesday - Dynamite
+    // Wednesday = 3 - Dynamite
+    if (dayOfWeek === 3) {
       events.push({
         event_name: 'AEW Dynamite',
         promotion: 'AEW',
@@ -140,9 +138,12 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
         city: getRandomCity(),
         network: 'TNT',
         event_type: 'weekly',
-        match_card: ['AEW World Championship', 'TNT Championship', 'Women\'s Division Match']
+        match_card: ['AEW World Championship', 'TNT Championship', 'Women\'s Championship']
       });
-    } else if (dayOfWeek === 6) { // Saturday - Rampage
+    }
+    
+    // Saturday = 6 - Rampage
+    if (dayOfWeek === 6) {
       events.push({
         event_name: 'AEW Rampage',
         promotion: 'AEW',
@@ -154,7 +155,7 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
         city: getRandomCity(),
         network: 'TNT',
         event_type: 'weekly',
-        match_card: ['Rising Stars Showcase', 'Tag Team Championship', 'Women\'s Action']
+        match_card: ['Rising Stars Match', 'Tag Team Championship', 'Women\'s Action']
       });
     }
   }
@@ -172,12 +173,6 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
       date: new Date(2025, 4, 25), // May 25, 2025
       venue: 'MGM Grand Garden Arena',
       city: 'Las Vegas, NV'
-    },
-    {
-      event_name: 'AEW All Out 2025',
-      date: new Date(2025, 8, 7), // September 7, 2025
-      venue: 'NOW Arena',
-      city: 'Chicago, IL'
     }
   ];
 
@@ -194,7 +189,7 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
         city: ppv.city,
         network: 'Bleacher Report',
         event_type: 'ppv',
-        match_card: ['AEW World Championship', 'AEW Women\'s Championship', 'TNT Championship', 'Tag Team Championships']
+        match_card: ['AEW World Championship', 'AEW Women\'s Championship', 'TNT Championship']
       });
     }
   });
@@ -208,14 +203,15 @@ const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate weekly NXT events for next 3 months
-  for (let i = 0; i < 90; i++) {
+  // Generate weekly NXT events for next 6 months
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 2) { // Tuesday - NXT
+    // Tuesday = 2 - NXT
+    if (dayOfWeek === 2) {
       events.push({
         event_name: 'WWE NXT',
         promotion: 'NXT',
@@ -232,7 +228,7 @@ const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
     }
   }
 
-  // Add NXT Takeover events
+  // Add NXT special events
   events.push({
     event_name: 'NXT Stand & Deliver 2025',
     promotion: 'NXT',
@@ -244,7 +240,7 @@ const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
     city: 'Orlando, FL',
     network: 'Peacock',
     event_type: 'special',
-    match_card: ['NXT Championship', 'NXT Women\'s Championship', 'Ladder Match', 'War Games']
+    match_card: ['NXT Championship', 'NXT Women\'s Championship', 'Ladder Match']
   });
   
   return events;
@@ -257,13 +253,14 @@ const scrapeTNAEvents = async (): Promise<WrestlingEvent[]> => {
   const events: WrestlingEvent[] = [];
   
   // Generate weekly TNA events
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 4) { // Thursday - Impact
+    // Thursday = 4 - Impact
+    if (dayOfWeek === 4) {
       events.push({
         event_name: 'TNA Impact Wrestling',
         promotion: 'TNA',
@@ -279,21 +276,6 @@ const scrapeTNAEvents = async (): Promise<WrestlingEvent[]> => {
       });
     }
   }
-
-  // Add TNA PPV events
-  events.push({
-    event_name: 'TNA Genesis 2025',
-    promotion: 'TNA',
-    date: new Date(2025, 0, 19).toISOString().split('T')[0], // January 19, 2025
-    time_et: '20:00',
-    time_pt: '17:00',
-    time_cet: '02:00',
-    venue: 'Center Stage',
-    city: 'Atlanta, GA',
-    network: 'TNA+',
-    event_type: 'ppv',
-    match_card: ['TNA World Championship', 'Knockouts Championship', 'X-Division Championship']
-  });
   
   return events;
 };
@@ -305,26 +287,30 @@ const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
   const events: WrestlingEvent[] = [];
 
   // Generate NJPW Strong weekly events
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 6) { // Saturday - NJPW Strong
-      events.push({
-        event_name: 'NJPW Strong',
-        promotion: 'NJPW',
-        date: eventDate.toISOString().split('T')[0],
-        time_et: '22:00',
-        time_pt: '19:00',
-        time_cet: '04:00',
-        venue: 'Various Venues',
-        city: 'USA/Japan',
-        network: 'NJPW World',
-        event_type: 'weekly',
-        match_card: ['Strong Style Competition', 'International Talent Showcase']
-      });
+    // Saturday = 6 - NJPW Strong (but only every other week to avoid conflict with AEW Rampage)
+    if (dayOfWeek === 6) {
+      const weekNumber = Math.floor(i / 7);
+      if (weekNumber % 2 === 0) { // Every other week
+        events.push({
+          event_name: 'NJPW Strong',
+          promotion: 'NJPW',
+          date: eventDate.toISOString().split('T')[0],
+          time_et: '22:00',
+          time_pt: '19:00',
+          time_cet: '04:00',
+          venue: 'Various Venues',
+          city: 'USA/Japan',
+          network: 'NJPW World',
+          event_type: 'weekly',
+          match_card: ['Strong Style Competition', 'International Showcase']
+        });
+      }
     }
   }
 
@@ -335,12 +321,6 @@ const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
       date: new Date(2025, 0, 4), // January 4, 2025
       venue: 'Tokyo Dome',
       city: 'Tokyo, Japan'
-    },
-    {
-      event_name: 'NJPW Dominion 2025',
-      date: new Date(2025, 5, 14), // June 14, 2025
-      venue: 'Osaka-jo Hall',
-      city: 'Osaka, Japan'
     }
   ];
 
@@ -357,7 +337,7 @@ const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
         city: event.city,
         network: 'NJPW World',
         event_type: 'ppv',
-        match_card: ['IWGP World Championship', 'IWGP Intercontinental Championship', 'IWGP Tag Team Championships']
+        match_card: ['IWGP World Championship', 'IWGP Intercontinental Championship']
       });
     }
   });
@@ -372,13 +352,14 @@ const scrapeROHEvents = async (): Promise<WrestlingEvent[]> => {
   const events: WrestlingEvent[] = [];
 
   // Generate ROH Honor Club weekly events
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 180; i++) {
     const eventDate = new Date(today);
     eventDate.setDate(today.getDate() + i);
     
     const dayOfWeek = eventDate.getDay();
     
-    if (dayOfWeek === 0) { // Sunday - ROH Honor Club
+    // Sunday = 0 - ROH Honor Club
+    if (dayOfWeek === 0) {
       events.push({
         event_name: 'ROH Honor Club',
         promotion: 'ROH',
@@ -394,37 +375,20 @@ const scrapeROHEvents = async (): Promise<WrestlingEvent[]> => {
       });
     }
   }
-
-  // Add ROH PPV
-  events.push({
-    event_name: 'ROH Final Battle 2025',
-    promotion: 'ROH',
-    date: new Date(2025, 11, 14).toISOString().split('T')[0], // December 14, 2025
-    time_et: '20:00',
-    time_pt: '17:00',
-    time_cet: '02:00',
-    venue: 'Hammerstein Ballroom',
-    city: 'New York, NY',
-    network: 'Honor Club',
-    event_type: 'ppv',
-    match_card: ['ROH World Championship', 'ROH Women\'s Championship', 'Pure Championship']
-  });
   
   return events;
 };
 
-// Helper functions for more varied venue and city data
+// Helper functions for venue and city data
 const getRandomVenue = (promotion: string): string => {
   const venues = {
     WWE: [
       'Madison Square Garden', 'Allstate Arena', 'Toyota Center', 'Wells Fargo Center',
-      'American Airlines Center', 'Barclays Center', 'Capital One Arena', 'Amway Center',
-      'Rocket Mortgage FieldHouse', 'Paycom Center', 'Ball Arena', 'Enterprise Center'
+      'American Airlines Center', 'Barclays Center', 'Capital One Arena', 'Amway Center'
     ],
     AEW: [
       'Daily\'s Place', 'United Center', 'Prudential Center', 'PPG Paints Arena',
-      'KeyBank Center', 'Heritage Bank Center', 'CFG Bank Arena', 'Van Andel Arena',
-      'Liacouras Center', 'Addition Financial Arena', 'Blue Cross Arena', 'Resch Center'
+      'KeyBank Center', 'Heritage Bank Center', 'CFG Bank Arena', 'Van Andel Arena'
     ],
     ROH: [
       'Hammerstein Ballroom', 'Temple University', 'Philadelphia 2300 Arena',
@@ -441,9 +405,7 @@ const getRandomCity = (): string => {
     'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
     'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
     'Austin, TX', 'Jacksonville, FL', 'Fort Worth, TX', 'Columbus, OH', 'Charlotte, NC',
-    'Detroit, MI', 'El Paso, TX', 'Memphis, TN', 'Denver, CO', 'Washington, DC',
-    'Boston, MA', 'Nashville, TN', 'Baltimore, MD', 'Oklahoma City, OK', 'Portland, OR',
-    'Las Vegas, NV', 'Milwaukee, WI', 'Albuquerque, NM', 'Tucson, AZ', 'Fresno, CA'
+    'Detroit, MI', 'El Paso, TX', 'Memphis, TN', 'Denver, CO', 'Washington, DC'
   ];
   
   return cities[Math.floor(Math.random() * cities.length)];
@@ -492,7 +454,7 @@ Deno.serve(async (req) => {
     
     allEvents.push(...wweEvents, ...aewEvents, ...nxtEvents, ...tnaEvents, ...njpwEvents, ...rohEvents);
 
-    // Process timezone conversions
+    // Process timezone conversions and add last_updated
     const processedEvents = allEvents.map(event => {
       const timezones = convertToTimezones(event.time_et);
       return {
@@ -505,17 +467,22 @@ Deno.serve(async (req) => {
 
     console.log(`Scraped ${processedEvents.length} total events`);
 
-    // Clear existing events and insert new ones
+    // Clear existing events and insert new ones to prevent duplicates
     await supabaseClient.from('autonomous_wrestling_events').delete().gte('id', 0);
     
     if (processedEvents.length > 0) {
-      const { error: insertError } = await supabaseClient
-        .from('autonomous_wrestling_events')
-        .insert(processedEvents);
+      // Insert in batches to avoid potential issues with large datasets
+      const batchSize = 100;
+      for (let i = 0; i < processedEvents.length; i += batchSize) {
+        const batch = processedEvents.slice(i, i + batchSize);
+        const { error: insertError } = await supabaseClient
+          .from('autonomous_wrestling_events')
+          .insert(batch);
 
-      if (insertError) {
-        console.error('Error inserting events:', insertError);
-        throw insertError;
+        if (insertError) {
+          console.error(`Error inserting batch ${i / batchSize + 1}:`, insertError);
+          throw insertError;
+        }
       }
     }
 
