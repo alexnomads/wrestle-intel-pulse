@@ -102,7 +102,7 @@ export const MetricsDashboard = ({ redditPosts, newsItems, storylines }: Metrics
           </div>
           <div className="text-xs text-muted-foreground mt-1">Posts last hour</div>
         </CardContent>
-      </div>
+      </Card>
     </div>
   );
 };
