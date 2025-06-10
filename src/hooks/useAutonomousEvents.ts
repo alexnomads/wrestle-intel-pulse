@@ -22,7 +22,6 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
   console.log('Fetching autonomous wrestling events...');
   
   try {
-    // Try to get events from the database first
     const { data: dbEvents, error } = await supabase
       .from('autonomous_wrestling_events')
       .select('*')
@@ -35,27 +34,38 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
 
     if (dbEvents && dbEvents.length > 0) {
       console.log(`Found ${dbEvents.length} events in database`);
-      return dbEvents.map(event => ({
-        id: event.id,
-        eventName: event.event_name,
-        promotion: event.promotion as 'WWE' | 'AEW' | 'NXT' | 'TNA' | 'NJPW' | 'ROH',
-        date: event.date,
-        timeET: event.time_et,
-        timePT: event.time_pt,
-        timeCET: event.time_cet,
-        venue: event.venue,
-        city: event.city,
-        network: event.network,
-        eventType: event.event_type as 'weekly' | 'ppv' | 'special',
-        matchCard: event.match_card || [],
-        lastUpdated: event.last_updated
-      }));
+      
+      // Convert and deduplicate events based on unique combination of date, promotion, and event_name
+      const eventMap = new Map();
+      
+      dbEvents.forEach(event => {
+        const uniqueKey = `${event.date}-${event.promotion}-${event.event_name}`;
+        if (!eventMap.has(uniqueKey)) {
+          eventMap.set(uniqueKey, {
+            id: event.id,
+            eventName: event.event_name,
+            promotion: event.promotion as 'WWE' | 'AEW' | 'NXT' | 'TNA' | 'NJPW' | 'ROH',
+            date: event.date,
+            timeET: event.time_et,
+            timePT: event.time_pt,
+            timeCET: event.time_cet,
+            venue: event.venue,
+            city: event.city,
+            network: event.network,
+            eventType: event.event_type as 'weekly' | 'ppv' | 'special',
+            matchCard: event.match_card || [],
+            lastUpdated: event.last_updated
+          });
+        }
+      });
+      
+      const deduplicatedEvents = Array.from(eventMap.values());
+      console.log(`Deduplicated to ${deduplicatedEvents.length} unique events`);
+      return deduplicatedEvents;
     }
 
-    // If no events in database, trigger scraping and return empty array for now
     console.log('No events found in database, triggering initial scrape...');
     
-    // Trigger scraping in the background
     const { error: scrapeError } = await supabase.functions.invoke('autonomous-events-scraper', {
       body: { action: 'scrape_all' }
     });

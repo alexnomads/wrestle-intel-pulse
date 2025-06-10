@@ -42,6 +42,21 @@ export const MonthlyCalendarView = ({
   const monthEnd = endOfMonth(currentDate);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  // Enhanced deduplication function for events on a specific day
+  const getUniqueEventsForDate = (date: Date) => {
+    const dayEvents = getEventsForDate(date);
+    const uniqueEvents = new Map();
+    
+    dayEvents.forEach(event => {
+      const key = `${event.promotion}-${event.eventName}`;
+      if (!uniqueEvents.has(key) || uniqueEvents.get(key).eventType === 'weekly') {
+        uniqueEvents.set(key, event);
+      }
+    });
+    
+    return Array.from(uniqueEvents.values());
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -83,7 +98,7 @@ export const MonthlyCalendarView = ({
           
           {/* Calendar days */}
           {monthDays.map(day => {
-            const dayEvents = getEventsForDate(day);
+            const dayEvents = getUniqueEventsForDate(day);
             const isCurrentDay = isToday(toZonedTime(day, etTimezone));
             
             return (
@@ -100,7 +115,7 @@ export const MonthlyCalendarView = ({
                 <div className="space-y-1 mt-1">
                   {dayEvents.slice(0, 3).map(event => (
                     <div
-                      key={event.id}
+                      key={`${event.id}-${event.promotion}-${event.eventName}`}
                       onClick={() => onEventSelect(event)}
                       className={`
                         text-xs p-1 rounded cursor-pointer truncate

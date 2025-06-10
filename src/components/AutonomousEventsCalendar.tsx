@@ -13,7 +13,6 @@ import { EventModal } from "./calendar/EventModal";
 import { WrestlingEvent, promotionColors } from "./calendar/types";
 
 export const AutonomousEventsCalendar = () => {
-  // Use ET timezone for the current date
   const etTimezone = 'America/New_York';
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
@@ -32,6 +31,15 @@ export const AutonomousEventsCalendar = () => {
   useEffect(() => {
     console.log('Events data:', events);
     console.log('Total events loaded:', events.length);
+    
+    // Log unique events by date
+    const eventsByDate = events.reduce((acc, event) => {
+      if (!acc[event.date]) acc[event.date] = [];
+      acc[event.date].push(event);
+      return acc;
+    }, {} as Record<string, WrestlingEvent[]>);
+    
+    console.log('Events grouped by date:', eventsByDate);
   }, [events]);
 
   const filteredEvents = events.filter(event => 
@@ -42,8 +50,19 @@ export const AutonomousEventsCalendar = () => {
   const getEventsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayEvents = filteredEvents.filter(event => event.date === dateStr);
-    console.log(`Events for ${dateStr}:`, dayEvents);
-    return dayEvents;
+    
+    // Deduplicate events for this specific date
+    const uniqueEvents = new Map();
+    dayEvents.forEach(event => {
+      const key = `${event.promotion}-${event.eventName}`;
+      if (!uniqueEvents.has(key)) {
+        uniqueEvents.set(key, event);
+      }
+    });
+    
+    const deduplicatedDayEvents = Array.from(uniqueEvents.values());
+    console.log(`Events for ${dateStr}:`, deduplicatedDayEvents);
+    return deduplicatedDayEvents;
   };
 
   const handleRefresh = async () => {
@@ -54,6 +73,7 @@ export const AutonomousEventsCalendar = () => {
     
     try {
       await eventsScraping.mutateAsync();
+      await refetch(); // Force refetch after scraping
       toast({
         title: "Events Updated",
         description: "Successfully refreshed wrestling event data!",
@@ -90,12 +110,21 @@ export const AutonomousEventsCalendar = () => {
   const getTonightEvents = () => {
     const todayET = toZonedTime(new Date(), etTimezone);
     const todayStr = format(todayET, 'yyyy-MM-dd');
-    return filteredEvents.filter(event => event.date === todayStr);
+    const tonightEvents = filteredEvents.filter(event => event.date === todayStr);
+    
+    // Deduplicate tonight's events
+    const uniqueTonightEvents = new Map();
+    tonightEvents.forEach(event => {
+      const key = `${event.promotion}-${event.eventName}`;
+      if (!uniqueTonightEvents.has(key)) {
+        uniqueTonightEvents.set(key, event);
+      }
+    });
+    
+    return Array.from(uniqueTonightEvents.values());
   };
 
   const tonightEvents = getTonightEvents();
-
-  // Get the last updated timestamp from the first event
   const lastUpdateTime = events.length > 0 ? events[0].lastUpdated : null;
 
   if (isLoading) {
