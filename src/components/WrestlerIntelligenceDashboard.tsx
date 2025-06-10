@@ -116,7 +116,7 @@ export const WrestlerIntelligenceDashboard = () => {
             </div>
           ) : (
             <>
-              {/* Treemap Container */}
+              {/* First Treemap Container */}
               <div className="mb-6">
                 <div 
                   className="flex flex-wrap gap-3 justify-center items-start p-4 bg-gradient-to-br from-gray-900/50 to-gray-800/50 rounded-lg border border-gray-700/30"
@@ -125,6 +125,24 @@ export const WrestlerIntelligenceDashboard = () => {
                   {displayWrestlers.map((wrestler, index) => (
                     <WrestlerCard
                       key={wrestler.id}
+                      wrestler={wrestler}
+                      index={index}
+                      totalWrestlers={displayWrestlers.length}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Second Treemap Container (Below the first one) */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">Secondary Wrestler Popularity Treemap</h3>
+                <div 
+                  className="flex flex-wrap gap-3 justify-center items-start p-4 bg-gradient-to-br from-blue-900/30 to-purple-800/30 rounded-lg border border-blue-700/30"
+                  style={{ minHeight: '400px' }}
+                >
+                  {displayWrestlers.map((wrestler, index) => (
+                    <WrestlerCard
+                      key={`secondary-${wrestler.id}`}
                       wrestler={wrestler}
                       index={index}
                       totalWrestlers={displayWrestlers.length}

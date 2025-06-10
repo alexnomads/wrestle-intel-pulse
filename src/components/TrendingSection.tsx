@@ -37,6 +37,38 @@ export const TrendingSection = () => {
     }
   };
 
+  const handleMentionsClick = (topic: any, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent parent click handler
+    
+    // Find related articles/posts for this topic
+    const topicKeywords = topic.title.toLowerCase().split(' ');
+    
+    const relatedNews = newsItems.filter(item => 
+      topicKeywords.some(keyword => 
+        item.title.toLowerCase().includes(keyword) ||
+        (item.contentSnippet && item.contentSnippet.toLowerCase().includes(keyword))
+      )
+    );
+    
+    const relatedReddit = redditPosts.filter(post =>
+      topicKeywords.some(keyword => 
+        post.title.toLowerCase().includes(keyword) ||
+        post.selftext.toLowerCase().includes(keyword)
+      )
+    );
+
+    // Open the first relevant source, or perform a search if none found
+    if (relatedNews.length > 0 && relatedNews[0].link) {
+      window.open(relatedNews[0].link, '_blank');
+    } else if (relatedReddit.length > 0) {
+      window.open(`https://reddit.com${relatedReddit[0].permalink}`, '_blank');
+    } else {
+      // Fallback to Google search
+      const searchQuery = `wrestling ${topic.title} site:reddit.com OR site:wrestling-news.com`;
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
   const getSentimentColor = (sentiment: number) => {
     if (sentiment > 0.7) return "text-green-400";
     if (sentiment > 0.4) return "text-yellow-400";
@@ -91,7 +123,13 @@ export const TrendingSection = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <div className="text-sm font-medium">{topic.mentions}</div>
+                      <button
+                        onClick={(e) => handleMentionsClick(topic, e)}
+                        className="text-sm font-medium text-wrestling-electric hover:text-wrestling-electric/80 transition-colors flex items-center space-x-1"
+                      >
+                        <span>{topic.mentions}</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
                       <div className="text-xs text-muted-foreground">mentions</div>
                     </div>
                     <div className="text-right">

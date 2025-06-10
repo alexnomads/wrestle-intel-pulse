@@ -65,6 +65,19 @@ export const TrendingTopicsContent = ({
     return topicEngagement;
   };
 
+  const handleMentionsClick = (topic: any) => {
+    // If there are related news or Reddit posts, open the first one
+    if (topic.relatedNews && topic.relatedNews.length > 0) {
+      window.open(topic.relatedNews[0].link, '_blank');
+    } else if (topic.relatedReddit && topic.relatedReddit.length > 0) {
+      window.open(`https://reddit.com${topic.relatedReddit[0].permalink}`, '_blank');
+    } else {
+      // Fallback to Google search
+      const searchQuery = `wrestling ${topic.title} site:reddit.com OR site:wrestling-news.com`;
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
   const fanEngagement = calculateFanEngagement();
 
   return (
@@ -99,7 +112,13 @@ export const TrendingTopicsContent = ({
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="text-center">
-                    <div className="text-xl font-bold text-blue-400">{topic.mentions}</div>
+                    <button
+                      onClick={() => handleMentionsClick(topic)}
+                      className="text-xl font-bold text-blue-400 hover:text-blue-300 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <span>{topic.mentions}</span>
+                      <ExternalLink className="h-4 w-4" />
+                    </button>
                     <div className="text-xs text-muted-foreground">Total Mentions</div>
                   </div>
                   <div className="text-center">
