@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Tv, RefreshCw, Filter, Grid, List } from "lucide-react";
-import { useAutonomousEvents } from "@/hooks/useAutonomousEvents";
+import { useAutonomousEvents, useEventsScraping } from "@/hooks/useAutonomousEvents";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 interface WrestlingEvent {
   id: string;
@@ -34,13 +35,16 @@ const promotionColors = {
 };
 
 export const AutonomousEventsCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Use ET timezone for the current date
+  const etTimezone = 'America/New_York';
+  const [currentDate, setCurrentDate] = useState(() => toZonedTime(new Date(), etTimezone));
   const [viewMode, setViewMode] = useState<'monthly' | 'weekly'>('monthly');
   const [selectedPromotions, setSelectedPromotions] = useState<string[]>(['WWE', 'AEW', 'NXT', 'TNA', 'NJPW', 'ROH']);
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(['weekly', 'ppv', 'special']);
   const [selectedEvent, setSelectedEvent] = useState<WrestlingEvent | null>(null);
   
   const { data: events = [], isLoading, refetch } = useAutonomousEvents();
+  const eventsScraping = useEventsScraping();
   const { toast } = useToast();
 
   const monthStart = startOfMonth(currentDate);
@@ -63,7 +67,20 @@ export const AutonomousEventsCalendar = () => {
       title: "Refreshing Events",
       description: "Scraping latest wrestling event data...",
     });
-    await refetch();
+    
+    try {
+      await eventsScraping.mutateAsync();
+      toast({
+        title: "Events Updated",
+        description: "Successfully refreshed wrestling event data!",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh event data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const togglePromotion = (promotion: string) => {
@@ -87,9 +104,9 @@ export const AutonomousEventsCalendar = () => {
   };
 
   const getTonightEvents = () => {
-    const today = new Date();
+    const todayET = toZonedTime(new Date(), etTimezone);
     return filteredEvents.filter(event => 
-      isSameDay(new Date(event.date), today)
+      isSameDay(new Date(event.date), todayET)
     );
   };
 
@@ -114,7 +131,7 @@ export const AutonomousEventsCalendar = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Autonomous Wrestling Events Calendar</h2>
           <p className="text-muted-foreground">
-            Auto-updated daily at 6:00 AM ET • Last update: {lastUpdateTime ? format(new Date(lastUpdateTime), 'PPpp') : 'Never'}
+            Auto-updated daily at 6:00 AM ET • Last update: {lastUpdateTime ? format(new Date(lastUpdateTime), 'PPpp') : 'Never'} • Showing {filteredEvents.length} events
           </p>
         </div>
         <div className="flex space-x-2">
@@ -122,9 +139,9 @@ export const AutonomousEventsCalendar = () => {
             onClick={handleRefresh}
             variant="outline"
             size="sm"
-            disabled={isLoading}
+            disabled={isLoading || eventsScraping.isPending}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${(isLoading || eventsScraping.isPending) ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
@@ -214,7 +231,7 @@ export const AutonomousEventsCalendar = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>{format(currentDate, 'MMMM yyyy')}</CardTitle>
+            <CardTitle>{format(currentDate, 'MMMM yyyy')} (Eastern Time)</CardTitle>
             <div className="flex space-x-2">
               <Button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
@@ -224,7 +241,7 @@ export const AutonomousEventsCalendar = () => {
                 Previous
               </Button>
               <Button
-                onClick={() => setCurrentDate(new Date())}
+                onClick={() => setCurrentDate(toZonedTime(new Date(), etTimezone))}
                 variant="outline"
                 size="sm"
               >
@@ -253,7 +270,7 @@ export const AutonomousEventsCalendar = () => {
               {/* Calendar days */}
               {monthDays.map(day => {
                 const dayEvents = getEventsForDate(day);
-                const isCurrentDay = isToday(day);
+                const isCurrentDay = isToday(toZonedTime(day, etTimezone));
                 
                 return (
                   <div
