@@ -11,6 +11,10 @@ import { EmptyState } from "./storyline/EmptyState";
 import { TrendingTopicsContent } from "./storyline/TrendingTopicsContent";
 import { AIAssistant } from "./storyline/AIAssistant";
 import { AnalyticsInsights } from "./storyline/AnalyticsInsights";
+import { MetricsDashboard } from "./storyline/MetricsDashboard";
+import { PromotionHeatmap } from "./storyline/PromotionHeatmap";
+import { PlatformBreakdown } from "./storyline/PlatformBreakdown";
+import { TrendingHashtagCloud } from "./storyline/TrendingHashtagCloud";
 
 export const StorylineTracker = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
@@ -31,7 +35,6 @@ export const StorylineTracker = () => {
 
   // Handle keyword clicks to search for related content
   const handleKeywordClick = (keyword: string) => {
-    // Find related articles and posts
     const relatedNews = newsItems.filter(item => 
       item.title.toLowerCase().includes(keyword.toLowerCase()) ||
       (item.contentSnippet && item.contentSnippet.toLowerCase().includes(keyword.toLowerCase()))
@@ -42,16 +45,23 @@ export const StorylineTracker = () => {
       post.selftext.toLowerCase().includes(keyword.toLowerCase())
     );
 
-    // Open the first related article or Reddit post
     if (relatedNews.length > 0 && relatedNews[0].link) {
       window.open(relatedNews[0].link, '_blank');
     } else if (relatedReddit.length > 0) {
       window.open(`https://reddit.com${relatedReddit[0].permalink}`, '_blank');
     } else {
-      // Fallback to Google search
       const searchQuery = `wrestling ${keyword} site:reddit.com OR site:wrestling-news.com`;
       window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
     }
+  };
+
+  const handlePromotionClick = (promotion: string) => {
+    setSelectedPromotion(promotion.toLowerCase());
+  };
+
+  const handleHashtagClick = (hashtag: string) => {
+    const searchQuery = `${hashtag} wrestling`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
   };
 
   if (storylinesLoading && topicsLoading) {
@@ -74,6 +84,38 @@ export const StorylineTracker = () => {
           isLoading={storylinesLoading}
         />
       </div>
+
+      {/* Primary Metrics Dashboard */}
+      <MetricsDashboard 
+        redditPosts={redditPosts}
+        newsItems={newsItems}
+        storylines={storylines}
+      />
+
+      {/* Central Visualization Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
+          <PromotionHeatmap 
+            storylines={storylines}
+            redditPosts={redditPosts}
+            newsItems={newsItems}
+            onPromotionClick={handlePromotionClick}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <PlatformBreakdown 
+            redditPosts={redditPosts}
+            newsItems={newsItems}
+          />
+        </div>
+      </div>
+
+      {/* Trending Topics Section */}
+      <TrendingHashtagCloud 
+        redditPosts={redditPosts}
+        newsItems={newsItems}
+        onHashtagClick={handleHashtagClick}
+      />
 
       <Tabs defaultValue="feuds" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full">

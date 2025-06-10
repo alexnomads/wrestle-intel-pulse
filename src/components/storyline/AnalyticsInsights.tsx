@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { RedditPost, NewsItem } from "@/services/data/dataTypes";
-import { Wrestler } from "@/integrations/supabase/types";
+import { Tables } from "@/integrations/supabase/types";
 import { StorylineAnalysis } from "@/services/advancedAnalyticsService";
 import { analyzeSentiment } from "@/services/wrestlingDataService";
+
+type Wrestler = Tables<'wrestlers'>;
 
 interface AnalyticsInsightsProps {
   redditPosts: RedditPost[];
