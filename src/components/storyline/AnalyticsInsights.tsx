@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Users, Activity, BarChart3 } from "lucide-react";
 import { RedditPost, NewsItem } from "@/services/data/dataTypes";
-import { SupabaseWrestler } from "@/services/supabaseWrestlerService";
+import { SupabaseWrestler } from "@/integrations/supabase/types";
 import { StorylineAnalysis } from "@/services/advancedAnalyticsService";
 import { analyzeSentiment } from "@/services/wrestlingDataService";
 
@@ -23,27 +23,43 @@ export const AnalyticsInsights = ({
 }: AnalyticsInsightsProps) => {
   // Calculate top wrestlers by mentions
   const wrestlerMentions = wrestlers.map(wrestler => {
-    const mentions = [
-      ...newsItems.filter(item => 
-        item.title.toLowerCase().includes(wrestler.name.toLowerCase()) ||
-        (item.contentSnippet && item.contentSnippet.toLowerCase().includes(wrestler.name.toLowerCase()))
-      ),
-      ...redditPosts.filter(post => 
-        post.title.toLowerCase().includes(wrestler.name.toLowerCase()) ||
-        post.selftext.toLowerCase().includes(wrestler.name.toLowerCase())
-      )
-    ];
+    const newsMentions = newsItems.filter(item => 
+      item.title.toLowerCase().includes(wrestler.name.toLowerCase()) ||
+      (item.contentSnippet && item.contentSnippet.toLowerCase().includes(wrestler.name.toLowerCase()))
+    );
+    
+    const redditMentions = redditPosts.filter(post => 
+      post.title.toLowerCase().includes(wrestler.name.toLowerCase()) ||
+      post.selftext.toLowerCase().includes(wrestler.name.toLowerCase())
+    );
 
-    const sentiment = mentions.length > 0 
-      ? mentions.reduce((sum, mention) => {
-          const content = 'title' in mention ? `${mention.title} ${mention.contentSnippet || ''}` : `${mention.title} ${mention.selftext}`;
-          return sum + analyzeSentiment(content).score;
-        }, 0) / mentions.length
-      : 0.5;
+    const totalMentions = newsMentions.length + redditMentions.length;
+
+    let sentiment = 0.5; // Default neutral sentiment
+    
+    if (totalMentions > 0) {
+      // Calculate sentiment for news items
+      const newsSentiments = newsMentions.map(item => {
+        const content = `${item.title} ${item.contentSnippet || ''}`;
+        return analyzeSentiment(content).score;
+      });
+      
+      // Calculate sentiment for reddit posts
+      const redditSentiments = redditMentions.map(post => {
+        const content = `${post.title} ${post.selftext}`;
+        return analyzeSentiment(content).score;
+      });
+      
+      // Combine all sentiments
+      const allSentiments = [...newsSentiments, ...redditSentiments];
+      if (allSentiments.length > 0) {
+        sentiment = allSentiments.reduce((sum, score) => sum + score, 0) / allSentiments.length;
+      }
+    }
 
     return {
       wrestler,
-      mentionCount: mentions.length,
+      mentionCount: totalMentions,
       sentiment
     };
   }).filter(w => w.mentionCount > 0)
