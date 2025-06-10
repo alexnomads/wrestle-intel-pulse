@@ -9,12 +9,16 @@ export const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
 
   // Generate NJPW Strong weekly events (every other Saturday)
   for (let week = 0; week < 26; week += 2) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // NJPW Strong on Saturday (Day 6)
-    const saturday = new Date(startOfWeek);
-    saturday.setDate(startOfWeek.getDate() + 6);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
+    
+    // NJPW Strong on Saturday (Monday + 5)
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
     
     if (saturday >= today) {
       events.push({

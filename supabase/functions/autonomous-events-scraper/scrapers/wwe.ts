@@ -10,17 +10,18 @@ export const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
   
   // Generate events for the next 6 months (26 weeks)
   for (let week = 0; week < 26; week++) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // Monday Night RAW (Day 1)
-    const monday = new Date(startOfWeek);
-    monday.setDate(startOfWeek.getDate() + 1);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
     
-    // Friday Night SmackDown (Day 5)  
-    const friday = new Date(startOfWeek);
-    friday.setDate(startOfWeek.getDate() + 5);
+    // Get the Friday of this week
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
     
+    // Only add events that are today or in the future
     if (monday >= today) {
       events.push({
         event_name: 'Monday Night RAW',

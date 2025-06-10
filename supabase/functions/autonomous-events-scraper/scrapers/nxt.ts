@@ -9,12 +9,16 @@ export const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
   
   // Generate weekly NXT events for next 6 months (26 weeks)
   for (let week = 0; week < 26; week++) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // WWE NXT on Tuesday (Day 2)
-    const tuesday = new Date(startOfWeek);
-    tuesday.setDate(startOfWeek.getDate() + 2);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
+    
+    // WWE NXT on Tuesday (Monday + 1)
+    const tuesday = new Date(monday);
+    tuesday.setDate(monday.getDate() + 1);
     
     if (tuesday >= today) {
       events.push({

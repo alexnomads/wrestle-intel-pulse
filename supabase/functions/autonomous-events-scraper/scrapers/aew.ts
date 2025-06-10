@@ -10,16 +10,20 @@ export const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
   
   // Generate events for the next 6 months (26 weeks)
   for (let week = 0; week < 26; week++) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // AEW Dynamite on Wednesday (Day 3)
-    const wednesday = new Date(startOfWeek);
-    wednesday.setDate(startOfWeek.getDate() + 3);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
     
-    // AEW Collision on Saturday (Day 6)
-    const saturday = new Date(startOfWeek);
-    saturday.setDate(startOfWeek.getDate() + 6);
+    // AEW Dynamite on Wednesday (Monday + 2)
+    const wednesday = new Date(monday);
+    wednesday.setDate(monday.getDate() + 2);
+    
+    // AEW Collision on Saturday (Monday + 5)
+    const saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
     
     if (wednesday >= today) {
       events.push({

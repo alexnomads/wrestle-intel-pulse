@@ -10,11 +10,16 @@ export const scrapeROHEvents = async (): Promise<WrestlingEvent[]> => {
 
   // Generate ROH Honor Club weekly events (26 weeks)
   for (let week = 0; week < 26; week++) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // ROH Honor Club on Sunday (Day 0)
-    const sunday = new Date(startOfWeek);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
+    
+    // ROH Honor Club on Sunday (Monday - 1, which is previous week's Sunday, so Monday + 6 for this week's Sunday)
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
     
     if (sunday >= today) {
       events.push({

@@ -9,12 +9,16 @@ export const scrapeTNAEvents = async (): Promise<WrestlingEvent[]> => {
   
   // Generate weekly TNA events (26 weeks)
   for (let week = 0; week < 26; week++) {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() + (week * 7) - today.getDay());
+    const currentWeek = new Date(today);
+    currentWeek.setDate(today.getDate() + (week * 7));
     
-    // TNA Impact on Thursday (Day 4)
-    const thursday = new Date(startOfWeek);
-    thursday.setDate(startOfWeek.getDate() + 4);
+    // Get the Monday of this week
+    const monday = new Date(currentWeek);
+    monday.setDate(currentWeek.getDate() - currentWeek.getDay() + 1);
+    
+    // TNA Impact on Thursday (Monday + 3)
+    const thursday = new Date(monday);
+    thursday.setDate(monday.getDate() + 3);
     
     if (thursday >= today) {
       events.push({
