@@ -27,19 +27,26 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate events for the next 6 months (180 days)
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate events for the next 6 months (26 weeks)
+  for (let week = 0; week < 26; week++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Monday for RAW
+    const monday = new Date(weekStart);
+    const daysUntilMonday = (1 - monday.getDay() + 7) % 7;
+    monday.setDate(monday.getDate() + daysUntilMonday);
     
-    // Monday = 1 - RAW
-    if (dayOfWeek === 1) {
+    // Find next Friday for SmackDown  
+    const friday = new Date(weekStart);
+    const daysUntilFriday = (5 - friday.getDay() + 7) % 7;
+    friday.setDate(friday.getDate() + daysUntilFriday);
+    
+    if (monday >= today) {
       events.push({
         event_name: 'Monday Night RAW',
         promotion: 'WWE',
-        date: eventDate.toISOString().split('T')[0],
+        date: monday.toISOString().split('T')[0],
         time_et: '20:00',
         time_pt: '17:00',
         time_cet: '02:00',
@@ -51,12 +58,11 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
       });
     }
     
-    // Friday = 5 - SmackDown
-    if (dayOfWeek === 5) {
+    if (friday >= today) {
       events.push({
         event_name: 'Friday Night SmackDown',
         promotion: 'WWE',
-        date: eventDate.toISOString().split('T')[0],
+        date: friday.toISOString().split('T')[0],
         time_et: '20:00',
         time_pt: '17:00',
         time_cet: '02:00',
@@ -73,19 +79,19 @@ const scrapeWWEEvents = async (): Promise<WrestlingEvent[]> => {
   const ppvEvents = [
     {
       event_name: 'Royal Rumble 2025',
-      date: new Date(2025, 0, 25), // January 25, 2025
+      date: new Date(2025, 0, 25),
       venue: 'Lucas Oil Stadium',
       city: 'Indianapolis, IN'
     },
     {
       event_name: 'WrestleMania 41',
-      date: new Date(2025, 3, 6), // April 6, 2025
+      date: new Date(2025, 3, 6),
       venue: 'Allegiant Stadium',
       city: 'Las Vegas, NV'
     },
     {
       event_name: 'SummerSlam 2025',
-      date: new Date(2025, 7, 2), // August 2, 2025
+      date: new Date(2025, 7, 2),
       venue: 'MetLife Stadium',
       city: 'East Rutherford, NJ'
     }
@@ -118,19 +124,26 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate events for the next 6 months
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate events for the next 6 months (26 weeks)
+  for (let week = 0; week < 26; week++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Wednesday for Dynamite
+    const wednesday = new Date(weekStart);
+    const daysUntilWednesday = (3 - wednesday.getDay() + 7) % 7;
+    wednesday.setDate(wednesday.getDate() + daysUntilWednesday);
     
-    // Wednesday = 3 - Dynamite
-    if (dayOfWeek === 3) {
+    // Find next Saturday for Collision
+    const saturday = new Date(weekStart);
+    const daysUntilSaturday = (6 - saturday.getDay() + 7) % 7;
+    saturday.setDate(saturday.getDate() + daysUntilSaturday);
+    
+    if (wednesday >= today) {
       events.push({
         event_name: 'AEW Dynamite',
         promotion: 'AEW',
-        date: eventDate.toISOString().split('T')[0],
+        date: wednesday.toISOString().split('T')[0],
         time_et: '20:00',
         time_pt: '17:00',
         time_cet: '02:00',
@@ -142,15 +155,14 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
       });
     }
     
-    // Saturday = 6 - Rampage
-    if (dayOfWeek === 6) {
+    if (saturday >= today) {
       events.push({
-        event_name: 'AEW Rampage',
+        event_name: 'AEW Collision',
         promotion: 'AEW',
-        date: eventDate.toISOString().split('T')[0],
-        time_et: '22:00',
-        time_pt: '19:00',
-        time_cet: '04:00',
+        date: saturday.toISOString().split('T')[0],
+        time_et: '20:00',
+        time_pt: '17:00',
+        time_cet: '02:00',
         venue: getRandomVenue('AEW'),
         city: getRandomCity(),
         network: 'TNT',
@@ -164,13 +176,13 @@ const scrapeAEWEvents = async (): Promise<WrestlingEvent[]> => {
   const aewPPVs = [
     {
       event_name: 'AEW Revolution 2025',
-      date: new Date(2025, 2, 2), // March 2, 2025
+      date: new Date(2025, 2, 2),
       venue: 'T-Mobile Arena',
       city: 'Las Vegas, NV'
     },
     {
       event_name: 'AEW Double or Nothing 2025',
-      date: new Date(2025, 4, 25), // May 25, 2025
+      date: new Date(2025, 4, 25),
       venue: 'MGM Grand Garden Arena',
       city: 'Las Vegas, NV'
     }
@@ -203,19 +215,21 @@ const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate weekly NXT events for next 6 months
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate weekly NXT events for next 6 months (26 weeks)
+  for (let week = 0; week < 26; week++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Tuesday for NXT
+    const tuesday = new Date(weekStart);
+    const daysUntilTuesday = (2 - tuesday.getDay() + 7) % 7;
+    tuesday.setDate(tuesday.getDate() + daysUntilTuesday);
     
-    // Tuesday = 2 - NXT
-    if (dayOfWeek === 2) {
+    if (tuesday >= today) {
       events.push({
         event_name: 'WWE NXT',
         promotion: 'NXT',
-        date: eventDate.toISOString().split('T')[0],
+        date: tuesday.toISOString().split('T')[0],
         time_et: '20:00',
         time_pt: '17:00',
         time_cet: '02:00',
@@ -232,7 +246,7 @@ const scrapeNXTEvents = async (): Promise<WrestlingEvent[]> => {
   events.push({
     event_name: 'NXT Stand & Deliver 2025',
     promotion: 'NXT',
-    date: new Date(2025, 3, 5).toISOString().split('T')[0], // April 5, 2025
+    date: new Date(2025, 3, 5).toISOString().split('T')[0],
     time_et: '20:00',
     time_pt: '17:00',
     time_cet: '02:00',
@@ -252,19 +266,21 @@ const scrapeTNAEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
   
-  // Generate weekly TNA events
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate weekly TNA events (26 weeks)
+  for (let week = 0; week < 26; week++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Thursday for Impact
+    const thursday = new Date(weekStart);
+    const daysUntilThursday = (4 - thursday.getDay() + 7) % 7;
+    thursday.setDate(thursday.getDate() + daysUntilThursday);
     
-    // Thursday = 4 - Impact
-    if (dayOfWeek === 4) {
+    if (thursday >= today) {
       events.push({
         event_name: 'TNA Impact Wrestling',
         promotion: 'TNA',
-        date: eventDate.toISOString().split('T')[0],
+        date: thursday.toISOString().split('T')[0],
         time_et: '20:00',
         time_pt: '17:00',
         time_cet: '02:00',
@@ -286,31 +302,30 @@ const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
 
-  // Generate NJPW Strong weekly events
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate NJPW Strong weekly events (every other Saturday)
+  for (let week = 0; week < 26; week += 2) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Saturday for NJPW Strong
+    const saturday = new Date(weekStart);
+    const daysUntilSaturday = (6 - saturday.getDay() + 7) % 7;
+    saturday.setDate(saturday.getDate() + daysUntilSaturday);
     
-    // Saturday = 6 - NJPW Strong (but only every other week to avoid conflict with AEW Rampage)
-    if (dayOfWeek === 6) {
-      const weekNumber = Math.floor(i / 7);
-      if (weekNumber % 2 === 0) { // Every other week
-        events.push({
-          event_name: 'NJPW Strong',
-          promotion: 'NJPW',
-          date: eventDate.toISOString().split('T')[0],
-          time_et: '22:00',
-          time_pt: '19:00',
-          time_cet: '04:00',
-          venue: 'Various Venues',
-          city: 'USA/Japan',
-          network: 'NJPW World',
-          event_type: 'weekly',
-          match_card: ['Strong Style Competition', 'International Showcase']
-        });
-      }
+    if (saturday >= today) {
+      events.push({
+        event_name: 'NJPW Strong',
+        promotion: 'NJPW',
+        date: saturday.toISOString().split('T')[0],
+        time_et: '22:00',
+        time_pt: '19:00',
+        time_cet: '04:00',
+        venue: 'Various Venues',
+        city: 'USA/Japan',
+        network: 'NJPW World',
+        event_type: 'weekly',
+        match_card: ['Strong Style Competition', 'International Showcase']
+      });
     }
   }
 
@@ -318,7 +333,7 @@ const scrapeNJPWEvents = async (): Promise<WrestlingEvent[]> => {
   const njpwEvents = [
     {
       event_name: 'NJPW Wrestle Kingdom 19',
-      date: new Date(2025, 0, 4), // January 4, 2025
+      date: new Date(2025, 0, 4),
       venue: 'Tokyo Dome',
       city: 'Tokyo, Japan'
     }
@@ -351,19 +366,22 @@ const scrapeROHEvents = async (): Promise<WrestlingEvent[]> => {
   const today = new Date();
   const events: WrestlingEvent[] = [];
 
-  // Generate ROH Honor Club weekly events
-  for (let i = 0; i < 180; i++) {
-    const eventDate = new Date(today);
-    eventDate.setDate(today.getDate() + i);
+  // Generate ROH Honor Club weekly events (26 weeks)
+  for (let week = 0; week < 26; week++) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + (week * 7));
     
-    const dayOfWeek = eventDate.getDay();
+    // Find next Sunday for ROH Honor Club
+    const sunday = new Date(weekStart);
+    const daysUntilSunday = (7 - sunday.getDay()) % 7;
+    if (daysUntilSunday === 0) daysUntilSunday = 7; // Next Sunday, not today if today is Sunday
+    sunday.setDate(sunday.getDate() + daysUntilSunday);
     
-    // Sunday = 0 - ROH Honor Club
-    if (dayOfWeek === 0) {
+    if (sunday >= today) {
       events.push({
         event_name: 'ROH Honor Club',
         promotion: 'ROH',
-        date: eventDate.toISOString().split('T')[0],
+        date: sunday.toISOString().split('T')[0],
         time_et: '21:00',
         time_pt: '18:00',
         time_cet: '03:00',
