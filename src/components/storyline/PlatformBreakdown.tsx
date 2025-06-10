@@ -91,6 +91,13 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
     return Math.min(normalizedSize, 2);
   };
 
+  const handleHashtagClick = (hashtag: string) => {
+    // Remove # and create search URL
+    const searchTerm = hashtag.replace('#', '');
+    const searchQuery = `${searchTerm} wrestling site:reddit.com OR site:twitter.com`;
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+  };
+
   return (
     <Card className="glass-card h-[400px]">
       <CardHeader className="pb-3">
@@ -111,7 +118,8 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
             return (
               <button
                 key={hashtag.tag}
-                className={`${getSentimentColor(hashtag.sentiment)} hover:scale-110 transition-all duration-300 flex flex-col items-center justify-center space-y-1 px-2 py-2 rounded-lg border-2 hover:shadow-lg group relative`}
+                onClick={() => handleHashtagClick(hashtag.tag)}
+                className={`${getSentimentColor(hashtag.sentiment)} hover:scale-110 transition-all duration-300 flex flex-col items-center justify-center space-y-1 px-2 py-2 rounded-lg border-2 hover:shadow-lg group relative cursor-pointer`}
                 style={{ fontSize: `${size * 0.7}rem` }}
               >
                 <div className="absolute top-1 right-1">

@@ -103,9 +103,10 @@ export const PromotionHeatmap = ({
     return "bg-gradient-to-br from-red-500 to-red-600 border-red-400";
   };
 
-  const getIntensityOpacity = (mentions: number) => {
-    const intensity = mentions / maxMentions;
-    return Math.max(0.3, intensity);
+  const getBubbleSize = (mentions: number) => {
+    // Calculate bubble size based on mention volume
+    const normalizedSize = (mentions / maxMentions) * 60 + 40; // Range from 40% to 100%
+    return Math.max(40, normalizedSize);
   };
 
   return (
@@ -123,18 +124,17 @@ export const PromotionHeatmap = ({
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 h-full">
           {Object.entries(promotionData).map(([promotion, data]) => {
             const avgSentiment = data.storylineCount > 0 ? data.sentiment / data.storylineCount : 0.5;
-            const relativeSize = Math.max(25, (data.mentions / maxMentions) * 100);
-            const opacity = getIntensityOpacity(data.mentions);
+            const bubbleSize = getBubbleSize(data.mentions);
             const isPositiveTrend = data.trendingVelocity > 2;
             
             return (
               <button
                 key={promotion}
                 onClick={() => onPromotionClick(promotion)}
-                className={`${getSentimentColor(avgSentiment)} rounded-xl p-4 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg flex flex-col justify-between items-center border-2 min-h-[80px] relative overflow-hidden`}
+                className={`${getSentimentColor(avgSentiment)} rounded-xl p-4 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg flex flex-col justify-between items-center border-2 relative overflow-hidden`}
                 style={{ 
-                  minHeight: `${relativeSize}%`,
-                  opacity
+                  height: `${bubbleSize}%`,
+                  minHeight: '80px'
                 }}
               >
                 {/* Trending indicator */}
