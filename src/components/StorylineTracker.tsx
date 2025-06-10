@@ -75,8 +75,9 @@ export const StorylineTracker = () => {
 
   return (
     <div className="space-y-6">
+      {/* Main Header Section */}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-foreground">Storyline & Narrative Tracker</h2>
+        <h2 className="text-3xl font-bold text-foreground">Wrestling Analytics Dashboard</h2>
         <StorylineFilters
           selectedPromotion={selectedPromotion}
           onPromotionChange={setSelectedPromotion}
@@ -85,7 +86,7 @@ export const StorylineTracker = () => {
         />
       </div>
 
-      {/* Primary Metrics Dashboard */}
+      {/* Primary Metrics Row */}
       <MetricsDashboard 
         redditPosts={redditPosts}
         newsItems={newsItems}
@@ -94,6 +95,7 @@ export const StorylineTracker = () => {
 
       {/* Central Visualization Area */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left Panel - Wrestling Promotion Heatmap (60% width) */}
         <div className="lg:col-span-3">
           <PromotionHeatmap 
             storylines={storylines}
@@ -102,6 +104,7 @@ export const StorylineTracker = () => {
             onPromotionClick={handlePromotionClick}
           />
         </div>
+        {/* Right Panel - Platform Breakdown (40% width) */}
         <div className="lg:col-span-2">
           <PlatformBreakdown 
             redditPosts={redditPosts}
@@ -110,7 +113,7 @@ export const StorylineTracker = () => {
         </div>
       </div>
 
-      {/* Trending Topics Section */}
+      {/* Secondary Analytics Section - Trending Topics Widget */}
       <TrendingHashtagCloud 
         redditPosts={redditPosts}
         newsItems={newsItems}
@@ -119,9 +122,9 @@ export const StorylineTracker = () => {
 
       <Tabs defaultValue="feuds" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full">
-          <TabsTrigger value="feuds">Active Feuds</TabsTrigger>
-          <TabsTrigger value="trending">Trending Topics</TabsTrigger>
-          <TabsTrigger value="insights">Analytics Insights</TabsTrigger>
+          <TabsTrigger value="feuds">Active Storylines</TabsTrigger>
+          <TabsTrigger value="trending">Trending Analysis</TabsTrigger>
+          <TabsTrigger value="insights">Deep Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="feuds" className="space-y-6">
