@@ -37,7 +37,7 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
       return dbEvents.map(event => ({
         id: event.id,
         eventName: event.event_name,
-        promotion: event.promotion,
+        promotion: event.promotion as 'WWE' | 'AEW' | 'NXT' | 'TNA' | 'NJPW' | 'ROH',
         date: event.date,
         timeET: event.time_et,
         timePT: event.time_pt,
@@ -45,7 +45,7 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
         venue: event.venue,
         city: event.city,
         network: event.network,
-        eventType: event.event_type,
+        eventType: event.event_type as 'weekly' | 'ppv' | 'special',
         matchCard: event.match_card || [],
         lastUpdated: event.last_updated
       }));

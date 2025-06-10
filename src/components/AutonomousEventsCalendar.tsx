@@ -40,7 +40,7 @@ export const AutonomousEventsCalendar = () => {
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(['weekly', 'ppv', 'special']);
   const [selectedEvent, setSelectedEvent] = useState<WrestlingEvent | null>(null);
   
-  const { data: events = [], isLoading, refetch, lastUpdate } = useAutonomousEvents();
+  const { data: events = [], isLoading, refetch } = useAutonomousEvents();
   const { toast } = useToast();
 
   const monthStart = startOfMonth(currentDate);
@@ -95,6 +95,9 @@ export const AutonomousEventsCalendar = () => {
 
   const tonightEvents = getTonightEvents();
 
+  // Get the last updated timestamp from the first event
+  const lastUpdateTime = events.length > 0 ? events[0].lastUpdated : null;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -111,7 +114,7 @@ export const AutonomousEventsCalendar = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Autonomous Wrestling Events Calendar</h2>
           <p className="text-muted-foreground">
-            Auto-updated daily at 6:00 AM ET • Last update: {lastUpdate ? format(new Date(lastUpdate), 'PPpp') : 'Never'}
+            Auto-updated daily at 6:00 AM ET • Last update: {lastUpdateTime ? format(new Date(lastUpdateTime), 'PPpp') : 'Never'}
           </p>
         </div>
         <div className="flex space-x-2">

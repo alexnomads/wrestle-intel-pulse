@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      autonomous_wrestling_events: {
+        Row: {
+          city: string
+          created_at: string
+          date: string
+          event_name: string
+          event_type: string
+          id: string
+          last_updated: string
+          match_card: string[] | null
+          network: string
+          promotion: string
+          time_cet: string
+          time_et: string
+          time_pt: string
+          venue: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          date: string
+          event_name: string
+          event_type: string
+          id?: string
+          last_updated?: string
+          match_card?: string[] | null
+          network: string
+          promotion: string
+          time_cet: string
+          time_et: string
+          time_pt: string
+          venue: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          date?: string
+          event_name?: string
+          event_type?: string
+          id?: string
+          last_updated?: string
+          match_card?: string[] | null
+          network?: string
+          promotion?: string
+          time_cet?: string
+          time_et?: string
+          time_pt?: string
+          venue?: string
+        }
+        Relationships: []
+      }
       championships: {
         Row: {
           created_at: string
