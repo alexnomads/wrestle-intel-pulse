@@ -1,7 +1,10 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, MessageSquare, Send, ExternalLink } from "lucide-react";
 import { useStorylineAnalysis, useAdvancedTrendingTopics } from "@/hooks/useAdvancedAnalytics";
 import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
 import { useSupabaseWrestlers } from "@/hooks/useSupabaseWrestlers";
@@ -13,6 +16,10 @@ import { analyzeSentiment } from "@/services/wrestlingDataService";
 
 export const StorylineTracker = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  
   const { data: storylines = [], isLoading: storylinesLoading, refetch: refetchStorylines } = useStorylineAnalysis();
   const { data: trendingTopics = [], isLoading: topicsLoading } = useAdvancedTrendingTopics();
   const { data: newsItems = [] } = useRSSFeeds();
@@ -26,6 +33,58 @@ export const StorylineTracker = () => {
   const filteredStorylines = selectedPromotion === 'all' 
     ? storylines 
     : storylines.filter(storyline => storyline.promotion.toLowerCase() === selectedPromotion);
+
+  // Handle keyword clicks to search for related content
+  const handleKeywordClick = (keyword: string) => {
+    // Find related articles and posts
+    const relatedNews = newsItems.filter(item => 
+      item.title.toLowerCase().includes(keyword.toLowerCase()) ||
+      (item.contentSnippet && item.contentSnippet.toLowerCase().includes(keyword.toLowerCase()))
+    );
+    
+    const relatedReddit = redditPosts.filter(post =>
+      post.title.toLowerCase().includes(keyword.toLowerCase()) ||
+      post.selftext.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // Open the first related article or Reddit post
+    if (relatedNews.length > 0 && relatedNews[0].link) {
+      window.open(relatedNews[0].link, '_blank');
+    } else if (relatedReddit.length > 0) {
+      window.open(`https://reddit.com${relatedReddit[0].permalink}`, '_blank');
+    } else {
+      // Fallback to Google search
+      const searchQuery = `wrestling ${keyword} site:reddit.com OR site:wrestling-news.com`;
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
+    }
+  };
+
+  // Handle AI assistant questions
+  const handleAiQuestion = async () => {
+    if (!aiQuestion.trim()) return;
+    
+    setIsLoadingAi(true);
+    try {
+      // Simulate AI response - in production, this would call the YesChat API or similar
+      const context = `Wrestling storylines: ${storylines.map(s => s.title).join(', ')}. Trending topics: ${trendingTopics.map(t => t.title).join(', ')}. Recent news: ${newsItems.slice(0, 5).map(n => n.title).join(', ')}.`;
+      
+      // For now, provide a helpful response based on available data
+      let response = '';
+      if (aiQuestion.toLowerCase().includes('storyline')) {
+        response = `Based on current data, there are ${storylines.length} active storylines. The most intense storyline is "${storylines[0]?.title || 'N/A'}" with an intensity score of ${storylines[0]?.intensity_score.toFixed(1) || 'N/A'}.`;
+      } else if (aiQuestion.toLowerCase().includes('trending')) {
+        response = `Currently trending: ${trendingTopics.slice(0, 3).map(t => t.title).join(', ')}. These topics are gaining momentum based on recent news coverage and fan engagement.`;
+      } else {
+        response = `I can help analyze wrestling storylines and trends. Try asking about specific storylines, trending topics, or wrestler momentum. For more detailed analysis, you can visit the Slam Summarizer Pro at https://www.yeschat.ai/gpts-2OToSlpRf1-🤼‍♂️-Slam-Summarizer-Pro-🏆`;
+      }
+      
+      setAiResponse(response);
+    } catch (error) {
+      setAiResponse('Sorry, I encountered an error. Please try again.');
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
 
   // Calculate fan engagement metrics from X/Twitter and Reddit
   const calculateFanEngagement = () => {
@@ -63,7 +122,10 @@ export const StorylineTracker = () => {
         newsVolume: newsMentions.length,
         fanReception: Math.round(engagementScore * 10),
         sentiment: topic.sentiment || 0.5,
-        growth: topic.growth_rate || 0
+        growth: topic.growth_rate || 0,
+        keywords: topic.keywords,
+        relatedNews: newsMentions,
+        relatedReddit: redditMentions
       };
     }).sort((a, b) => (b.mentions + b.redditEngagement) - (a.mentions + a.redditEngagement));
 
@@ -209,7 +271,7 @@ export const StorylineTracker = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="text-center">
                           <div className="text-xl font-bold text-blue-400">{topic.mentions}</div>
                           <div className="text-xs text-muted-foreground">Total Mentions</div>
@@ -227,6 +289,25 @@ export const StorylineTracker = () => {
                           <div className="text-xs text-muted-foreground">Positive Sentiment</div>
                         </div>
                       </div>
+                      
+                      {/* Clickable Keywords */}
+                      {topic.keywords && topic.keywords.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Related Keywords (Click to explore):</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {topic.keywords.slice(0, 8).map((keyword, keyIndex) => (
+                              <button
+                                key={keyIndex}
+                                onClick={() => handleKeywordClick(keyword)}
+                                className="px-3 py-1 bg-wrestling-electric/20 hover:bg-wrestling-electric/30 text-wrestling-electric rounded-full text-sm transition-colors flex items-center space-x-1"
+                              >
+                                <span>{keyword}</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -237,6 +318,50 @@ export const StorylineTracker = () => {
 
         <TabsContent value="insights" className="space-y-6">
           <div className="grid gap-6">
+            {/* AI Assistant Integration */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Wrestling Analytics Assistant</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://www.yeschat.ai/gpts-2OToSlpRf1-🤼‍♂️-Slam-Summarizer-Pro-🏆', '_blank')}
+                    className="ml-auto"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Open Slam Summarizer Pro
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Ask about storylines, trends, or wrestler momentum..."
+                      value={aiQuestion}
+                      onChange={(e) => setAiQuestion(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAiQuestion()}
+                    />
+                    <Button onClick={handleAiQuestion} disabled={isLoadingAi}>
+                      {isLoadingAi ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  
+                  {aiResponse && (
+                    <div className="p-3 bg-secondary/30 rounded-lg">
+                      <p className="text-sm">{aiResponse}</p>
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-muted-foreground">
+                    💡 For advanced wrestling analysis and summaries, try the dedicated Slam Summarizer Pro AI assistant
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle>Analytics Insights</CardTitle>
@@ -274,9 +399,14 @@ export const StorylineTracker = () => {
                     <h4 className="font-semibold text-foreground mb-2">Top Wrestling Keywords</h4>
                     <div className="flex flex-wrap gap-2">
                       {insights.topKeywords.map((item, index) => (
-                        <span key={index} className="px-3 py-1 bg-wrestling-electric/20 text-wrestling-electric rounded-full text-sm">
-                          {item.keyword} ({item.frequency})
-                        </span>
+                        <button
+                          key={index}
+                          onClick={() => handleKeywordClick(item.keyword)}
+                          className="px-3 py-1 bg-wrestling-electric/20 hover:bg-wrestling-electric/30 text-wrestling-electric rounded-full text-sm transition-colors flex items-center space-x-1"
+                        >
+                          <span>{item.keyword} ({item.frequency})</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </button>
                       ))}
                     </div>
                   </div>

@@ -1,6 +1,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { useState } from "react";
 import { StorylineAnalysis } from "@/services/advancedAnalyticsService";
 
 interface StorylineCardProps {
@@ -18,6 +21,20 @@ const getStatusColor = (status: string) => {
 };
 
 export const StorylineCard = ({ storyline }: StorylineCardProps) => {
+  const [showRecap, setShowRecap] = useState(false);
+
+  // Generate a recap from the source articles
+  const generateRecap = () => {
+    if (storyline.source_articles.length === 0) {
+      return "No recent news coverage available for this storyline.";
+    }
+
+    const recentArticles = storyline.source_articles.slice(0, 3);
+    const headlines = recentArticles.map(article => article.title).join(". ");
+    
+    return `Recent developments: ${headlines}. This storyline has been featured in ${storyline.source_articles.length} news articles, indicating ${storyline.intensity_score > 7 ? 'high' : storyline.intensity_score > 4 ? 'moderate' : 'low'} intensity coverage.`;
+  };
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -70,7 +87,7 @@ export const StorylineCard = ({ storyline }: StorylineCardProps) => {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4">
           <h4 className="font-medium text-foreground">Participants:</h4>
           <div className="flex flex-wrap gap-2">
             {storyline.participants.map((participant, index) => (
@@ -82,7 +99,7 @@ export const StorylineCard = ({ storyline }: StorylineCardProps) => {
         </div>
 
         {storyline.keywords.length > 0 && (
-          <div className="space-y-2 mt-4">
+          <div className="space-y-2 mb-4">
             <h4 className="font-medium text-foreground">Key Themes:</h4>
             <div className="flex flex-wrap gap-2">
               {storyline.keywords.slice(0, 5).map((keyword, index) => (
@@ -93,6 +110,47 @@ export const StorylineCard = ({ storyline }: StorylineCardProps) => {
             </div>
           </div>
         )}
+
+        {/* Storyline Recap Section */}
+        <div className="border-t border-secondary/50 pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => setShowRecap(!showRecap)}
+            className="flex items-center space-x-2 w-full justify-between"
+          >
+            <span className="font-medium">Why is this trending?</span>
+            {showRecap ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+          
+          {showRecap && (
+            <div className="mt-3 p-3 bg-secondary/30 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-3">
+                {generateRecap()}
+              </p>
+              
+              {storyline.source_articles.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="font-medium text-sm">Recent Coverage:</h5>
+                  {storyline.source_articles.slice(0, 3).map((article, index) => (
+                    <div key={index} className="flex items-center justify-between text-xs">
+                      <span className="truncate flex-1 mr-2">{article.title}</span>
+                      {article.link && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(article.link, '_blank')}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
