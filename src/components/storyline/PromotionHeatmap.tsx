@@ -17,6 +17,9 @@ export const PromotionHeatmap = ({
   newsItems, 
   onPromotionClick 
 }: PromotionHeatmapProps) => {
+  // Ensure major promotions are always included
+  const majorPromotions = ['WWE', 'AEW', 'TNA', 'NXT'];
+  
   // Calculate promotion metrics with enhanced data
   const promotionData = storylines.reduce((acc, storyline) => {
     const promotion = storyline.promotion;
@@ -54,7 +57,7 @@ export const PromotionHeatmap = ({
     // Calculate trending velocity (recent posts)
     const recentRedditMentions = redditMentions.filter(post => {
       const postDate = new Date(post.created_utc * 1000);
-      const hoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000); // Last 6 hours
+      const hoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
       return postDate > hoursAgo;
     });
     acc[promotion].trendingVelocity = recentRedditMentions.length;
@@ -68,6 +71,29 @@ export const PromotionHeatmap = ({
     trendingVelocity: number;
   }>);
 
+  // Ensure major promotions exist even if not in storylines
+  majorPromotions.forEach(promotion => {
+    if (!promotionData[promotion]) {
+      const newsMentions = newsItems.filter(item => 
+        item.title.toLowerCase().includes(promotion.toLowerCase()) ||
+        (item.contentSnippet && item.contentSnippet.toLowerCase().includes(promotion.toLowerCase()))
+      );
+      
+      const redditMentions = redditPosts.filter(post => 
+        post.title.toLowerCase().includes(promotion.toLowerCase()) ||
+        post.selftext.toLowerCase().includes(promotion.toLowerCase())
+      );
+
+      promotionData[promotion] = {
+        mentions: newsMentions.length + redditMentions.length,
+        sentiment: 0.5, // neutral sentiment
+        storylineCount: 0,
+        engagement: redditMentions.reduce((sum, post) => sum + post.score + post.num_comments, 0),
+        trendingVelocity: 0
+      };
+    }
+  });
+
   const maxMentions = Math.max(...Object.values(promotionData).map(p => p.mentions), 1);
   const maxEngagement = Math.max(...Object.values(promotionData).map(p => p.engagement), 1);
 
@@ -79,7 +105,7 @@ export const PromotionHeatmap = ({
 
   const getIntensityOpacity = (mentions: number) => {
     const intensity = mentions / maxMentions;
-    return Math.max(0.3, intensity); // Minimum 30% opacity
+    return Math.max(0.3, intensity);
   };
 
   return (

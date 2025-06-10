@@ -14,7 +14,6 @@ import { AnalyticsInsights } from "./storyline/AnalyticsInsights";
 import { MetricsDashboard } from "./storyline/MetricsDashboard";
 import { PromotionHeatmap } from "./storyline/PromotionHeatmap";
 import { PlatformBreakdown } from "./storyline/PlatformBreakdown";
-import { TrendingHashtagCloud } from "./storyline/TrendingHashtagCloud";
 
 export const StorylineTracker = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
@@ -59,11 +58,6 @@ export const StorylineTracker = () => {
     setSelectedPromotion(promotion.toLowerCase());
   };
 
-  const handleHashtagClick = (hashtag: string) => {
-    const searchQuery = `${hashtag} wrestling`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
-  };
-
   if (storylinesLoading && topicsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -104,7 +98,7 @@ export const StorylineTracker = () => {
             onPromotionClick={handlePromotionClick}
           />
         </div>
-        {/* Right Panel - Platform Breakdown (40% width) */}
+        {/* Right Panel - Wrestling Hashtags Analytics (40% width) */}
         <div className="lg:col-span-2">
           <PlatformBreakdown 
             redditPosts={redditPosts}
@@ -112,13 +106,6 @@ export const StorylineTracker = () => {
           />
         </div>
       </div>
-
-      {/* Secondary Analytics Section - Trending Topics Widget */}
-      <TrendingHashtagCloud 
-        redditPosts={redditPosts}
-        newsItems={newsItems}
-        onHashtagClick={handleHashtagClick}
-      />
 
       <Tabs defaultValue="feuds" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full">
