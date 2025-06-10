@@ -37,7 +37,10 @@ const promotionColors = {
 export const AutonomousEventsCalendar = () => {
   // Use ET timezone for the current date
   const etTimezone = 'America/New_York';
-  const [currentDate, setCurrentDate] = useState(() => toZonedTime(new Date(), etTimezone));
+  const [currentDate, setCurrentDate] = useState(() => {
+    const now = new Date();
+    return toZonedTime(now, etTimezone);
+  });
   const [viewMode, setViewMode] = useState<'monthly' | 'weekly'>('monthly');
   const [selectedPromotions, setSelectedPromotions] = useState<string[]>(['WWE', 'AEW', 'NXT', 'TNA', 'NJPW', 'ROH']);
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(['weekly', 'ppv', 'special']);
@@ -46,6 +49,12 @@ export const AutonomousEventsCalendar = () => {
   const { data: events = [], isLoading, refetch } = useAutonomousEvents();
   const eventsScraping = useEventsScraping();
   const { toast } = useToast();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Events data:', events);
+    console.log('Total events loaded:', events.length);
+  }, [events]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -57,9 +66,10 @@ export const AutonomousEventsCalendar = () => {
   );
 
   const getEventsForDate = (date: Date) => {
-    return filteredEvents.filter(event => 
-      isSameDay(new Date(event.date), date)
-    );
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayEvents = filteredEvents.filter(event => event.date === dateStr);
+    console.log(`Events for ${dateStr}:`, dayEvents);
+    return dayEvents;
   };
 
   const handleRefresh = async () => {
@@ -105,9 +115,8 @@ export const AutonomousEventsCalendar = () => {
 
   const getTonightEvents = () => {
     const todayET = toZonedTime(new Date(), etTimezone);
-    return filteredEvents.filter(event => 
-      isSameDay(new Date(event.date), todayET)
-    );
+    const todayStr = format(todayET, 'yyyy-MM-dd');
+    return filteredEvents.filter(event => event.date === todayStr);
   };
 
   const tonightEvents = getTonightEvents();

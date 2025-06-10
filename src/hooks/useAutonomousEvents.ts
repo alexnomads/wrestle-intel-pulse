@@ -30,6 +30,7 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
 
     if (error) {
       console.error('Database error:', error);
+      throw error;
     }
 
     if (dbEvents && dbEvents.length > 0) {
@@ -51,67 +52,23 @@ const fetchAutonomousEvents = async (): Promise<WrestlingEvent[]> => {
       }));
     }
 
-    // Fallback to mock data if no database events
-    console.log('No database events found, using mock data');
-    return getMockEvents();
+    // If no events in database, trigger scraping and return empty array for now
+    console.log('No events found in database, triggering initial scrape...');
+    
+    // Trigger scraping in the background
+    const { error: scrapeError } = await supabase.functions.invoke('autonomous-events-scraper', {
+      body: { action: 'scrape_all' }
+    });
+    
+    if (scrapeError) {
+      console.error('Error triggering initial scrape:', scrapeError);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error fetching events:', error);
-    return getMockEvents();
+    return [];
   }
-};
-
-const getMockEvents = (): WrestlingEvent[] => {
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  return [
-    {
-      id: '1',
-      eventName: 'Monday Night RAW',
-      promotion: 'WWE',
-      date: today.toISOString().split('T')[0],
-      timeET: '20:00',
-      timePT: '17:00',
-      timeCET: '02:00',
-      venue: 'Madison Square Garden',
-      city: 'New York, NY',
-      network: 'USA Network',
-      eventType: 'weekly',
-      matchCard: ['CM Punk vs Drew McIntyre', 'Rhea Ripley vs Liv Morgan'],
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: '2',
-      eventName: 'AEW Dynamite',
-      promotion: 'AEW',
-      date: tomorrow.toISOString().split('T')[0],
-      timeET: '20:00',
-      timePT: '17:00',
-      timeCET: '02:00',
-      venue: 'Daily\'s Place',
-      city: 'Jacksonville, FL',
-      network: 'TNT',
-      eventType: 'weekly',
-      matchCard: ['Jon Moxley vs Orange Cassidy', 'Mercedes Mone vs Toni Storm'],
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: '3',
-      eventName: 'WWE Saturday Night\'s Main Event',
-      promotion: 'WWE',
-      date: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      timeET: '20:00',
-      timePT: '17:00',
-      timeCET: '02:00',
-      venue: 'Frost Bank Center',
-      city: 'San Antonio, TX',
-      network: 'NBC',
-      eventType: 'special',
-      matchCard: ['Cody Rhodes vs Kevin Owens', 'Gunther vs Finn Balor'],
-      lastUpdated: new Date().toISOString()
-    }
-  ];
 };
 
 const triggerEventsScraping = async () => {
@@ -139,8 +96,8 @@ export const useAutonomousEvents = () => {
   return useQuery({
     queryKey: ['autonomous-wrestling-events'],
     queryFn: fetchAutonomousEvents,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    refetchInterval: 30 * 60 * 1000, // Refetch every 30 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
     retry: 3,
     retryDelay: 2000,
   });
