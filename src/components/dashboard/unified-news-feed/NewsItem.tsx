@@ -13,60 +13,44 @@ export const NewsItem = ({ item }: NewsItemProps) => {
   const sentimentBadge = getSentimentBadge(item.sentiment);
   const credibilityBadge = getCredibilityBadge(item.credibilityScore);
 
-  const openLink = (link: string, title: string) => {
-    console.log('Opening link:', link, 'for:', title);
+  const openLink = () => {
+    console.log('Attempting to open link:', item.link, 'for item:', item.title);
     
-    if (!link || link === '#') {
-      console.warn('No valid link for item:', title);
+    if (!item.link || item.link === '#' || item.link === '') {
+      console.warn('No valid link available for:', item.title);
       alert('Sorry, no link is available for this item.');
       return;
     }
 
-    let finalUrl = link;
+    let finalUrl = item.link;
     
     // Handle Reddit links specifically
-    if (item.type === 'reddit' && !link.startsWith('http')) {
-      finalUrl = `https://reddit.com${link}`;
+    if (item.type === 'reddit' && !item.link.startsWith('http')) {
+      finalUrl = `https://reddit.com${item.link}`;
     }
     
-    console.log('Final URL:', finalUrl);
+    // Ensure the URL has a protocol
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = `https://${finalUrl}`;
+    }
     
-    // Force open in new tab
-    const anchor = document.createElement('a');
-    anchor.href = finalUrl;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    anchor.style.display = 'none';
+    console.log('Opening URL:', finalUrl);
     
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-  };
-
-  const handleItemClick = () => {
-    openLink(item.link, item.title);
-  };
-
-  const handleExternalLinkClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openLink(item.link, item.title);
+    // Use window.open with proper parameters
+    const newWindow = window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    
+    // Fallback if window.open failed (popup blocked)
+    if (!newWindow) {
+      console.log('Window.open failed, trying location.href');
+      window.location.href = finalUrl;
+    }
   };
 
   return (
     <div 
-      className={`p-4 rounded-lg transition-all hover:bg-secondary/50 cursor-pointer ${
+      className={`p-4 rounded-lg transition-all hover:bg-secondary/50 ${
         item.isBreaking ? 'border-2 border-red-400 bg-red-50 dark:bg-red-900/20' : 'bg-secondary/20'
       }`}
-      onClick={handleItemClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleItemClick();
-        }
-      }}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -88,7 +72,10 @@ export const NewsItem = ({ item }: NewsItemProps) => {
             </Badge>
           </div>
           
-          <h4 className="font-medium text-foreground leading-tight mb-2 hover:text-primary transition-colors">
+          <h4 
+            className="font-medium text-foreground leading-tight mb-2 hover:text-primary transition-colors cursor-pointer"
+            onClick={openLink}
+          >
             {item.title}
           </h4>
           
@@ -126,7 +113,11 @@ export const NewsItem = ({ item }: NewsItemProps) => {
           variant="ghost" 
           size="icon" 
           className="text-muted-foreground hover:text-foreground ml-4 shrink-0"
-          onClick={handleExternalLinkClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            openLink();
+          }}
+          disabled={!item.link || item.link === '#'}
         >
           <ExternalLink className="h-4 w-4" />
         </Button>
