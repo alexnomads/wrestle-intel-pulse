@@ -3,22 +3,34 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, TrendingUp, Users, Zap } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RefreshCw, TrendingUp, Users, Zap, Target, AlertTriangle } from 'lucide-react';
 import { useUnifiedData } from '@/hooks/useUnifiedData';
+import { usePredictiveAnalytics } from '@/hooks/usePredictiveAnalytics';
 import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
 import { StorylinesList } from './analytics/StorylinesList';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
+import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d'>('24h');
+  
   const { data, isLoading, error, refetch } = useUnifiedData();
+  const { 
+    trends, 
+    storylines, 
+    alerts, 
+    isLoading: analyticsLoading, 
+    refetch: refetchAnalytics 
+  } = usePredictiveAnalytics(selectedTimeframe);
 
   const handleRefresh = async () => {
-    await refetch();
+    await Promise.all([refetch(), refetchAnalytics()]);
     setLastUpdate(new Date());
   };
 
-  if (isLoading) {
+  if (isLoading && analyticsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="flex items-center space-x-3">
@@ -38,7 +50,11 @@ export const MainAnalyticsDashboard = () => {
     );
   }
 
-  const { sources = [], wrestlerMentions = [], storylines = [] } = data || {};
+  const { sources = [], wrestlerMentions = [], storylines: unifiedStorylines = [] } = data || {};
+
+  // Get high priority alerts for quick stats
+  const criticalAlerts = alerts.filter(alert => alert.severity === 'critical' || alert.severity === 'high');
+  const risingTrends = trends.filter(trend => trend.trending_direction === 'rising').length;
 
   return (
     <div className="space-y-6">
@@ -49,21 +65,26 @@ export const MainAnalyticsDashboard = () => {
           <Badge variant="secondary" className="bg-green-100 text-green-800">
             LIVE
           </Badge>
+          {criticalAlerts.length > 0 && (
+            <Badge className="bg-red-100 text-red-800 border-red-200">
+              {criticalAlerts.length} Alert{criticalAlerts.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
         </div>
         <Button
           onClick={handleRefresh}
-          disabled={isLoading}
+          disabled={isLoading || analyticsLoading}
           variant="outline"
           size="sm"
           className="flex items-center space-x-2"
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isLoading || analyticsLoading ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
         </Button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -92,8 +113,8 @@ export const MainAnalyticsDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Storylines</p>
-                <p className="text-2xl font-bold text-blue-500">{storylines.length}</p>
+                <p className="text-sm text-muted-foreground">Rising Trends</p>
+                <p className="text-2xl font-bold text-green-500">{risingTrends}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -104,60 +125,111 @@ export const MainAnalyticsDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Last Updated</p>
-                <p className="text-sm font-medium">{lastUpdate.toLocaleTimeString()}</p>
+                <p className="text-sm text-muted-foreground">Active Storylines</p>
+                <p className="text-2xl font-bold text-blue-500">{storylines.length}</p>
               </div>
-              <RefreshCw className="h-8 w-8 text-muted-foreground" />
+              <Target className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Live Alerts</p>
+                <p className={`text-2xl font-bold ${criticalAlerts.length > 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                  {alerts.length}
+                </p>
+              </div>
+              <AlertTriangle className={`h-8 w-8 ${criticalAlerts.length > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Core Feature 1: Top Mentioned Wrestlers with Heatmap */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-6 w-6 text-wrestling-electric" />
-            <span>Top Mentioned Wrestlers</span>
-            <Badge variant="secondary">{wrestlerMentions.length} wrestlers</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <WrestlerHeatmap wrestlerMentions={wrestlerMentions} />
-        </CardContent>
-      </Card>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="predictive">
+            Predictive Analytics
+            {criticalAlerts.length > 0 && (
+              <Badge className="ml-2 bg-red-100 text-red-800 text-xs">
+                {criticalAlerts.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="realtime">Real-time Data</TabsTrigger>
+        </TabsList>
 
-      {/* Core Feature 2 & 3: Storylines and Platform Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="glass-card h-full">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Core Feature 1: Top Mentioned Wrestlers with Heatmap */}
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-6 w-6 text-wrestling-electric" />
-                <span>Top Storylines</span>
-                <Badge variant="secondary">{storylines.length} active</Badge>
+                <Users className="h-6 w-6 text-wrestling-electric" />
+                <span>Top Mentioned Wrestlers</span>
+                <Badge variant="secondary">{wrestlerMentions.length} wrestlers</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <StorylinesList storylines={storylines} />
+              <WrestlerHeatmap wrestlerMentions={wrestlerMentions} />
             </CardContent>
           </Card>
-        </div>
 
-        <div className="lg:col-span-1">
-          <Card className="glass-card h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-6 w-6 text-wrestling-electric" />
-                <span>Platform Breakdown</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PlatformBreakdown sources={sources} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+          {/* Core Feature 2 & 3: Storylines and Platform Data */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card className="glass-card h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <TrendingUp className="h-6 w-6 text-wrestling-electric" />
+                    <span>Top Storylines</span>
+                    <Badge variant="secondary">{unifiedStorylines.length} active</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <StorylinesList storylines={unifiedStorylines} />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-1">
+              <Card className="glass-card h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="h-6 w-6 text-wrestling-electric" />
+                    <span>Platform Breakdown</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PlatformBreakdown sources={sources} />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="predictive" className="space-y-6">
+          <PredictiveAnalyticsDashboard
+            trends={trends}
+            alerts={alerts}
+            storylines={storylines}
+            onRefresh={refetchAnalytics}
+            isLoading={analyticsLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="realtime" className="space-y-6">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Real-time monitoring dashboard coming soon...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
