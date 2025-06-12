@@ -20,45 +20,36 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     });
   };
 
+  const openArticle = () => {
+    console.log('Opening article:', mention.title);
+    console.log('Article link:', mention.link);
+    
+    if (!mention.link || mention.link === '#') {
+      console.warn('No valid link available for this article');
+      alert('Sorry, no link is available for this article.');
+      return;
+    }
+
+    // Force open in new tab using a more reliable method
+    const anchor = document.createElement('a');
+    anchor.href = mention.link;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.style.display = 'none';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  };
+
   const handleReadClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('Read button clicked for:', mention.title);
-    console.log('Article link:', mention.link);
-    
-    if (mention.link && mention.link !== '#') {
-      // Create a temporary anchor element and click it - this bypasses popup blockers
-      const link = document.createElement('a');
-      link.href = mention.link;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      console.warn('No valid link available for this article');
-      alert('Sorry, no link is available for this article.');
-    }
+    openArticle();
   };
 
   const handleMentionClick = () => {
-    console.log('Mention item clicked:', mention.title);
-    console.log('Article link:', mention.link);
-    
-    if (mention.link && mention.link !== '#') {
-      // Create a temporary anchor element and click it - this bypasses popup blockers
-      const link = document.createElement('a');
-      link.href = mention.link;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      console.warn('No valid link available for this article');
-      alert('Sorry, no link is available for this article.');
-    }
+    openArticle();
   };
 
   return (

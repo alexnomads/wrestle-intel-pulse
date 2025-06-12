@@ -13,42 +13,44 @@ export const NewsItem = ({ item }: NewsItemProps) => {
   const sentimentBadge = getSentimentBadge(item.sentiment);
   const credibilityBadge = getCredibilityBadge(item.credibilityScore);
 
-  const handleItemClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const openLink = (link: string, title: string) => {
+    console.log('Opening link:', link, 'for:', title);
     
-    console.log('NewsItem clicked:', item.title);
-    console.log('Item link:', item.link);
-    console.log('Item type:', item.type);
-    
-    let finalUrl = item.link;
+    if (!link || link === '#') {
+      console.warn('No valid link for item:', title);
+      alert('Sorry, no link is available for this item.');
+      return;
+    }
+
+    let finalUrl = link;
     
     // Handle Reddit links specifically
-    if (item.type === 'reddit' && item.link && !item.link.startsWith('http')) {
-      finalUrl = `https://reddit.com${item.link}`;
+    if (item.type === 'reddit' && !link.startsWith('http')) {
+      finalUrl = `https://reddit.com${link}`;
     }
     
-    console.log('Final URL to open:', finalUrl);
+    console.log('Final URL:', finalUrl);
     
-    if (finalUrl && finalUrl !== '#') {
-      // Create a temporary anchor element and click it - this bypasses popup blockers
-      const link = document.createElement('a');
-      link.href = finalUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      console.warn('No valid link for item:', item.title);
-      alert('Sorry, no link is available for this item.');
-    }
+    // Force open in new tab
+    const anchor = document.createElement('a');
+    anchor.href = finalUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.style.display = 'none';
+    
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  };
+
+  const handleItemClick = () => {
+    openLink(item.link, item.title);
   };
 
   const handleExternalLinkClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    handleItemClick(e);
+    openLink(item.link, item.title);
   };
 
   return (
@@ -61,7 +63,8 @@ export const NewsItem = ({ item }: NewsItemProps) => {
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          handleItemClick(e as any);
+          e.preventDefault();
+          handleItemClick();
         }
       }}
     >
