@@ -1,10 +1,12 @@
 
 import { NewsItem, RedditPost } from './data/dataTypes';
-import { fetchComprehensiveWrestlingNews, fetchComprehensiveRedditPosts } from './wrestlingDataService';
+import { fetchComprehensiveRedditPosts } from './wrestlingDataService';
+import { fetchOptimizedRSSFeeds } from './data/optimizedRssService';
 import { fetchWrestlingTweets, TwitterPost } from './twitterService';
+import { fetchWrestlingVideos, YouTubeVideo } from './youtubeService';
 
 export interface UnifiedDataSource {
-  type: 'news' | 'reddit' | 'twitter';
+  type: 'news' | 'reddit' | 'twitter' | 'youtube';
   title: string;
   content: string;
   url?: string;
@@ -50,13 +52,17 @@ export const fetchUnifiedData = async (): Promise<{
   storylines: DetectedStoryline[];
 }> => {
   try {
-    // Fetch only real data sources - no mock data
-    const [newsItems, redditPosts] = await Promise.all([
-      fetchComprehensiveWrestlingNews(),
-      fetchComprehensiveRedditPosts()
+    console.log('Fetching unified wrestling data from all sources...');
+    
+    // Fetch from all real data sources
+    const [newsItems, redditPosts, twitterPosts, youtubeVideos] = await Promise.all([
+      fetchOptimizedRSSFeeds(),
+      fetchComprehensiveRedditPosts(),
+      fetchWrestlingTweets(),
+      fetchWrestlingVideos()
     ]);
 
-    // Convert to unified format - only real data
+    // Convert to unified format
     const sources: UnifiedDataSource[] = [
       ...newsItems.map(item => ({
         type: 'news' as const,
@@ -77,6 +83,30 @@ export const fetchUnifiedData = async (): Promise<{
           score: post.score,
           comments: post.num_comments
         }
+      })),
+      ...twitterPosts.map(tweet => ({
+        type: 'twitter' as const,
+        title: tweet.text.length > 50 ? `${tweet.text.substring(0, 47)}...` : tweet.text,
+        content: tweet.text,
+        url: tweet.url,
+        timestamp: tweet.timestamp,
+        source: `@${tweet.author}`,
+        engagement: {
+          score: tweet.engagement.likes,
+          comments: tweet.engagement.replies
+        }
+      })),
+      ...youtubeVideos.map(video => ({
+        type: 'youtube' as const,
+        title: video.title,
+        content: video.description,
+        url: video.url,
+        timestamp: video.publishedAt,
+        source: video.channelTitle,
+        engagement: {
+          score: video.viewCount,
+          comments: video.commentCount
+        }
       }))
     ];
 
@@ -86,7 +116,12 @@ export const fetchUnifiedData = async (): Promise<{
     // Detect storylines from real data only
     const storylines = detectStorylines(sources);
 
-    console.log(`Processed ${sources.length} real data sources (${newsItems.length} news, ${redditPosts.length} reddit)`);
+    console.log(`Processed ${sources.length} total sources:`, {
+      news: newsItems.length,
+      reddit: redditPosts.length,
+      twitter: twitterPosts.length,
+      youtube: youtubeVideos.length
+    });
     
     return { sources, wrestlerMentions, storylines };
   } catch (error) {
