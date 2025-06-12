@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,44 +22,13 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
   const { data: newsItems = [], isLoading: newsLoading, refetch } = useRSSFeeds();
 
-  // Analysis hook - get top wrestlers from last 24 hours
+  // Analysis hook - get wrestlers with actual mentions only
   const {
     filteredAnalysis
-  } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all'); // 24 hours, all promotions
+  } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all');
 
-  // Ensure we always show at least 10 wrestlers, sorted by mentions
-  const displayWrestlers = (() => {
-    let wrestlersToShow = [];
-    
-    if (filteredAnalysis.length >= 10) {
-      wrestlersToShow = [...filteredAnalysis].sort((a, b) => b.totalMentions - a.totalMentions).slice(0, 10);
-    } else {
-      // Add fallback wrestlers with varied mention counts
-      const fallbackWrestlers = wrestlers.slice(0, 10 - filteredAnalysis.length).map((w, index) => ({
-        id: w.id,
-        wrestler_name: w.name,
-        promotion: w.brand || 'WWE',
-        totalMentions: Math.floor(Math.random() * 15) + 8 - index, // Decreasing mentions for variety
-        sentimentScore: Math.floor(Math.random() * 40) + 50,
-        trend: 'stable' as const,
-        isOnFire: false,
-        momentumScore: Math.floor(Math.random() * 50) + 25,
-        popularityScore: Math.floor(Math.random() * 40) + 20,
-        change24h: Math.floor(Math.random() * 20) - 10,
-        relatedNews: [],
-        isChampion: w.is_champion || false,
-        championshipTitle: w.championship_title || null,
-        evidence: '',
-        pushScore: 0,
-        burialScore: 0
-      }));
-      
-      wrestlersToShow = [...filteredAnalysis, ...fallbackWrestlers]
-        .sort((a, b) => b.totalMentions - a.totalMentions);
-    }
-    
-    return wrestlersToShow;
-  })();
+  // Only show wrestlers that actually have mentions from the news
+  const displayWrestlers = filteredAnalysis.length > 0 ? filteredAnalysis : [];
 
   const handleWrestlerClick = (wrestler: any) => {
     setSelectedWrestler(wrestler);
@@ -124,7 +94,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
                 <span className="text-lg">Loading analytics data...</span>
               </div>
             </div>
-          ) : (
+          ) : displayWrestlers.length > 0 ? (
             <>
               {/* Performance Metrics Grid */}
               <div className="space-y-4">
@@ -206,6 +176,19 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
                 Performance analytics from {newsItems.length} sources • Real-time sentiment tracking • Updated every 15 minutes
               </div>
             </>
+          ) : (
+            // No wrestlers with mentions found
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No Wrestling Mentions Found</h3>
+              <p className="text-muted-foreground mb-4">
+                No wrestlers were mentioned in the recent news articles ({newsItems.length} articles analyzed).
+              </p>
+              <Button onClick={handleRefresh} className="flex items-center space-x-2">
+                <RefreshCw className="h-4 w-4" />
+                <span>Refresh Data</span>
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

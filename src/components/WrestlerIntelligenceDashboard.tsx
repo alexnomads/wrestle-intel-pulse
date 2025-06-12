@@ -23,35 +23,13 @@ export const WrestlerIntelligenceDashboard = () => {
   const { data: storylines = [] } = useStorylineAnalysis();
   const { data: redditPosts = [] } = useRedditPosts();
 
-  // Analysis hook - get top wrestlers from last 24 hours
+  // Analysis hook - get wrestlers with actual mentions only
   const {
     filteredAnalysis
-  } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all'); // 24 hours, all promotions
+  } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all');
 
-  // Show top 7 wrestlers for the treemap as requested
-  const displayWrestlers = filteredAnalysis.length >= 7 
-    ? filteredAnalysis.slice(0, 7) 
-    : [
-        ...filteredAnalysis,
-        ...wrestlers.slice(0, 7 - filteredAnalysis.length).map(w => ({
-          id: w.id,
-          wrestler_name: w.name,
-          promotion: 'WWE', // Default promotion
-          totalMentions: Math.floor(Math.random() * 20) + 5,
-          sentimentScore: Math.floor(Math.random() * 40) + 50,
-          trend: 'stable' as const,
-          isOnFire: false,
-          momentumScore: Math.floor(Math.random() * 50) + 25,
-          popularityScore: Math.floor(Math.random() * 40) + 20,
-          change24h: Math.floor(Math.random() * 20) - 10,
-          relatedNews: [],
-          isChampion: false,
-          championshipTitle: null,
-          evidence: '',
-          pushScore: 0,
-          burialScore: 0
-        }))
-      ];
+  // Only show wrestlers that actually have mentions, limit to top 7 for treemap
+  const displayWrestlers = filteredAnalysis.length > 0 ? filteredAnalysis.slice(0, 7) : [];
 
   const handleRefresh = async () => {
     await refetch();
@@ -114,7 +92,7 @@ export const WrestlerIntelligenceDashboard = () => {
           
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" />
-            <span>Top 7 Most Mentioned Wrestlers (24h)</span>
+            <span>Top Most Mentioned Wrestlers (24h) - Real Data Only</span>
           </div>
         </CardHeader>
 
@@ -126,7 +104,7 @@ export const WrestlerIntelligenceDashboard = () => {
                 <span className="text-lg">Loading wrestler intelligence data...</span>
               </div>
             </div>
-          ) : (
+          ) : displayWrestlers.length > 0 ? (
             <>
               {/* Treemap Container */}
               <div className="mb-6">
@@ -151,21 +129,21 @@ export const WrestlerIntelligenceDashboard = () => {
                   <div className="text-2xl font-bold text-wrestling-electric">
                     {displayWrestlers.length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Active Wrestlers</div>
+                  <div className="text-sm text-muted-foreground">Trending Wrestlers</div>
                 </div>
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-500">
                     {displayWrestlers.filter(w => w.change24h > 0).length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Trending Up</div>
+                  <div className="text-sm text-muted-foreground">Rising</div>
                 </div>
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
                   <div className="text-2xl font-bold text-red-500">
                     {displayWrestlers.filter(w => w.change24h < 0).length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Trending Down</div>
+                  <div className="text-sm text-muted-foreground">Declining</div>
                 </div>
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
@@ -178,9 +156,23 @@ export const WrestlerIntelligenceDashboard = () => {
 
               {/* Data source info */}
               <div className="mt-4 text-center text-sm text-muted-foreground">
-                Treemap visualization • Data from {newsItems.length} news sources • Updated every 15 minutes
+                Treemap visualization • Data from {newsItems.length} news sources • Updated every 15 minutes • Real mentions only
               </div>
             </>
+          ) : (
+            // No wrestlers with mentions found
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No Wrestling Data Available</h3>
+              <p className="text-muted-foreground mb-4">
+                No wrestlers were mentioned in recent news articles ({newsItems.length} articles analyzed).
+                The treemap will update automatically when new wrestling news is available.
+              </p>
+              <Button onClick={handleRefresh} className="flex items-center space-x-2">
+                <RefreshCw className="h-4 w-4" />
+                <span>Refresh Data</span>
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
