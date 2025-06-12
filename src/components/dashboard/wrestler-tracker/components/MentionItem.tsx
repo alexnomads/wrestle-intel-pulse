@@ -20,6 +20,14 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     });
   };
 
+  const handleReadClick = () => {
+    if (mention.link) {
+      window.open(mention.link, '_blank', 'noopener,noreferrer');
+    } else {
+      console.warn('No link available for this article');
+    }
+  };
+
   return (
     <div className="p-4 bg-background border border-border/50 rounded-lg hover:bg-secondary/20 transition-colors">
       <div className="flex items-start justify-between space-x-4">
@@ -38,14 +46,15 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
               <span>{formatDate(mention.pubDate)}</span>
             </div>
             <Badge variant="outline" className="text-xs">
-              {mention.source}
+              {mention.source || 'Unknown Source'}
             </Badge>
           </div>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => window.open(mention.link, '_blank')}
+          onClick={handleReadClick}
+          disabled={!mention.link}
           className="flex items-center space-x-1"
         >
           <ExternalLink className="h-3 w-3" />

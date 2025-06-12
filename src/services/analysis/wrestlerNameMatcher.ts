@@ -6,6 +6,27 @@ export const isWrestlerMentioned = (wrestlerName: string, content: string): bool
   
   console.log(`Checking if "${wrestlerName}" is mentioned in content snippet: "${content.substring(0, 100)}..."`);
   
+  // Handle special cases for similar names
+  const specialCases = {
+    'cody rhodes': ['cody rhodes', 'cody', 'american nightmare'],
+    'dustin rhodes': ['dustin rhodes', 'dustin', 'goldust'],
+    'bobby lashley': ['bobby lashley', 'lashley'],
+    'mjf': ['mjf', 'maxwell jacob friedman', 'friedman'],
+    'tony khan': ['tony khan', 'khan'],
+  };
+  
+  // Check for exact special case matches first
+  const specialCase = specialCases[normalizedWrestlerName];
+  if (specialCase) {
+    for (const variant of specialCase) {
+      const regex = new RegExp(`\\b${variant.replace(/\s+/g, '\\s+')}\\b`, 'i');
+      if (regex.test(normalizedContent)) {
+        console.log(`✓ Found special case match: ${variant} for ${wrestlerName}`);
+        return true;
+      }
+    }
+  }
+  
   // Split wrestler name into parts
   const nameParts = normalizedWrestlerName.split(' ').filter(part => part.length > 0);
   
@@ -41,7 +62,7 @@ export const isWrestlerMentioned = (wrestlerName: string, content: string): bool
     }
     
     // Strategy 3: Check for distinctive last names only (relaxed matching)
-    const distinctiveLastNames = ['reigns', 'mysterio', 'mcintyre', 'rollins', 'lesnar', 'undertaker', 'cena', 'punk', 'rhodes', 'owens', 'zayn', 'balor', 'styles', 'nakamura', 'jericho', 'moxley', 'omega', 'ospreay', 'gunther', 'ripley', 'belair', 'lynch', 'bayley', 'priest', 'sikoa', 'breakker'];
+    const distinctiveLastNames = ['reigns', 'mysterio', 'mcintyre', 'rollins', 'lesnar', 'undertaker', 'cena', 'punk', 'lashley', 'owens', 'zayn', 'balor', 'styles', 'nakamura', 'jericho', 'moxley', 'omega', 'ospreay', 'gunther', 'ripley', 'belair', 'lynch', 'bayley', 'priest', 'sikoa', 'breakker'];
     
     if (distinctiveLastNames.includes(lastName) && lastName.length > 4) {
       const lastNameRegex = new RegExp(`\\b${lastName}\\b`, 'i');

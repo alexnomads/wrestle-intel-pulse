@@ -4,6 +4,26 @@ export const isWrestlerMentioned = (wrestlerName: string, content: string): bool
   const normalizedWrestlerName = wrestlerName.toLowerCase().trim();
   const normalizedContent = content.toLowerCase();
   
+  // Handle special cases for similar names
+  const specialCases = {
+    'cody rhodes': ['cody rhodes', 'cody', 'american nightmare'],
+    'dustin rhodes': ['dustin rhodes', 'dustin', 'goldust'],
+    'bobby lashley': ['bobby lashley', 'lashley'],
+    'mjf': ['mjf', 'maxwell jacob friedman', 'friedman'],
+    'tony khan': ['tony khan', 'khan'],
+  };
+  
+  // Check for exact special case matches first
+  const specialCase = specialCases[normalizedWrestlerName];
+  if (specialCase) {
+    for (const variant of specialCase) {
+      const regex = new RegExp(`\\b${variant.replace(/\s+/g, '\\s+')}\\b`, 'i');
+      if (regex.test(normalizedContent)) {
+        return true;
+      }
+    }
+  }
+  
   // Split wrestler name into parts
   const nameParts = normalizedWrestlerName.split(' ').filter(part => part.length > 0);
   

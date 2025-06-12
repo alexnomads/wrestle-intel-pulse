@@ -59,9 +59,19 @@ export const performWrestlerAnalysis = (
         wrestler
       );
       
-      wrestlerMentions.set(wrestler.id, analysis);
-      
-      console.log(`✅ ${wrestler.name}: ${mentions} mentions, Trend: ${analysis.trend}, Sentiment: ${(totalSentiment / mentions).toFixed(2)}`);
+      // Use wrestler name as key to prevent duplicates by name
+      const existingEntry = Array.from(wrestlerMentions.values()).find(w => w.wrestler_name === analysis.wrestler_name);
+      if (existingEntry) {
+        // Merge mentions if wrestler already exists
+        existingEntry.totalMentions += analysis.totalMentions;
+        existingEntry.relatedNews.push(...analysis.relatedNews);
+        existingEntry.sentimentScore = Math.round((existingEntry.sentimentScore + analysis.sentimentScore) / 2);
+        existingEntry.momentumScore += analysis.momentumScore;
+        console.log(`🔄 MERGED duplicate wrestler: ${wrestlerName}`);
+      } else {
+        wrestlerMentions.set(wrestler.id, analysis);
+        console.log(`✅ ${wrestler.name}: ${mentions} mentions, Trend: ${analysis.trend}, Sentiment: ${(totalSentiment / mentions).toFixed(2)}`);
+      }
     } else {
       console.log(`❌ ${wrestler.name}: No mentions found`);
     }
@@ -83,6 +93,6 @@ export const performWrestlerAnalysis = (
     console.log(`${index + 1}. ${wrestler.wrestler_name}: ${wrestler.totalMentions} mentions`);
   });
   
-  // Return only wrestlers with actual mentions (no fallback data)
-  return analysis;
+  // Return top wrestlers, ensuring we get at least the minimum requested
+  return analysis.slice(0, Math.max(minWrestlers, 15));
 };

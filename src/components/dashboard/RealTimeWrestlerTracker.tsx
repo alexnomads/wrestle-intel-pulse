@@ -24,10 +24,10 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
   const { data: newsItems = [], isLoading: newsLoading, refetch } = useRSSFeeds();
 
-  // Analysis hook - get wrestlers with actual mentions only
+  // Analysis hook - get wrestlers with actual mentions only, request at least 10
   const {
     filteredAnalysis
-  } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all');
+  } = useWrestlerAnalysis(wrestlers, newsItems, '10', 'all');
 
   // Only show wrestlers that actually have mentions from the news
   const displayWrestlers = filteredAnalysis.length > 0 ? filteredAnalysis : [];
@@ -69,7 +69,7 @@ export const RealTimeWrestlerTracker: React.FC<Props> = ({ refreshTrigger }) => 
               <div className="space-y-4">
                 {displayWrestlers.map((wrestler, index) => (
                   <WrestlerListItem
-                    key={wrestler.id}
+                    key={`${wrestler.id}-${wrestler.wrestler_name}`}
                     wrestler={wrestler}
                     index={index}
                     onWrestlerClick={handleWrestlerClick}
