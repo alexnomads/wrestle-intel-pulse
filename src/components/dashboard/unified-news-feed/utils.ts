@@ -1,5 +1,5 @@
 import { analyzeSentiment } from "@/services/wrestlingDataService";
-import { UnifiedItem } from "./types";
+import { UnifiedItem, FilterType } from "./types";
 
 export const getCredibilityScore = (source: string): number => {
   const reliableSources = ['wrestling observer', 'pwinsider', 'fightful', 'wrestling inc'];
