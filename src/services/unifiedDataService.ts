@@ -1,9 +1,10 @@
 
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { fetchComprehensiveWrestlingNews, fetchComprehensiveRedditPosts } from './wrestlingDataService';
+import { fetchWrestlingTweets, TwitterPost } from './twitterService';
 
 export interface UnifiedDataSource {
-  type: 'news' | 'reddit';
+  type: 'news' | 'reddit' | 'twitter';
   title: string;
   content: string;
   url?: string;
@@ -31,7 +32,7 @@ export interface DetectedStoryline {
   description: string;
   intensity: number;
   sources: UnifiedDataSource[];
-  platform: 'news' | 'reddit' | 'mixed';
+  platform: 'news' | 'reddit' | 'twitter' | 'mixed';
 }
 
 // Common wrestler names for better detection
@@ -50,9 +51,10 @@ export const fetchUnifiedData = async (): Promise<{
 }> => {
   try {
     // Fetch all data sources in parallel
-    const [newsItems, redditPosts] = await Promise.all([
+    const [newsItems, redditPosts, twitterPosts] = await Promise.all([
       fetchComprehensiveWrestlingNews(),
-      fetchComprehensiveRedditPosts()
+      fetchComprehensiveRedditPosts(),
+      fetchWrestlingTweets()
     ]);
 
     // Convert to unified format
@@ -75,6 +77,18 @@ export const fetchUnifiedData = async (): Promise<{
         engagement: {
           score: post.score,
           comments: post.num_comments
+        }
+      })),
+      ...twitterPosts.map(tweet => ({
+        type: 'twitter' as const,
+        title: tweet.text,
+        content: tweet.text,
+        url: tweet.url,
+        timestamp: tweet.timestamp,
+        source: tweet.author,
+        engagement: {
+          score: tweet.engagement.likes + tweet.engagement.retweets,
+          comments: tweet.engagement.replies
         }
       }))
     ];
@@ -204,6 +218,9 @@ const mergeStorylines = (storylines: DetectedStoryline[]): DetectedStoryline[] =
     if (existing) {
       existing.sources.push(...storyline.sources);
       existing.intensity = Math.max(existing.intensity, storyline.intensity);
+      if (existing.platform !== storyline.platform && existing.platform !== 'mixed') {
+        existing.platform = 'mixed';
+      }
     } else {
       merged.set(key, storyline);
     }
