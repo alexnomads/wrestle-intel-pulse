@@ -13,20 +13,44 @@ export const NewsItem = ({ item }: NewsItemProps) => {
   const sentimentBadge = getSentimentBadge(item.sentiment);
   const credibilityBadge = getCredibilityBadge(item.credibilityScore);
 
-  const handleItemClick = (link: string, title: string, type: string) => {
-    console.log(`Opening ${type} item:`, title, 'Link:', link);
+  const handleItemClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (link && link !== '#') {
+    console.log('NewsItem clicked:', item.title);
+    console.log('Item link:', item.link);
+    console.log('Item type:', item.type);
+    
+    let finalUrl = item.link;
+    
+    // Handle Reddit links specifically
+    if (item.type === 'reddit' && item.link && !item.link.startsWith('http')) {
+      finalUrl = `https://reddit.com${item.link}`;
+    }
+    
+    console.log('Final URL to open:', finalUrl);
+    
+    if (finalUrl && finalUrl !== '#') {
       try {
-        window.open(link, '_blank', 'noopener,noreferrer');
+        const newWindow = window.open(finalUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          console.warn('Popup blocked, trying location.href');
+          window.location.href = finalUrl;
+        }
       } catch (error) {
         console.error('Failed to open link:', error);
-        window.location.href = link;
+        window.location.href = finalUrl;
       }
     } else {
-      console.warn('No valid link for item:', title);
+      console.warn('No valid link for item:', item.title);
       alert('Sorry, no link is available for this item.');
     }
+  };
+
+  const handleExternalLinkClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleItemClick(e);
   };
 
   return (
@@ -34,7 +58,14 @@ export const NewsItem = ({ item }: NewsItemProps) => {
       className={`p-4 rounded-lg transition-all hover:bg-secondary/50 cursor-pointer ${
         item.isBreaking ? 'border-2 border-red-400 bg-red-50 dark:bg-red-900/20' : 'bg-secondary/20'
       }`}
-      onClick={() => handleItemClick(item.link, item.title, item.type)}
+      onClick={handleItemClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleItemClick(e as any);
+        }
+      }}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -94,11 +125,7 @@ export const NewsItem = ({ item }: NewsItemProps) => {
           variant="ghost" 
           size="icon" 
           className="text-muted-foreground hover:text-foreground ml-4 shrink-0"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleItemClick(item.link, item.title, item.type);
-          }}
+          onClick={handleExternalLinkClick}
         >
           <ExternalLink className="h-4 w-4" />
         </Button>
