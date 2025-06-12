@@ -22,9 +22,9 @@ export const PlatformBreakdown = ({ sources }: PlatformBreakdownProps) => {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
   const recentSources = sources.filter(s => s.timestamp > twoHoursAgo);
 
-  // Top sources by engagement
+  // Top sources by engagement (only real engagement data)
   const topSources = sources
-    .filter(s => s.engagement)
+    .filter(s => s.engagement && s.engagement.score > 0)
     .sort((a, b) => (b.engagement?.score || 0) - (a.engagement?.score || 0))
     .slice(0, 5);
 
@@ -70,23 +70,26 @@ export const PlatformBreakdown = ({ sources }: PlatformBreakdownProps) => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Twitter className="h-4 w-4 text-blue-400" />
-              <span className="text-sm">Twitter</span>
+        {/* Only show Twitter if there's actual data */}
+        {twitterCount > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Twitter className="h-4 w-4 text-blue-400" />
+                <span className="text-sm">Twitter</span>
+              </div>
+              <Badge variant="outline" className="border-blue-400 text-blue-600">
+                {twitterCount} ({Math.round(twitterPercentage)}%)
+              </Badge>
             </div>
-            <Badge variant="outline" className="border-blue-400 text-blue-600">
-              {twitterCount} ({Math.round(twitterPercentage)}%)
-            </Badge>
+            <div className="w-full bg-secondary/20 rounded-full h-2">
+              <div 
+                className="bg-blue-400 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${twitterPercentage}%` }}
+              ></div>
+            </div>
           </div>
-          <div className="w-full bg-secondary/20 rounded-full h-2">
-            <div 
-              className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${twitterPercentage}%` }}
-            ></div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Recent Activity */}
@@ -98,7 +101,7 @@ export const PlatformBreakdown = ({ sources }: PlatformBreakdownProps) => {
         </div>
       </div>
 
-      {/* Top Engagement */}
+      {/* Top Engagement - only show if there's real engagement data */}
       {topSources.length > 0 && (
         <div className="space-y-3">
           <h4 className="font-medium text-foreground">Top Engagement</h4>

@@ -50,14 +50,13 @@ export const fetchUnifiedData = async (): Promise<{
   storylines: DetectedStoryline[];
 }> => {
   try {
-    // Fetch all data sources in parallel
-    const [newsItems, redditPosts, twitterPosts] = await Promise.all([
+    // Fetch only real data sources - no mock data
+    const [newsItems, redditPosts] = await Promise.all([
       fetchComprehensiveWrestlingNews(),
-      fetchComprehensiveRedditPosts(),
-      fetchWrestlingTweets()
+      fetchComprehensiveRedditPosts()
     ]);
 
-    // Convert to unified format
+    // Convert to unified format - only real data
     const sources: UnifiedDataSource[] = [
       ...newsItems.map(item => ({
         type: 'news' as const,
@@ -78,27 +77,17 @@ export const fetchUnifiedData = async (): Promise<{
           score: post.score,
           comments: post.num_comments
         }
-      })),
-      ...twitterPosts.map(tweet => ({
-        type: 'twitter' as const,
-        title: tweet.text,
-        content: tweet.text,
-        url: tweet.url,
-        timestamp: tweet.timestamp,
-        source: tweet.author,
-        engagement: {
-          score: tweet.engagement.likes + tweet.engagement.retweets,
-          comments: tweet.engagement.replies
-        }
       }))
     ];
 
-    // Analyze wrestler mentions
+    // Analyze wrestler mentions based on real data only
     const wrestlerMentions = analyzeWrestlerMentions(sources);
     
-    // Detect storylines
+    // Detect storylines from real data only
     const storylines = detectStorylines(sources);
 
+    console.log(`Processed ${sources.length} real data sources (${newsItems.length} news, ${redditPosts.length} reddit)`);
+    
     return { sources, wrestlerMentions, storylines };
   } catch (error) {
     console.error('Error fetching unified data:', error);
@@ -138,9 +127,10 @@ const analyzeWrestlerMentions = (sources: UnifiedDataSource[]): WrestlerMention[
       mentions: data.mentions,
       sentiment: data.sentimentSum / data.mentions,
       sources: data.sources,
-      trend: Math.random() > 0.5 ? 'up' as const : 'down' as const,
-      trendPercentage: Math.floor(Math.random() * 50) + 10
+      trend: data.mentions > 5 ? 'up' as const : data.mentions > 2 ? 'stable' as const : 'down' as const,
+      trendPercentage: Math.min(data.mentions * 10, 100)
     }))
+    .filter(wrestler => wrestler.mentions > 0) // Only show wrestlers with actual mentions
     .sort((a, b) => b.mentions - a.mentions)
     .slice(0, 15);
 };
@@ -162,7 +152,7 @@ const detectStorylines = (sources: UnifiedDataSource[]): DetectedStoryline[] => 
         const intensity = calculateIntensity(content);
         
         storylines.push({
-          id: `${Date.now()}-${Math.random()}`,
+          id: `${source.timestamp.getTime()}-${mentionedWrestlers.join('-')}`,
           title,
           wrestlers: mentionedWrestlers,
           description: source.title,
@@ -178,13 +168,14 @@ const detectStorylines = (sources: UnifiedDataSource[]): DetectedStoryline[] => 
   const merged = mergeStorylines(storylines);
   
   return merged
+    .filter(storyline => storyline.sources.length > 0) // Only storylines with real sources
     .sort((a, b) => b.intensity - a.intensity)
     .slice(0, 10);
 };
 
 const calculateSentiment = (content: string): number => {
-  const positiveWords = ['great', 'amazing', 'awesome', 'incredible', 'fantastic'];
-  const negativeWords = ['terrible', 'awful', 'bad', 'disappointing', 'boring'];
+  const positiveWords = ['great', 'amazing', 'awesome', 'incredible', 'fantastic', 'best', 'perfect', 'excellent'];
+  const negativeWords = ['terrible', 'awful', 'bad', 'disappointing', 'boring', 'worst', 'horrible'];
   
   let score = 0.5; // neutral
   positiveWords.forEach(word => {
@@ -198,8 +189,8 @@ const calculateSentiment = (content: string): number => {
 };
 
 const calculateIntensity = (content: string): number => {
-  const intensityWords = ['attack', 'assault', 'betrayal', 'championship', 'main event'];
-  let intensity = 5;
+  const intensityWords = ['attack', 'assault', 'betrayal', 'championship', 'main event', 'title', 'feud', 'rivalry'];
+  let intensity = 3; // base intensity
   
   intensityWords.forEach(word => {
     if (content.includes(word)) intensity += 1;
