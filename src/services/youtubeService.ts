@@ -30,8 +30,8 @@ export const fetchWrestlingVideos = async (): Promise<YouTubeVideo[]> => {
   try {
     console.log('Fetching YouTube wrestling content...');
     
-    // This will use Supabase Edge Function for YouTube API calls
-    const response = await fetch('/api/youtube-wrestling-data', {
+    // Use Supabase client to call the edge function
+    const response = await fetch('https://wavxulotmntdtixcpzik.supabase.co/functions/v1/youtube-wrestling-data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

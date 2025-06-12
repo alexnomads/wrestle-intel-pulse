@@ -32,8 +32,8 @@ export const fetchWrestlingTweets = async (): Promise<TwitterPost[]> => {
   try {
     console.log('Fetching real-time Twitter wrestling data...');
     
-    // This will use Supabase Edge Function for Twitter API calls
-    const response = await fetch('/api/twitter-wrestling-data', {
+    // Use Supabase client to call the edge function
+    const response = await fetch('https://wavxulotmntdtixcpzik.supabase.co/functions/v1/twitter-wrestling-data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
