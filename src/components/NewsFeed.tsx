@@ -18,6 +18,22 @@ export const NewsFeed = () => {
     return `${diffInDays}d ago`;
   };
 
+  const handleArticleClick = (link: string, title: string) => {
+    console.log('Opening article:', title, 'Link:', link);
+    
+    if (link && link !== '#') {
+      try {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Failed to open link:', error);
+        window.location.href = link;
+      }
+    } else {
+      console.warn('No valid link for article:', title);
+      alert('Sorry, no link is available for this article.');
+    }
+  };
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -60,8 +76,12 @@ export const NewsFeed = () => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={() => window.open(item.link, '_blank')}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleArticleClick(item.link, item.title);
+                  }}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>

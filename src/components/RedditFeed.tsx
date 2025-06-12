@@ -17,6 +17,18 @@ export const RedditFeed = () => {
     return `${diffInDays}d ago`;
   };
 
+  const handleRedditClick = (permalink: string, title: string) => {
+    const fullUrl = `https://reddit.com${permalink}`;
+    console.log('Opening Reddit post:', title, 'URL:', fullUrl);
+    
+    try {
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Failed to open Reddit link:', error);
+      window.location.href = fullUrl;
+    }
+  };
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -59,8 +71,12 @@ export const RedditFeed = () => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={() => window.open(`https://reddit.com${post.permalink}`, '_blank')}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRedditClick(post.permalink, post.title);
+                  }}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>

@@ -46,6 +46,18 @@ export const CommunityHotTopics = ({ refreshTrigger }: CommunityHotTopicsProps) 
     return `${diffInDays}d ago`;
   };
 
+  const handleRedditClick = (permalink: string, title: string) => {
+    const fullUrl = `https://reddit.com${permalink}`;
+    console.log('Opening Reddit discussion:', title, 'URL:', fullUrl);
+    
+    try {
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Failed to open Reddit link:', error);
+      window.location.href = fullUrl;
+    }
+  };
+
   // Generate weekly/monthly summaries
   const getTrendSummary = () => {
     const totalEngagement = hotDiscussions.reduce((sum, post) => sum + post.score + post.num_comments, 0);
@@ -182,7 +194,11 @@ export const CommunityHotTopics = ({ refreshTrigger }: CommunityHotTopicsProps) 
                   <div 
                     key={post.url + index}
                     className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-                    onClick={() => window.open(`https://reddit.com${post.permalink}`, '_blank')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRedditClick(post.permalink, post.title);
+                    }}
                   >
                     <div className="flex items-center space-x-3 flex-1">
                       <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">

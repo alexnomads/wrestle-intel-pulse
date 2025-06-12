@@ -20,11 +20,24 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     });
   };
 
-  const handleReadClick = () => {
-    if (mention.link) {
-      window.open(mention.link, '_blank', 'noopener,noreferrer');
+  const handleReadClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Read button clicked for:', mention.title);
+    console.log('Article link:', mention.link);
+    
+    if (mention.link && mention.link !== '#') {
+      try {
+        window.open(mention.link, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Failed to open link:', error);
+        // Fallback: try to navigate in same window
+        window.location.href = mention.link;
+      }
     } else {
-      console.warn('No link available for this article');
+      console.warn('No valid link available for this article');
+      alert('Sorry, no link is available for this article.');
     }
   };
 
@@ -54,8 +67,8 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
           variant="outline"
           size="sm"
           onClick={handleReadClick}
-          disabled={!mention.link}
-          className="flex items-center space-x-1"
+          disabled={!mention.link || mention.link === '#'}
+          className="flex items-center space-x-1 shrink-0"
         >
           <ExternalLink className="h-3 w-3" />
           <span>Read</span>

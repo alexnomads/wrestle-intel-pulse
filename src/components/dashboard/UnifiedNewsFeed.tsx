@@ -50,6 +50,27 @@ export const UnifiedNewsFeed = ({ refreshTrigger }: UnifiedNewsFeedProps) => {
     return hoursOld < 2 && breakingKeywords.some(keyword => title.toLowerCase().includes(keyword));
   };
 
+  const handleItemClick = (link: string, title: string, type: 'news' | 'reddit') => {
+    console.log(`Opening ${type} item:`, title, 'Link:', link);
+    
+    let finalUrl = link;
+    if (type === 'reddit' && !link.startsWith('http')) {
+      finalUrl = `https://reddit.com${link}`;
+    }
+    
+    if (finalUrl && finalUrl !== '#') {
+      try {
+        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Failed to open link:', error);
+        window.location.href = finalUrl;
+      }
+    } else {
+      console.warn('No valid link for item:', title);
+      alert('Sorry, no link is available for this item.');
+    }
+  };
+
   // Combine and process all items
   const unifiedItems: UnifiedItem[] = [
     ...newsItems.map((item, index) => {
@@ -227,8 +248,12 @@ export const UnifiedNewsFeed = ({ refreshTrigger }: UnifiedNewsFeedProps) => {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-muted-foreground hover:text-foreground ml-4"
-                    onClick={() => window.open(item.link, '_blank')}
+                    className="text-muted-foreground hover:text-foreground ml-4 shrink-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleItemClick(item.link, item.title, item.type);
+                    }}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
