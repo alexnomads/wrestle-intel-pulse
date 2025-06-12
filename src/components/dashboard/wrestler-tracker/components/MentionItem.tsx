@@ -41,11 +41,31 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     }
   };
 
+  const handleMentionClick = () => {
+    console.log('Mention item clicked:', mention.title);
+    console.log('Article link:', mention.link);
+    
+    if (mention.link && mention.link !== '#') {
+      try {
+        window.open(mention.link, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Failed to open link:', error);
+        window.location.href = mention.link;
+      }
+    } else {
+      console.warn('No valid link available for this article');
+      alert('Sorry, no link is available for this article.');
+    }
+  };
+
   return (
-    <div className="p-4 bg-background border border-border/50 rounded-lg hover:bg-secondary/20 transition-colors">
+    <div 
+      className="p-4 bg-background border border-border/50 rounded-lg hover:bg-secondary/20 transition-colors cursor-pointer"
+      onClick={handleMentionClick}
+    >
       <div className="flex items-start justify-between space-x-4">
         <div className="flex-1">
-          <h4 className="font-medium text-foreground mb-2 line-clamp-2">
+          <h4 className="font-medium text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
             {mention.title}
           </h4>
           {mention.contentSnippet && (

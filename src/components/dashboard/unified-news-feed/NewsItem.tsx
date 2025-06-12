@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, AlertTriangle, ArrowUp, MessageSquare } from "lucide-react";
 import { UnifiedItem } from "./types";
-import { getSentimentBadge, getCredibilityBadge, formatTimeAgo, handleItemClick } from "./utils";
+import { getSentimentBadge, getCredibilityBadge, formatTimeAgo } from "./utils";
 
 interface NewsItemProps {
   item: UnifiedItem;
@@ -13,11 +13,28 @@ export const NewsItem = ({ item }: NewsItemProps) => {
   const sentimentBadge = getSentimentBadge(item.sentiment);
   const credibilityBadge = getCredibilityBadge(item.credibilityScore);
 
+  const handleItemClick = (link: string, title: string, type: string) => {
+    console.log(`Opening ${type} item:`, title, 'Link:', link);
+    
+    if (link && link !== '#') {
+      try {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Failed to open link:', error);
+        window.location.href = link;
+      }
+    } else {
+      console.warn('No valid link for item:', title);
+      alert('Sorry, no link is available for this item.');
+    }
+  };
+
   return (
     <div 
-      className={`p-4 rounded-lg transition-all hover:bg-secondary/50 ${
+      className={`p-4 rounded-lg transition-all hover:bg-secondary/50 cursor-pointer ${
         item.isBreaking ? 'border-2 border-red-400 bg-red-50 dark:bg-red-900/20' : 'bg-secondary/20'
       }`}
+      onClick={() => handleItemClick(item.link, item.title, item.type)}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -39,7 +56,7 @@ export const NewsItem = ({ item }: NewsItemProps) => {
             </Badge>
           </div>
           
-          <h4 className="font-medium text-foreground leading-tight mb-2">
+          <h4 className="font-medium text-foreground leading-tight mb-2 hover:text-primary transition-colors">
             {item.title}
           </h4>
           
