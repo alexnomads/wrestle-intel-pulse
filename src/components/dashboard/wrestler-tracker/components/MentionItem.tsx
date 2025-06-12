@@ -28,13 +28,14 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     console.log('Article link:', mention.link);
     
     if (mention.link && mention.link !== '#') {
-      try {
-        window.open(mention.link, '_blank', 'noopener,noreferrer');
-      } catch (error) {
-        console.error('Failed to open link:', error);
-        // Fallback: try to navigate in same window
-        window.location.href = mention.link;
-      }
+      // Create a temporary anchor element and click it - this bypasses popup blockers
+      const link = document.createElement('a');
+      link.href = mention.link;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       console.warn('No valid link available for this article');
       alert('Sorry, no link is available for this article.');
@@ -46,12 +47,14 @@ export const MentionItem = ({ mention, index }: MentionItemProps) => {
     console.log('Article link:', mention.link);
     
     if (mention.link && mention.link !== '#') {
-      try {
-        window.open(mention.link, '_blank', 'noopener,noreferrer');
-      } catch (error) {
-        console.error('Failed to open link:', error);
-        window.location.href = mention.link;
-      }
+      // Create a temporary anchor element and click it - this bypasses popup blockers
+      const link = document.createElement('a');
+      link.href = mention.link;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       console.warn('No valid link available for this article');
       alert('Sorry, no link is available for this article.');

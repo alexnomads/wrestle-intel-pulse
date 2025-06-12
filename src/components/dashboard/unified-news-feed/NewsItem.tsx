@@ -31,16 +31,14 @@ export const NewsItem = ({ item }: NewsItemProps) => {
     console.log('Final URL to open:', finalUrl);
     
     if (finalUrl && finalUrl !== '#') {
-      try {
-        const newWindow = window.open(finalUrl, '_blank', 'noopener,noreferrer');
-        if (!newWindow) {
-          console.warn('Popup blocked, trying location.href');
-          window.location.href = finalUrl;
-        }
-      } catch (error) {
-        console.error('Failed to open link:', error);
-        window.location.href = finalUrl;
-      }
+      // Create a temporary anchor element and click it - this bypasses popup blockers
+      const link = document.createElement('a');
+      link.href = finalUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       console.warn('No valid link for item:', item.title);
       alert('Sorry, no link is available for this item.');
