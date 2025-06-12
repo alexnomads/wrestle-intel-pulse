@@ -10,12 +10,16 @@ interface FilterButtonsProps {
 export const FilterButtons = ({ filter, onFilterChange }: FilterButtonsProps) => {
   const filterOptions = [
     { id: 'all', label: 'All' },
+    { id: 'news', label: 'News' },
+    { id: 'reddit', label: 'Reddit' },
+    { id: 'twitter', label: 'Twitter' },
+    { id: 'youtube', label: 'YouTube' },
     { id: 'positive', label: 'Positive' },
     { id: 'negative', label: 'Negative' }
   ];
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2 flex-wrap">
       <Filter className="h-4 w-4 text-muted-foreground" />
       {filterOptions.map((filterOption) => (
         <button

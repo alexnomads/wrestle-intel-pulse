@@ -1,4 +1,3 @@
-
 import { analyzeSentiment } from "@/services/wrestlingDataService";
 import { UnifiedItem } from "./types";
 
@@ -102,13 +101,18 @@ export const createUnifiedItems = (newsItems: any[], redditPosts: any[]): Unifie
   return unifiedItems;
 };
 
-export const filterItems = (items: UnifiedItem[], filter: 'all' | 'positive' | 'negative'): UnifiedItem[] => {
-  switch (filter) {
-    case 'positive':
-      return items.filter(item => item.sentiment > 0.6);
-    case 'negative':
-      return items.filter(item => item.sentiment < 0.4);
-    default:
-      return items;
-  }
+export const filterItems = (items: UnifiedItem[], filter: FilterType): UnifiedItem[] => {
+  return items.filter(item => {
+    // Content type filters
+    if (filter === 'news' && item.type !== 'news') return false;
+    if (filter === 'reddit' && item.type !== 'reddit') return false;
+    if (filter === 'twitter' && item.type !== 'twitter') return false;
+    if (filter === 'youtube' && item.type !== 'youtube') return false;
+    
+    // Sentiment filters
+    if (filter === 'positive' && item.sentiment <= 0.6) return false;
+    if (filter === 'negative' && item.sentiment >= 0.4) return false;
+    
+    return true;
+  }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };

@@ -4,7 +4,7 @@ export interface UnifiedItem {
   title: string;
   content: string;
   source: string;
-  type: 'news' | 'reddit';
+  type: 'news' | 'reddit' | 'twitter' | 'youtube';
   timestamp: Date;
   link: string;
   sentiment: number;
@@ -16,7 +16,7 @@ export interface UnifiedItem {
   };
 }
 
-export type FilterType = 'all' | 'positive' | 'negative';
+export type FilterType = 'all' | 'positive' | 'negative' | 'news' | 'reddit' | 'twitter' | 'youtube';
 
 export interface UnifiedNewsFeedProps {
   refreshTrigger: Date;
