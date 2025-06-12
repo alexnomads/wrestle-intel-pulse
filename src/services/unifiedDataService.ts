@@ -1,4 +1,3 @@
-
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { fetchComprehensiveRedditPosts } from './wrestlingDataService';
 import { fetchOptimizedRSSFeeds } from './data/optimizedRssService';
@@ -34,7 +33,7 @@ export interface DetectedStoryline {
   description: string;
   intensity: number;
   sources: UnifiedDataSource[];
-  platform: 'news' | 'reddit' | 'twitter' | 'mixed';
+  platform: 'news' | 'reddit' | 'twitter' | 'youtube' | 'mixed';
 }
 
 // Common wrestler names for better detection
