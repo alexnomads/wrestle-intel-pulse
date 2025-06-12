@@ -43,48 +43,6 @@ export interface StorylineMomentum {
   predicted_peak: Date | null;
 }
 
-// Simulated historical data for trend calculation
-const getHistoricalMentions = (wrestlerName: string, timeframe: '24h' | '7d' | '30d'): number => {
-  const baselineMap: Record<string, number> = {
-    'CM Punk': 45,
-    'Roman Reigns': 38,
-    'Cody Rhodes': 42,
-    'Seth Rollins': 35,
-    'Drew McIntyre': 28,
-    'Jon Moxley': 25,
-    'Kenny Omega': 22,
-    'Will Ospreay': 30,
-    'Rhea Ripley': 33,
-    'Bianca Belair': 29
-  };
-  
-  const baseline = baselineMap[wrestlerName] || 15;
-  const variance = Math.random() * 0.4 + 0.8; // 80-120% variance
-  
-  return Math.round(baseline * variance);
-};
-
-const getHistoricalSentiment = (wrestlerName: string): number => {
-  // Simulate sentiment history with some realistic patterns
-  const sentimentPatterns: Record<string, number> = {
-    'CM Punk': 0.72,
-    'Roman Reigns': 0.58,
-    'Cody Rhodes': 0.78,
-    'Seth Rollins': 0.65,
-    'Drew McIntyre': 0.69,
-    'Jon Moxley': 0.63,
-    'Kenny Omega': 0.71,
-    'Will Ospreay': 0.76,
-    'Rhea Ripley': 0.74,
-    'Bianca Belair': 0.68
-  };
-  
-  const baseline = sentimentPatterns[wrestlerName] || 0.55;
-  const variance = (Math.random() - 0.5) * 0.2; // ±0.1 variance
-  
-  return Math.max(0, Math.min(1, baseline + variance));
-};
-
 export const analyzeWrestlerTrends = (
   newsItems: NewsItem[],
   redditPosts: RedditPost[],
@@ -93,74 +51,110 @@ export const analyzeWrestlerTrends = (
   const wrestlerStats = new Map<string, {
     mentions: number;
     sentiments: number[];
+    timestamps: Date[];
   }>();
+
+  // Get cutoff time based on timeframe
+  const now = new Date();
+  const cutoffTime = new Date();
+  switch (timeframe) {
+    case '24h':
+      cutoffTime.setHours(now.getHours() - 24);
+      break;
+    case '7d':
+      cutoffTime.setDate(now.getDate() - 7);
+      break;
+    case '30d':
+      cutoffTime.setDate(now.getDate() - 30);
+      break;
+  }
 
   // Analyze current mentions and sentiment from news items
   newsItems.forEach(item => {
-    const content = `${item.title} ${item.contentSnippet || ''}`;
-    const mentions = extractWrestlerMentions(content);
-    const sentiment = analyzeSentiment(content);
-    
-    mentions.forEach(wrestler => {
-      const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [] };
-      existing.mentions++;
-      existing.sentiments.push(sentiment.score);
-      wrestlerStats.set(wrestler, existing);
-    });
+    const itemDate = new Date(item.pubDate);
+    if (itemDate >= cutoffTime) {
+      const content = `${item.title} ${item.contentSnippet || ''}`;
+      const mentions = extractWrestlerMentions(content);
+      const sentiment = analyzeSentiment(content);
+      
+      mentions.forEach(wrestler => {
+        const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [], timestamps: [] };
+        existing.mentions++;
+        existing.sentiments.push(sentiment.score);
+        existing.timestamps.push(itemDate);
+        wrestlerStats.set(wrestler, existing);
+      });
+    }
   });
 
   // Analyze current mentions and sentiment from reddit posts
   redditPosts.forEach(post => {
-    const content = `${post.title} ${post.selftext}`;
-    const mentions = extractWrestlerMentions(content);
-    const sentiment = analyzeSentiment(content);
-    
-    mentions.forEach(wrestler => {
-      const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [] };
-      existing.mentions++;
-      existing.sentiments.push(sentiment.score);
-      wrestlerStats.set(wrestler, existing);
-    });
+    const postDate = new Date(post.created_utc * 1000);
+    if (postDate >= cutoffTime) {
+      const content = `${post.title} ${post.selftext}`;
+      const mentions = extractWrestlerMentions(content);
+      const sentiment = analyzeSentiment(content);
+      
+      mentions.forEach(wrestler => {
+        const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [], timestamps: [] };
+        existing.mentions++;
+        existing.sentiments.push(sentiment.score);
+        existing.timestamps.push(postDate);
+        wrestlerStats.set(wrestler, existing);
+      });
+    }
   });
 
-  // Calculate trends
+  // Calculate trends based on real data only
   const trends: WrestlerTrend[] = [];
   
   wrestlerStats.forEach((stats, wrestlerName) => {
-    const currentMentions = stats.mentions;
-    const previousMentions = getHistoricalMentions(wrestlerName, timeframe);
-    const mentionChange = ((currentMentions - previousMentions) / previousMentions) * 100;
+    // Split data into current and previous periods for comparison
+    const midpoint = new Date(cutoffTime.getTime() + (now.getTime() - cutoffTime.getTime()) / 2);
     
-    const currentSentiment = stats.sentiments.length > 0 
-      ? stats.sentiments.reduce((sum, s) => sum + s, 0) / stats.sentiments.length 
-      : 0.5;
-    const previousSentiment = getHistoricalSentiment(wrestlerName);
-    const sentimentChange = currentSentiment - previousSentiment;
+    const currentPeriodMentions = stats.timestamps.filter(t => t >= midpoint).length;
+    const previousPeriodMentions = stats.timestamps.filter(t => t < midpoint).length;
     
-    let trendingDirection: 'rising' | 'falling' | 'stable' = 'stable';
-    if (mentionChange > 15) trendingDirection = 'rising';
-    else if (mentionChange < -15) trendingDirection = 'falling';
+    const currentPeriodSentiments = stats.sentiments.filter((_, index) => stats.timestamps[index] >= midpoint);
+    const previousPeriodSentiments = stats.sentiments.filter((_, index) => stats.timestamps[index] < midpoint);
     
-    const momentumScore = Math.min(100, Math.max(0, 
-      (mentionChange / 2) + (sentimentChange * 50) + 50
-    ));
+    const currentSentiment = currentPeriodSentiments.length > 0 
+      ? currentPeriodSentiments.reduce((sum, s) => sum + s, 0) / currentPeriodSentiments.length 
+      : 0;
+    const previousSentiment = previousPeriodSentiments.length > 0 
+      ? previousPeriodSentiments.reduce((sum, s) => sum + s, 0) / previousPeriodSentiments.length 
+      : 0;
+    
+    // Only calculate trends if we have data from both periods
+    if (previousPeriodMentions > 0 && currentPeriodMentions >= 0) {
+      const mentionChange = ((currentPeriodMentions - previousPeriodMentions) / previousPeriodMentions) * 100;
+      const sentimentChange = currentSentiment - previousSentiment;
+      
+      let trendingDirection: 'rising' | 'falling' | 'stable' = 'stable';
+      if (mentionChange > 15) trendingDirection = 'rising';
+      else if (mentionChange < -15) trendingDirection = 'falling';
+      
+      const momentumScore = Math.min(100, Math.max(0, 
+        (mentionChange / 2) + (sentimentChange * 50) + 50
+      ));
 
-    trends.push({
-      wrestler_name: wrestlerName,
-      current_mentions: currentMentions,
-      previous_mentions: previousMentions,
-      mention_change_percentage: Math.round(mentionChange),
-      current_sentiment: currentSentiment,
-      previous_sentiment: previousSentiment,
-      sentiment_change: Math.round(sentimentChange * 100) / 100,
-      trending_direction: trendingDirection,
-      momentum_score: Math.round(momentumScore),
-      timeframe
-    });
+      trends.push({
+        wrestler_name: wrestlerName,
+        current_mentions: currentPeriodMentions,
+        previous_mentions: previousPeriodMentions,
+        mention_change_percentage: Math.round(mentionChange),
+        current_sentiment: currentSentiment,
+        previous_sentiment: previousSentiment,
+        sentiment_change: Math.round(sentimentChange * 100) / 100,
+        trending_direction: trendingDirection,
+        momentum_score: Math.round(momentumScore),
+        timeframe
+      });
+    }
   });
 
   return trends
-    .filter(trend => trend.current_mentions > 0)
+    .filter(trend => trend.current_mentions > 0 || trend.previous_mentions > 0)
     .sort((a, b) => Math.abs(b.mention_change_percentage) - Math.abs(a.mention_change_percentage))
     .slice(0, 10);
 };
@@ -172,11 +166,11 @@ export const generateTrendAlerts = (
   const alerts: TrendAlert[] = [];
   let alertId = 1;
 
-  // Generate mention spike alerts
+  // Generate mention spike alerts only for significant changes with real data
   trends.forEach(trend => {
-    if (Math.abs(trend.mention_change_percentage) > 100) {
-      const severity = Math.abs(trend.mention_change_percentage) > 300 ? 'critical' :
-                     Math.abs(trend.mention_change_percentage) > 200 ? 'high' : 'medium';
+    if (Math.abs(trend.mention_change_percentage) > 50 && trend.previous_mentions > 0) {
+      const severity = Math.abs(trend.mention_change_percentage) > 200 ? 'critical' :
+                     Math.abs(trend.mention_change_percentage) > 100 ? 'high' : 'medium';
       
       alerts.push({
         id: `alert-${alertId++}`,
@@ -195,14 +189,14 @@ export const generateTrendAlerts = (
       });
     }
 
-    // Generate sentiment shift alerts
-    if (Math.abs(trend.sentiment_change) > 0.2) {
+    // Generate sentiment shift alerts only for significant changes
+    if (Math.abs(trend.sentiment_change) > 0.15 && trend.previous_mentions > 0) {
       alerts.push({
         id: `alert-${alertId++}`,
         type: 'sentiment_shift',
         title: `${trend.wrestler_name} Sentiment ${trend.sentiment_change > 0 ? 'Boost' : 'Decline'}`,
         description: `Fan sentiment for ${trend.wrestler_name} has ${trend.sentiment_change > 0 ? 'improved' : 'declined'} significantly`,
-        severity: Math.abs(trend.sentiment_change) > 0.3 ? 'high' : 'medium',
+        severity: Math.abs(trend.sentiment_change) > 0.25 ? 'high' : 'medium',
         timestamp: new Date(),
         wrestler: trend.wrestler_name,
         data: {
@@ -215,26 +209,6 @@ export const generateTrendAlerts = (
     }
   });
 
-  // Generate storyline momentum alerts
-  storylines.forEach(storyline => {
-    if (storyline.momentum_score > 80 && storyline.momentum_direction === 'building') {
-      alerts.push({
-        id: `alert-${alertId++}`,
-        type: 'storyline_momentum',
-        title: `${storyline.title} Gaining Momentum`,
-        description: `Storyline involving ${storyline.participants.join(', ')} is building significant momentum`,
-        severity: 'medium',
-        timestamp: new Date(),
-        data: {
-          current_value: storyline.momentum_score,
-          previous_value: storyline.momentum_score - storyline.intensity_change,
-          change_percentage: storyline.intensity_change,
-          timeframe: '24h'
-        }
-      });
-    }
-  });
-
   return alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
 
@@ -242,70 +216,91 @@ export const trackStorylineMomentum = (
   newsItems: NewsItem[],
   redditPosts: RedditPost[]
 ): StorylineMomentum[] => {
-  const storylines: StorylineMomentum[] = [
-    {
-      storyline_id: 'punk-drew-feud',
-      title: 'CM Punk vs Drew McIntyre',
-      participants: ['CM Punk', 'Drew McIntyre'],
-      momentum_score: 85,
-      momentum_direction: 'building',
-      intensity_change: 15,
-      fan_engagement_trend: 12,
-      recent_events: ['Backstage confrontation', 'Social media exchange'],
-      predicted_peak: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-    },
-    {
-      storyline_id: 'rhea-dominance',
-      title: 'Rhea Ripley Championship Reign',
-      participants: ['Rhea Ripley', 'Liv Morgan', 'Raquel Rodriguez'],
-      momentum_score: 72,
-      momentum_direction: 'peaked',
-      intensity_change: -5,
-      fan_engagement_trend: -3,
-      recent_events: ['Title defense', 'New challenger emerges'],
-      predicted_peak: null
-    },
-    {
-      storyline_id: 'cody-title-defense',
-      title: 'Cody Rhodes Title Challenges',
-      participants: ['Cody Rhodes', 'Kevin Owens', 'Randy Orton'],
-      momentum_score: 68,
-      momentum_direction: 'cooling',
-      intensity_change: -8,
-      fan_engagement_trend: -6,
-      recent_events: ['Successful title defense', 'Post-match segment'],
-      predicted_peak: null
-    }
-  ];
+  const storylineMap = new Map<string, {
+    mentions: number;
+    sentiment: number;
+    participants: Set<string>;
+    recentEvents: string[];
+  }>();
 
-  // Enhance with real data analysis
+  // Get data from last 7 days only
+  const cutoffTime = new Date();
+  cutoffTime.setDate(cutoffTime.getDate() - 7);
+
+  // Analyze storylines from real data
   const allContent = [
-    ...newsItems.map(item => ({ content: `${item.title} ${item.contentSnippet || ''}`, timestamp: new Date(item.pubDate) })),
-    ...redditPosts.map(post => ({ content: `${post.title} ${post.selftext}`, timestamp: new Date(post.created_utc * 1000) }))
+    ...newsItems
+      .filter(item => new Date(item.pubDate) >= cutoffTime)
+      .map(item => ({ 
+        content: `${item.title} ${item.contentSnippet || ''}`, 
+        timestamp: new Date(item.pubDate),
+        title: item.title
+      })),
+    ...redditPosts
+      .filter(post => new Date(post.created_utc * 1000) >= cutoffTime)
+      .map(post => ({ 
+        content: `${post.title} ${post.selftext}`, 
+        timestamp: new Date(post.created_utc * 1000),
+        title: post.title
+      }))
   ];
 
-  storylines.forEach(storyline => {
-    let mentionCount = 0;
-    let totalSentiment = 0;
+  // Detect storylines from mentions and keywords
+  allContent.forEach(({ content, title }) => {
+    const mentions = extractWrestlerMentions(content);
+    const sentiment = analyzeSentiment(content);
     
-    allContent.forEach(({ content }) => {
-      const hasMention = storyline.participants.some(participant => 
-        content.toLowerCase().includes(participant.toLowerCase())
-      );
+    // Look for storyline indicators
+    const hasStorylineKeywords = ['vs', 'versus', 'feud', 'rivalry', 'championship', 'title', 'match', 'fight'].some(
+      keyword => content.toLowerCase().includes(keyword)
+    );
+    
+    if (mentions.length >= 2 && hasStorylineKeywords) {
+      const storylineKey = mentions.slice(0, 2).sort().join(' vs ');
+      const existing = storylineMap.get(storylineKey) || {
+        mentions: 0,
+        sentiment: 0,
+        participants: new Set(),
+        recentEvents: []
+      };
       
-      if (hasMention) {
-        mentionCount++;
-        const sentiment = analyzeSentiment(content);
-        totalSentiment += sentiment.score;
-      }
-    });
-
-    if (mentionCount > 0) {
-      const avgSentiment = totalSentiment / mentionCount;
-      storyline.momentum_score = Math.min(100, storyline.momentum_score + (avgSentiment - 0.5) * 20);
-      storyline.fan_engagement_trend = mentionCount > 10 ? 8 : mentionCount > 5 ? 4 : 0;
+      existing.mentions++;
+      existing.sentiment += sentiment.score;
+      mentions.forEach(wrestler => existing.participants.add(wrestler));
+      existing.recentEvents.push(title);
+      
+      storylineMap.set(storylineKey, existing);
     }
   });
 
-  return storylines.sort((a, b) => b.momentum_score - a.momentum_score);
+  // Convert to storyline momentum objects
+  const storylines: StorylineMomentum[] = [];
+  
+  storylineMap.forEach((data, storylineKey) => {
+    if (data.mentions >= 2) { // Only include storylines with multiple mentions
+      const avgSentiment = data.sentiment / data.mentions;
+      const momentumScore = Math.min(100, Math.max(0, (data.mentions * 10) + (avgSentiment * 50)));
+      
+      let momentumDirection: 'building' | 'cooling' | 'peaked' | 'declining' = 'building';
+      if (momentumScore < 30) momentumDirection = 'cooling';
+      else if (momentumScore > 80) momentumDirection = 'peaked';
+      
+      storylines.push({
+        storyline_id: storylineKey.toLowerCase().replace(/\s+/g, '-'),
+        title: storylineKey,
+        participants: Array.from(data.participants),
+        momentum_score: Math.round(momentumScore),
+        momentum_direction: momentumDirection,
+        intensity_change: data.mentions,
+        fan_engagement_trend: Math.round(avgSentiment * 100),
+        recent_events: data.recentEvents.slice(0, 3),
+        predicted_peak: momentumDirection === 'building' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null
+      });
+    }
+  });
+
+  return storylines
+    .filter(storyline => storyline.participants.length >= 2)
+    .sort((a, b) => b.momentum_score - a.momentum_score)
+    .slice(0, 5);
 };
