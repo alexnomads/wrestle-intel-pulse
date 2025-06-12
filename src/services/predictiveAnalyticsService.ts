@@ -95,11 +95,23 @@ export const analyzeWrestlerTrends = (
     sentiments: number[];
   }>();
 
-  // Analyze current mentions and sentiment
-  [...newsItems, ...redditPosts].forEach(item => {
-    const content = 'title' in item ? `${item.title} ${item.contentSnippet || ''}` : 
-                   `${item.title} ${item.selftext}`;
+  // Analyze current mentions and sentiment from news items
+  newsItems.forEach(item => {
+    const content = `${item.title} ${item.contentSnippet || ''}`;
+    const mentions = extractWrestlerMentions(content);
+    const sentiment = analyzeSentiment(content);
     
+    mentions.forEach(wrestler => {
+      const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [] };
+      existing.mentions++;
+      existing.sentiments.push(sentiment.score);
+      wrestlerStats.set(wrestler, existing);
+    });
+  });
+
+  // Analyze current mentions and sentiment from reddit posts
+  redditPosts.forEach(post => {
+    const content = `${post.title} ${post.selftext}`;
     const mentions = extractWrestlerMentions(content);
     const sentiment = analyzeSentiment(content);
     
