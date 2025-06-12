@@ -1,136 +1,151 @@
 
-import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Flame, Crown } from 'lucide-react';
+import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 
 interface WrestlerCardProps {
-  wrestler: {
-    id: string;
-    wrestler_name: string;
-    promotion: string;
-    totalMentions: number;
-    sentimentScore: number;
-    trend: 'push' | 'burial' | 'stable';
-    isOnFire: boolean;
-    momentumScore: number;
-    popularityScore: number;
-    change24h: number;
-    relatedNews: Array<{
-      title: string;
-      link: string;
-      source: string;
-      pubDate: string;
-    }>;
-  };
+  wrestler: WrestlerAnalysis;
   index: number;
   totalWrestlers: number;
 }
 
-export const WrestlerCard: React.FC<WrestlerCardProps> = ({ wrestler, index, totalWrestlers }) => {
-  // Calculate rectangle dimensions based on popularity score
-  const maxScore = 100; // Assuming max popularity score
-  const minSize = 120; // Minimum rectangle size
-  const maxSize = 300; // Maximum rectangle size
-  
-  const normalizedScore = Math.max(0, Math.min(100, wrestler.popularityScore || wrestler.totalMentions));
-  const baseSize = (normalizedScore / maxScore) * (maxSize - minSize) + minSize;
-  
-  // Calculate aspect ratio for variety
-  const aspectRatio = 1.2 + (index % 3) * 0.3; // Vary between 1.2 and 2.1
-  const width = Math.sqrt(baseSize * baseSize * aspectRatio);
-  const height = Math.sqrt(baseSize * baseSize / aspectRatio);
+// Function to get wrestler image based on name
+const getWrestlerImage = (wrestlerName: string): string => {
+  // Create a mapping of wrestler names to Wikipedia/placeholder images
+  const wrestlerImages: { [key: string]: string } = {
+    'Roman Reigns': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Roman_Reigns_April_2022.jpg/800px-Roman_Reigns_April_2022.jpg',
+    'Cody Rhodes': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Cody_Rhodes_in_April_2023.jpg/800px-Cody_Rhodes_in_April_2023.jpg',
+    'CM Punk': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/CM_Punk_2023.jpg/800px-CM_Punk_2023.jpg',
+    'Jon Moxley': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Jon_Moxley_2019.jpg/800px-Jon_Moxley_2019.jpg',
+    'MJF': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Maxwell_Jacob_Friedman_2022.jpg/800px-Maxwell_Jacob_Friedman_2022.jpg',
+    'Gunther': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Walter_2020.jpg/800px-Walter_2020.jpg',
+    'Rhea Ripley': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Rhea_Ripley_2023.jpg/800px-Rhea_Ripley_2023.jpg',
+    'Bianca Belair': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Bianca_Belair_2023.jpg/800px-Bianca_Belair_2023.jpg',
+    'Seth Rollins': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Seth_Rollins_2023.jpg/800px-Seth_Rollins_2023.jpg',
+    'Drew McIntyre': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Drew_McIntyre_2023.jpg/800px-Drew_McIntyre_2023.jpg'
+  };
 
-  // Calculate color based on 24h change
-  const getChangeColor = (change: number) => {
-    if (change > 0) {
-      // Green intensity based on positive change
-      const intensity = Math.min(Math.abs(change) / 20, 1); // Cap at 20% for full intensity
-      const greenValue = Math.floor(34 + intensity * 100); // Range from 34 to 134
-      return `rgb(${Math.floor(21 - intensity * 10)}, ${greenValue}, ${Math.floor(57 - intensity * 20)})`;
-    } else if (change < 0) {
-      // Red intensity based on negative change
-      const intensity = Math.min(Math.abs(change) / 20, 1);
-      const redValue = Math.floor(185 + intensity * 70); // Range from 185 to 255
-      return `rgb(${redValue}, ${Math.floor(57 - intensity * 30)}, ${Math.floor(57 - intensity * 30)})`;
-    } else {
-      // Neutral gray
-      return 'rgb(75, 85, 99)';
+  // Return specific image if available, otherwise use a placeholder
+  return wrestlerImages[wrestlerName] || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&crop=face`;
+};
+
+export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardProps) => {
+  // Calculate card size based on mentions and position
+  const baseSize = Math.max(120, Math.min(200, wrestler.totalMentions * 8));
+  const sizeMultiplier = index < 3 ? 1.2 : index < 5 ? 1.0 : 0.8;
+  const cardSize = baseSize * sizeMultiplier;
+
+  const getTrendIcon = () => {
+    if (wrestler.change24h > 0) return <TrendingUp className="h-3 w-3 text-green-400" />;
+    if (wrestler.change24h < 0) return <TrendingDown className="h-3 w-3 text-red-400" />;
+    return null;
+  };
+
+  const getSentimentColor = (sentiment: number) => {
+    if (sentiment >= 80) return 'border-green-500 bg-green-500/10';
+    if (sentiment >= 60) return 'border-yellow-500 bg-yellow-500/10';
+    return 'border-red-500 bg-red-500/10';
+  };
+
+  const getPromotionColor = (promotion: string) => {
+    switch (promotion.toUpperCase()) {
+      case 'WWE': return 'bg-yellow-500/20 text-yellow-300';
+      case 'AEW': return 'bg-blue-500/20 text-blue-300';
+      case 'TNA': return 'bg-red-500/20 text-red-300';
+      case 'NJPW': return 'bg-purple-500/20 text-purple-300';
+      default: return 'bg-gray-500/20 text-gray-300';
     }
   };
 
-  const backgroundColor = getChangeColor(wrestler.change24h || 0);
-  
-  // Get promotion badge color
-  const getPromotionColor = (promotion: string) => {
-    if (promotion.toLowerCase().includes('wwe')) return 'bg-yellow-600 text-white';
-    if (promotion.toLowerCase().includes('aew')) return 'bg-black text-yellow-400';
-    if (promotion.toLowerCase().includes('tna')) return 'bg-red-600 text-white';
-    return 'bg-gray-600 text-white';
-  };
-
-  const changeIcon = wrestler.change24h > 0 ? 
-    <TrendingUp className="h-3 w-3" /> : 
-    wrestler.change24h < 0 ? 
-    <TrendingDown className="h-3 w-3" /> : 
-    null;
-
   return (
     <div 
-      className="relative rounded-lg border border-gray-600/30 overflow-hidden hover:border-gray-400/50 transition-all duration-300 hover:scale-105 cursor-pointer group shadow-lg"
+      className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 
+        ${getSentimentColor(wrestler.sentimentScore)} 
+        hover:scale-105 transition-all duration-300 cursor-pointer group`}
       style={{ 
-        width: `${width}px`, 
-        height: `${height}px`,
-        backgroundColor,
+        width: `${cardSize}px`, 
+        height: `${cardSize}px`,
         minWidth: '120px',
-        minHeight: '80px'
+        minHeight: '120px'
       }}
     >
-      {/* Content overlay */}
-      <div className="absolute inset-0 p-3 flex flex-col justify-between text-white">
-        {/* Top section - Promotion badge */}
-        <div className="flex justify-between items-start">
-          <Badge className={`text-xs px-2 py-1 ${getPromotionColor(wrestler.promotion)}`}>
-            {wrestler.promotion.replace(/^(WWE|AEW|TNA)\s*/i, '').slice(0, 3).toUpperCase() || wrestler.promotion.slice(0, 3).toUpperCase()}
-          </Badge>
-          {wrestler.isOnFire && (
-            <div className="text-orange-300 text-xs">🔥</div>
-          )}
+      {/* Rank Badge */}
+      <div className="absolute top-2 left-2 bg-wrestling-electric text-black text-xs font-bold px-2 py-1 rounded-full">
+        #{index + 1}
+      </div>
+
+      {/* Championship Crown */}
+      {wrestler.isChampion && (
+        <Crown className="absolute top-2 right-2 h-4 w-4 text-yellow-400" />
+      )}
+
+      {/* Hot Topic Indicator */}
+      {wrestler.isOnFire && (
+        <Flame className="absolute top-2 right-8 h-4 w-4 text-orange-500 animate-pulse" />
+      )}
+
+      {/* Wrestler Image */}
+      <div className="w-12 h-12 mb-2 rounded-full overflow-hidden border-2 border-border/50">
+        <img 
+          src={getWrestlerImage(wrestler.wrestler_name)}
+          alt={wrestler.wrestler_name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fallback to placeholder if image fails to load
+            e.currentTarget.src = `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&crop=face`;
+          }}
+        />
+      </div>
+
+      {/* Wrestler Name */}
+      <div className="text-center mb-2">
+        <div className="font-bold text-sm leading-tight text-foreground">
+          {wrestler.wrestler_name}
+        </div>
+        <Badge variant="secondary" className={`text-xs mt-1 ${getPromotionColor(wrestler.promotion)}`}>
+          {wrestler.promotion}
+        </Badge>
+      </div>
+
+      {/* Metrics */}
+      <div className="text-center space-y-1">
+        <div className="flex items-center justify-center space-x-1 text-xs">
+          <span className="font-semibold text-wrestling-electric">
+            {wrestler.totalMentions}
+          </span>
+          <span className="text-muted-foreground">mentions</span>
+        </div>
+        
+        <div className="flex items-center justify-center space-x-1 text-xs">
+          <span className={`font-semibold ${
+            wrestler.sentimentScore >= 80 ? 'text-green-400' :
+            wrestler.sentimentScore >= 60 ? 'text-yellow-400' : 'text-red-400'
+          }`}>
+            {wrestler.sentimentScore}%
+          </span>
+          <span className="text-muted-foreground">sentiment</span>
         </div>
 
-        {/* Center section - Wrestler name */}
-        <div className="flex-1 flex items-center justify-center text-center">
-          <div>
-            <div className="font-bold text-sm leading-tight mb-1">
-              {wrestler.wrestler_name.split(' ').map((name, i) => (
-                <div key={i} className="leading-none">{name}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom section - Score and change */}
-        <div className="flex justify-between items-end">
-          <div className="text-lg font-bold">
-            {wrestler.popularityScore || wrestler.totalMentions}
-          </div>
-          <div className="flex items-center space-x-1 text-xs">
-            {changeIcon}
-            <span className="font-medium">
-              {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
-            </span>
-          </div>
+        {/* 24h Change */}
+        <div className="flex items-center justify-center space-x-1 text-xs">
+          {getTrendIcon()}
+          <span className={`font-semibold ${
+            wrestler.change24h > 0 ? 'text-green-400' :
+            wrestler.change24h < 0 ? 'text-red-400' : 'text-gray-400'
+          }`}>
+            {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
+          </span>
         </div>
       </div>
 
-      {/* Hover tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 pointer-events-none">
-        <div className="font-semibold">{wrestler.wrestler_name}</div>
-        <div>{wrestler.promotion}</div>
-        <div>Score: {wrestler.popularityScore || wrestler.totalMentions}</div>
-        <div>24h Change: {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%</div>
-        <div>Sentiment: {wrestler.sentimentScore}%</div>
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black/90"></div>
-      </div>
+      {/* Championship Title */}
+      {wrestler.championshipTitle && (
+        <div className="absolute bottom-1 left-1 right-1">
+          <div className="text-xs bg-yellow-500/20 text-yellow-300 px-1 py-0.5 rounded text-center truncate">
+            {wrestler.championshipTitle}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

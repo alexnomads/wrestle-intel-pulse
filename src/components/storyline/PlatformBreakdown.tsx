@@ -99,7 +99,7 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
   };
 
   return (
-    <Card className="glass-card h-[400px]">
+    <Card className="glass-card h-[500px]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Hash className="h-5 w-5" />
@@ -109,36 +109,38 @@ export const PlatformBreakdown = ({ redditPosts, newsItems }: PlatformBreakdownP
           Bubble size = volume • Color = sentiment • Trending arrows show movement
         </p>
       </CardHeader>
-      <CardContent className="h-[300px] overflow-hidden p-4">
-        {/* Hashtag bubbles arranged in a compact grid */}
-        <div className="grid grid-cols-2 gap-3 h-full">
-          {wrestlingHashtags.slice(0, 8).map((hashtag, index) => {
-            const size = getBubbleSize(hashtag.volume);
-            
-            return (
-              <button
-                key={hashtag.tag}
-                onClick={() => handleHashtagClick(hashtag.tag)}
-                className={`${getSentimentColor(hashtag.sentiment)} hover:scale-110 transition-all duration-300 flex flex-col items-center justify-center space-y-2 px-3 py-3 rounded-lg border-2 hover:shadow-lg group relative cursor-pointer`}
-                style={{ fontSize: `${Math.max(size * 0.7, 0.75)}rem` }}
-              >
-                <div className="absolute top-2 right-2">
-                  {getTrendIcon(hashtag.trend)}
-                </div>
-                
-                <div className="font-bold text-center leading-tight">
-                  {hashtag.tag}
-                </div>
-                
-                <div className="text-xs opacity-80 text-center space-y-1">
-                  <div className="font-semibold">{hashtag.volume.toLocaleString()}</div>
-                  <div className={`text-xs ${hashtag.trend === 'up' ? 'text-green-400' : hashtag.trend === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
-                    {hashtag.growth}
+      <CardContent className="h-[380px] p-4">
+        {/* Hashtag bubbles arranged in a scrollable grid */}
+        <div className="h-[320px] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3 min-h-full">
+            {wrestlingHashtags.slice(0, 8).map((hashtag, index) => {
+              const size = getBubbleSize(hashtag.volume);
+              
+              return (
+                <button
+                  key={hashtag.tag}
+                  onClick={() => handleHashtagClick(hashtag.tag)}
+                  className={`${getSentimentColor(hashtag.sentiment)} hover:scale-105 transition-all duration-300 flex flex-col items-center justify-center space-y-2 px-3 py-4 rounded-lg border-2 hover:shadow-lg group relative cursor-pointer min-h-[100px]`}
+                  style={{ fontSize: `${Math.max(size * 0.7, 0.75)}rem` }}
+                >
+                  <div className="absolute top-2 right-2">
+                    {getTrendIcon(hashtag.trend)}
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                  
+                  <div className="font-bold text-center leading-tight">
+                    {hashtag.tag}
+                  </div>
+                  
+                  <div className="text-xs opacity-80 text-center space-y-1">
+                    <div className="font-semibold">{hashtag.volume.toLocaleString()}</div>
+                    <div className={`text-xs ${hashtag.trend === 'up' ? 'text-green-400' : hashtag.trend === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
+                      {hashtag.growth}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
         
         {/* Quick stats at bottom */}
