@@ -1,6 +1,6 @@
-
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
+import { getFallbackWrestlerTrends, getFallbackTrendAlerts, getFallbackStorylineMomentum } from './fallbackDataService';
 
 export interface WrestlerTrend {
   id: string;
@@ -130,10 +130,19 @@ export const analyzeWrestlerTrends = (
     }
   });
 
-  return trends
+  const realTrends = trends
     .filter(trend => trend.current_mentions > 0)
     .sort((a, b) => Math.abs(b.change_percentage) - Math.abs(a.change_percentage))
     .slice(0, 15);
+
+  // If we don't have enough real data, supplement with fallback data
+  if (realTrends.length < 3) {
+    console.log('Using fallback wrestler trends due to insufficient real data');
+    const fallbackTrends = getFallbackWrestlerTrends();
+    return [...realTrends, ...fallbackTrends].slice(0, 15);
+  }
+
+  return realTrends;
 };
 
 export const trackStorylineMomentum = (
@@ -182,7 +191,16 @@ export const trackStorylineMomentum = (
     }
   });
 
-  return storylines.slice(0, 8);
+  const realStorylines = storylines.slice(0, 8);
+
+  // If we don't have enough real storylines, supplement with fallback data
+  if (realStorylines.length < 2) {
+    console.log('Using fallback storyline momentum due to insufficient real data');
+    const fallbackStorylines = getFallbackStorylineMomentum();
+    return [...realStorylines, ...fallbackStorylines].slice(0, 8);
+  }
+
+  return realStorylines;
 };
 
 export const generateTrendAlerts = (
@@ -245,7 +263,7 @@ export const generateTrendAlerts = (
     }
   });
 
-  return alerts
+  const realAlerts = alerts
     .sort((a, b) => {
       // Sort by severity first, then by change percentage
       const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -254,6 +272,15 @@ export const generateTrendAlerts = (
       return Math.abs(b.data.change_percentage) - Math.abs(a.data.change_percentage);
     })
     .slice(0, 10);
+
+  // If we don't have enough real alerts, supplement with fallback data
+  if (realAlerts.length < 2) {
+    console.log('Using fallback trend alerts due to insufficient real data');
+    const fallbackAlerts = getFallbackTrendAlerts();
+    return [...realAlerts, ...fallbackAlerts].slice(0, 10);
+  }
+
+  return realAlerts;
 };
 
 // Helper functions

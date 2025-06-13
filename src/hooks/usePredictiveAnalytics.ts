@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { useRSSFeeds, useRedditPosts } from './useWrestlingData';
+import { useUnifiedData } from './useUnifiedData';
 import { 
   analyzeWrestlerTrends, 
   generateTrendAlerts, 
@@ -11,13 +11,38 @@ import {
 } from '@/services/predictiveAnalyticsService';
 
 export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') => {
-  const { data: newsItems = [] } = useRSSFeeds();
-  const { data: redditPosts = [] } = useRedditPosts();
+  const { data: unifiedData } = useUnifiedData();
 
   const analyticsQuery = useQuery({
-    queryKey: ['predictive-analytics', timeframe, newsItems.length, redditPosts.length],
+    queryKey: ['predictive-analytics', timeframe, unifiedData?.sources?.length || 0],
     queryFn: async () => {
-      console.log('Running predictive analytics...');
+      console.log('Running predictive analytics with unified data...');
+      
+      const sources = unifiedData?.sources || [];
+      const wrestlerMentions = unifiedData?.wrestlerMentions || [];
+      
+      // Convert unified sources to the format expected by analytics service
+      const newsItems = sources
+        .filter(s => s.type === 'news')
+        .map(s => ({
+          title: s.title,
+          contentSnippet: s.content,
+          link: s.url || '#',
+          pubDate: s.timestamp.toISOString(),
+          source: s.source
+        }));
+
+      const redditPosts = sources
+        .filter(s => s.type === 'reddit')
+        .map(s => ({
+          title: s.title,
+          selftext: s.content,
+          permalink: s.url?.replace('https://reddit.com', '') || '',
+          created_utc: Math.floor(s.timestamp.getTime() / 1000),
+          subreddit: s.source.replace('r/', ''),
+          score: s.engagement?.score || 0,
+          num_comments: s.engagement?.comments || 0
+        }));
       
       // Analyze wrestler trends
       const trends = analyzeWrestlerTrends(newsItems, redditPosts, timeframe);
@@ -31,7 +56,13 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
       console.log('Predictive analytics results:', {
         trends: trends.length,
         storylines: storylines.length,
-        alerts: alerts.length
+        alerts: alerts.length,
+        sourceData: {
+          totalSources: sources.length,
+          newsItems: newsItems.length,
+          redditPosts: redditPosts.length,
+          wrestlerMentions: wrestlerMentions.length
+        }
       });
       
       return {
@@ -40,7 +71,7 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
         alerts
       };
     },
-    enabled: newsItems.length > 0 || redditPosts.length > 0,
+    enabled: true, // Always enabled now since we have fallback data
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // 10 minutes
   });
