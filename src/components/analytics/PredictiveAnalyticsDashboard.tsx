@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, AlertTriangle, Activity, Target, Zap } from 'lucide-react';
 import { TrendAlert, WrestlerTrend, StorylineMomentum } from '@/services/predictiveAnalyticsService';
+import { SourceLink } from '@/components/mentions/SourceLink';
 
 interface PredictiveAnalyticsDashboardProps {
   trends: WrestlerTrend[];
@@ -28,16 +29,6 @@ export const PredictiveAnalyticsDashboard = ({
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
     }
-  };
-
-  const getTrendIcon = (direction: string, changePercentage: number) => {
-    const isSignificant = Math.abs(changePercentage) > 50;
-    if (direction === 'rising') {
-      return <TrendingUp className={`h-4 w-4 ${isSignificant ? 'text-green-600' : 'text-green-500'}`} />;
-    } else if (direction === 'falling') {
-      return <TrendingDown className={`h-4 w-4 ${isSignificant ? 'text-red-600' : 'text-red-500'}`} />;
-    }
-    return <Activity className="h-4 w-4 text-gray-500" />;
   };
 
   const getMomentumColor = (score: number) => {
@@ -114,51 +105,7 @@ export const PredictiveAnalyticsDashboard = ({
         </CardContent>
       </Card>
 
-      {/* Wrestler Trends */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <TrendingUp className="h-5 w-5 text-green-500" />
-            <span>Wrestler Trend Analysis</span>
-            <Badge variant="secondary">7 days</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {trends.slice(0, 8).map((trend) => (
-              <div
-                key={trend.wrestler_name}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  {getTrendIcon(trend.trending_direction, trend.change_percentage)}
-                  <div>
-                    <h4 className="font-medium">{trend.wrestler_name}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                      <span>{trend.current_mentions} mentions</span>
-                      <span>•</span>
-                      <span>Sentiment: {Math.round(trend.sentiment_score * 100)}%</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-lg font-bold ${
-                    trend.change_percentage > 0 ? 'text-green-600' : 
-                    trend.change_percentage < 0 ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {trend.change_percentage > 0 ? '+' : ''}{trend.change_percentage}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Momentum: <span className={getMomentumColor(trend.momentum_score)}>{trend.momentum_score}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Storyline Momentum */}
+      {/* Enhanced Storyline Momentum */}
       <Card className="glass-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -207,13 +154,32 @@ export const PredictiveAnalyticsDashboard = ({
                 </div>
 
                 {storyline.key_events.length > 0 && (
-                  <div>
+                  <div className="mb-3">
                     <h5 className="text-sm font-medium mb-1">Key Events:</h5>
                     <div className="flex flex-wrap gap-1">
                       {storyline.key_events.map((event, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {event}
                         </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Enhanced Source Links */}
+                {storyline.related_sources.length > 0 && (
+                  <div className="mb-3">
+                    <h5 className="text-sm font-medium mb-2">Related Sources:</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {storyline.related_sources.slice(0, 5).map((source, index) => (
+                        <SourceLink
+                          key={index}
+                          url={source.url}
+                          title={source.title}
+                          sourceType={source.source_type}
+                          sourceName={source.source_name}
+                          compact={false}
+                        />
                       ))}
                     </div>
                   </div>
