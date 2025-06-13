@@ -14,24 +14,163 @@ export interface TwitterPost {
   isFallback?: boolean;
 }
 
-// High-volume wrestling accounts to monitor
+// Comprehensive wrestling accounts to monitor (80+ accounts)
 const WRESTLING_ACCOUNTS = [
+  // Original core accounts
   'WWE',
   'AEW', 
   'SeanRossSapp',
   'WrestleVotes',
   'davemeltzerWON',
   'ryansatin',
-  'MikeJohnson_pwtorch'
+  'MikeJohnson_pwtorch',
+  
+  // Major Wrestling Stars
+  'TrueKofi',
+  'joehendry',
+  'briancagegmsi',
+  'JohnCena',
+  'LanceHoyt',
+  'theflipgordon',
+  'Therealrvd',
+  'nikkita_wwe',
+  'ZelinaVegaWWE',
+  'realkillerkross',
+  'MiaYim',
+  'RefBaeDaphWWE',
+  'SpeedballBailey',
+  'TheLethalJay',
+  'TheREALRIKISHI',
+  'RealBillyGunn',
+  'theraveneffect',
+  'RealDDP',
+  'ScottSteiner',
+  'zena_wwe',
+  'TheTrinity_Fatu',
+  'TheDariaRae',
+  'RealIslaDawn',
+  'BlakeMonroeWWE',
+  'Steph_Vaquer',
+  'kelani_wwe',
+  'RealKingRegal',
+  '_Theory1',
+  'PeteDunneYxB',
+  'SuperKingofBros',
+  'Aleister_Blxck',
+  'TheSamiCallihan',
+  'DEATHxWALKS',
+  'RicFlairNatrBoy',
+  'StuBennett',
+  'BronsonIsHere',
+  'RealJakeHager',
+  'Ivar_WWE',
+  'TheGiantOmos',
+  'CiampaWWE',
+  'TheRock',
+  'eric_bugenhagen',
+  'realboogey',
+  'ShawnMichaels',
+  'steveaustinBSR',
+  'TheMarkHenry',
+  'JerryLawler',
+  'catherinekelley',
+  'mikethemiz',
+  'MustafaAli_X',
+  'RealKurtAngle',
+  'WWEGable',
+  's_d_naito',
+  'KingRicochet',
+  'Christian4Peeps',
+  'TheAdamPages',
+  'THETOMMYDREAMER',
+  'otiswwe',
+  'AJStylesOrg',
+  'WWESheamus',
+  'FightOwensFight',
+  'WWENikkiCross',
+  'TheMattCardona',
+  'realkevinkelly',
+  'TheKingOfStrong',
+  'RealNickAldis',
+  'RealJeffJarrett',
+  
+  // Wrestling News & Media
+  'WrestleNotice',
+  'WrestleTubePC',
+  'FanSidedDDT',
+  'WrestlingInc',
+  'AEWonTV',
+  'Fightful',
+  'IamAllElite',
+  'WrestlePurists',
+  'WWEItalia',
+  'TNADixie',
+  'WrestleTix',
+  'WrestleFeatures',
+  'BustedOpenRadio',
+  'AEWNeckbeard',
+  'ThisIsTNA',
+  'WWEVacant',
+  'WrestlingCovers',
+  
+  // Wrestling Personalities & Legends
+  'TheJimCornette',
+  'THEVinceRusso',
+  'tanahashi1_100',
+  'EBischoff',
+  'TheHypeManAlex',
+  
+  // Wrestling Fans & Communities
+  'ChandranTheMan',
+  'moyscharles03',
+  'ArmbarsNCigars',
+  'ChiefsMuseee',
+  'wittyjack__',
+  'TurpTime84',
+  'MrMrWolf4',
+  'AllEliteSicko',
+  'Alexa518970',
+  'riveraJonath949',
+  'ScrapDaddyAP',
+  'Thecoachrules',
+  'toxic_thekla',
+  'PatrullaBCN',
+  'NemexyxOfficial',
+  'jnmegatron',
+  'ARealFoxx',
+  'SamanthaTheBomb',
+  'Litocolon279',
+  'JakeSnakeDDT',
+  'goat_sdk',
+  'farouq_x10',
+  'jesting_jester',
+  'CNote577',
+  'rayodebarro',
+  'ItsNekeym',
+  'ROJOasis',
+  'robertopampa9',
+  'Carloalvino',
+  '_Iam_Elijah_',
+  'GREATBLACKOTAKU',
+  'Sheltyb803',
+  'Thewrestlingin1',
+  'jhal02',
+  'Jascha421',
+  'ryrynemnem',
+  'reigns_era',
+  'ineed2pi',
+  'TheMinister',
+  'TheCaZXL',
+  'TheRealIceman'
 ];
 
 class TwitterServiceWithRateLimit {
   private lastRequestTime = 0;
   private requestCount = 0;
   private windowStart = Date.now();
-  private readonly RATE_LIMIT = 250; // Stay under 300 limit
+  private readonly RATE_LIMIT = 200; // Reduced to handle more accounts safely
   private readonly WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-  private readonly REQUEST_DELAY = 2000; // 2 seconds between requests
+  private readonly REQUEST_DELAY = 3000; // 3 seconds between requests (slower for more accounts)
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -117,7 +256,7 @@ class TwitterServiceWithRateLimit {
     return [
       {
         id: 'fallback_twitter_1',
-        text: 'Wrestling news updates available - Twitter API temporarily unavailable',
+        text: `Wrestling news updates available - Twitter API temporarily unavailable (monitoring ${WRESTLING_ACCOUNTS.length} accounts)`,
         author: 'System',
         timestamp: new Date(),
         engagement: { likes: 0, retweets: 0, replies: 0 },
@@ -129,14 +268,23 @@ class TwitterServiceWithRateLimit {
 
   async fetchWrestlingTweets(): Promise<TwitterPost[]> {
     try {
-      console.log('Fetching wrestling tweets with rate limiting...');
+      console.log(`Fetching wrestling tweets from ${WRESTLING_ACCOUNTS.length} accounts with rate limiting...`);
       const results: any[] = [];
 
-      // Process accounts sequentially to avoid rate limits
-      for (const account of WRESTLING_ACCOUNTS) {
+      // Process a subset of accounts per cycle to manage rate limits
+      const accountsPerCycle = 10; // Process 10 accounts at a time
+      const cycleStartIndex = Math.floor(Date.now() / (60 * 1000)) % Math.ceil(WRESTLING_ACCOUNTS.length / accountsPerCycle);
+      const startIndex = cycleStartIndex * accountsPerCycle;
+      const endIndex = Math.min(startIndex + accountsPerCycle, WRESTLING_ACCOUNTS.length);
+      
+      const accountsToProcess = WRESTLING_ACCOUNTS.slice(startIndex, endIndex);
+      console.log(`Processing accounts ${startIndex + 1}-${endIndex} of ${WRESTLING_ACCOUNTS.length}: ${accountsToProcess.join(', ')}`);
+
+      // Process selected accounts sequentially to avoid rate limits
+      for (const account of accountsToProcess) {
         const tweets = await this.fetchAccountTweets(account);
         if (tweets && tweets.length > 0) {
-          results.push(...tweets.slice(0, 5)); // Limit to 5 tweets per account
+          results.push(...tweets.slice(0, 3)); // Limit to 3 tweets per account
         }
       }
 
@@ -146,7 +294,7 @@ class TwitterServiceWithRateLimit {
       }
 
       const formattedTweets = this.formatTweets(results);
-      console.log(`Successfully fetched ${formattedTweets.length} tweets`);
+      console.log(`Successfully fetched ${formattedTweets.length} tweets from ${accountsToProcess.length} accounts`);
       return formattedTweets;
 
     } catch (error) {
