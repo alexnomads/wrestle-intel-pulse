@@ -11,7 +11,6 @@ import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
 import { StorylinesList } from './analytics/StorylinesList';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
 import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
-import type { WrestlerMention } from '@/types/wrestlerAnalysis';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -53,38 +52,42 @@ export const MainAnalyticsDashboard = () => {
 
   const { sources = [], wrestlerMentions = [], storylines: unifiedStorylines = [] } = data || {};
 
-  // Transform the wrestlerMentions from the unified service to the format expected by WrestlerHeatmap
-  const transformedWrestlerMentions = wrestlerMentions.reduce((acc, mention) => {
-    const existing = acc.find(w => w.wrestlerName === mention.wrestler_name);
+  // Transform wrestlerMentions to the format expected by WrestlerHeatmap
+  const wrestlerMentionCounts = wrestlerMentions.reduce((acc, mention) => {
+    if (!mention?.wrestler_name) return acc;
+    
+    const existing = acc.find(w => w.wrestler_name === mention.wrestler_name);
     if (existing) {
       existing.mentions += 1;
-      existing.sources.push({
-        type: mention.source_type as 'news' | 'reddit' | 'twitter' | 'youtube',
-        title: mention.title,
-        content: mention.content_snippet,
-        url: mention.url,
-        timestamp: mention.timestamp,
-        source: mention.source_name
-      });
+      existing.mention_sources?.push(mention);
     } else {
       acc.push({
-        wrestlerName: mention.wrestler_name,
+        id: mention.id || `wrestler-${mention.wrestler_name?.replace(/\s+/g, '-').toLowerCase()}`,
+        wrestler_name: mention.wrestler_name,
         mentions: 1,
-        sentiment: mention.sentiment_score,
-        sources: [{
-          type: mention.source_type as 'news' | 'reddit' | 'twitter' | 'youtube',
-          title: mention.title,
-          content: mention.content_snippet,
-          url: mention.url,
-          timestamp: mention.timestamp,
-          source: mention.source_name
-        }],
-        trend: 'up' as const,
-        trendPercentage: Math.min(100, Math.random() * 50 + 25)
+        sentiment: mention.sentiment_score || 0.5,
+        promotion: 'WWE', // Default promotion
+        mention_sources: [mention],
+        source_breakdown: {
+          news_count: mention.source_type === 'news' ? 1 : 0,
+          reddit_count: mention.source_type === 'reddit' ? 1 : 0,
+          total_sources: 1
+        }
       });
     }
     return acc;
   }, [] as any[]);
+
+  // Update source breakdown for wrestlers with multiple mentions
+  wrestlerMentionCounts.forEach(wrestler => {
+    if (wrestler.mention_sources && wrestler.mention_sources.length > 1) {
+      wrestler.source_breakdown = {
+        news_count: wrestler.mention_sources.filter((m: any) => m.source_type === 'news').length,
+        reddit_count: wrestler.mention_sources.filter((m: any) => m.source_type === 'reddit').length,
+        total_sources: wrestler.mention_sources.length
+      };
+    }
+  });
 
   // Get high priority alerts for quick stats
   const criticalAlerts = alerts.filter(alert => alert.severity === 'critical' || alert.severity === 'high');
@@ -136,7 +139,7 @@ export const MainAnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Trending Wrestlers</p>
-                <p className="text-2xl font-bold text-green-500">{transformedWrestlerMentions.length}</p>
+                <p className="text-2xl font-bold text-green-500">{wrestlerMentionCounts.length}</p>
               </div>
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -160,7 +163,7 @@ export const MainAnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Storylines</p>
-                <p className="text-2xl font-bold text-blue-500">{storylines.length}</p>
+                <p className="text-2xl font-bold text-blue-500">{unifiedStorylines.length}</p>
               </div>
               <Target className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -204,11 +207,11 @@ export const MainAnalyticsDashboard = () => {
               <CardTitle className="flex items-center space-x-2">
                 <Users className="h-6 w-6 text-wrestling-electric" />
                 <span>Top Mentioned Wrestlers</span>
-                <Badge variant="secondary">{transformedWrestlerMentions.length} wrestlers</Badge>
+                <Badge variant="secondary">{wrestlerMentionCounts.length} wrestlers</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <WrestlerHeatmap wrestlerMentions={transformedWrestlerMentions} />
+              <WrestlerHeatmap wrestlerMentions={wrestlerMentionCounts} />
             </CardContent>
           </Card>
 

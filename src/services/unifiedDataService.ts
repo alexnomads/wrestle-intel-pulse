@@ -1,10 +1,10 @@
-
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { fetchComprehensiveRedditPosts } from './wrestlingDataService';
 import { fetchOptimizedRSSFeeds } from './data/optimizedRssService';
 import { fetchWrestlingTweets, TwitterPost } from './twitterService';
 import { fetchWrestlingVideos, YouTubeVideo } from './youtubeService';
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
+import { getFallbackWrestlerMentions, getFallbackStorylines, getFallbackUnifiedSources } from './fallbackDataService';
 
 export interface UnifiedDataSource {
   type: 'news' | 'reddit' | 'twitter' | 'youtube';
@@ -46,37 +46,49 @@ export const fetchUnifiedData = async (): Promise<{
   try {
     console.log('Fetching unified wrestling data from all sources...');
     
-    // Fetch from all real data sources
-    const [newsItems, redditPosts, twitterPosts, youtubeVideos] = await Promise.all([
+    // Fetch from all real data sources with error handling
+    const [newsItems, redditPosts, twitterPosts, youtubeVideos] = await Promise.allSettled([
       fetchOptimizedRSSFeeds(),
       fetchComprehensiveRedditPosts(),
       fetchWrestlingTweets(),
       fetchWrestlingVideos()
     ]);
 
+    // Process settled promises and extract successful data
+    const successfulNews = newsItems.status === 'fulfilled' ? newsItems.value : [];
+    const successfulReddit = redditPosts.status === 'fulfilled' ? redditPosts.value : [];
+    const successfulTwitter = twitterPosts.status === 'fulfilled' ? twitterPosts.value : [];
+    const successfulYoutube = youtubeVideos.status === 'fulfilled' ? youtubeVideos.value : [];
+
+    // Log any failures
+    if (newsItems.status === 'rejected') console.warn('News fetch failed:', newsItems.reason);
+    if (redditPosts.status === 'rejected') console.warn('Reddit fetch failed:', redditPosts.reason);
+    if (twitterPosts.status === 'rejected') console.warn('Twitter fetch failed:', twitterPosts.reason);
+    if (youtubeVideos.status === 'rejected') console.warn('YouTube fetch failed:', youtubeVideos.reason);
+
     // Convert to unified format
     const sources: UnifiedDataSource[] = [
-      ...newsItems.map(item => ({
+      ...successfulNews.map(item => ({
         type: 'news' as const,
-        title: item.title,
+        title: item.title || 'Untitled',
         content: item.contentSnippet || '',
         url: item.link,
         timestamp: new Date(item.pubDate),
         source: item.source || 'Wrestling News'
       })),
-      ...redditPosts.map(post => ({
+      ...successfulReddit.map(post => ({
         type: 'reddit' as const,
-        title: post.title,
+        title: post.title || 'Untitled',
         content: post.selftext || '',
         url: `https://reddit.com${post.permalink}`,
         timestamp: new Date(post.created_utc * 1000),
         source: `r/${post.subreddit}`,
         engagement: {
-          score: post.score,
-          comments: post.num_comments
+          score: post.score || 0,
+          comments: post.num_comments || 0
         }
       })),
-      ...twitterPosts.map(tweet => ({
+      ...successfulTwitter.map(tweet => ({
         type: 'twitter' as const,
         title: tweet.text.length > 50 ? `${tweet.text.substring(0, 47)}...` : tweet.text,
         content: tweet.text,
@@ -88,37 +100,62 @@ export const fetchUnifiedData = async (): Promise<{
           comments: tweet.engagement.replies
         }
       })),
-      ...youtubeVideos.map(video => ({
+      ...successfulYoutube.map(video => ({
         type: 'youtube' as const,
-        title: video.title,
-        content: video.description,
+        title: video.title || 'Untitled',
+        content: video.description || '',
         url: video.url,
         timestamp: video.publishedAt,
-        source: video.channelTitle,
+        source: video.channelTitle || 'YouTube',
         engagement: {
-          score: video.viewCount,
-          comments: video.commentCount
+          score: video.viewCount || 0,
+          comments: video.commentCount || 0
         }
       }))
     ];
 
-    // Analyze wrestler mentions based on real data only using the correct interface
-    const wrestlerMentions = analyzeWrestlerMentions(sources);
-    
-    // Detect storylines from real data only
-    const storylines = detectStorylines(sources);
+    // If we don't have enough real data, supplement with fallback data
+    const shouldUseFallback = sources.length < 5;
+    let finalSources = sources;
+    let wrestlerMentions: WrestlerMention[] = [];
+    let storylines: DetectedStoryline[] = [];
 
-    console.log(`Processed ${sources.length} total sources:`, {
-      news: newsItems.length,
-      reddit: redditPosts.length,
-      twitter: twitterPosts.length,
-      youtube: youtubeVideos.length
+    if (shouldUseFallback) {
+      console.log('Using fallback data due to insufficient external data sources');
+      const fallbackSources = getFallbackUnifiedSources();
+      finalSources = [...sources, ...fallbackSources];
+      wrestlerMentions = getFallbackWrestlerMentions();
+      storylines = getFallbackStorylines();
+    } else {
+      // Analyze wrestler mentions based on real data only
+      wrestlerMentions = analyzeWrestlerMentions(sources);
+      // Detect storylines from real data only
+      storylines = detectStorylines(sources);
+    }
+
+    console.log(`Processed ${finalSources.length} total sources:`, {
+      news: successfulNews.length,
+      reddit: successfulReddit.length,
+      twitter: successfulTwitter.length,
+      youtube: successfulYoutube.length,
+      fallback: shouldUseFallback ? 'yes' : 'no'
     });
     
-    return { sources, wrestlerMentions, storylines };
+    return { 
+      sources: finalSources, 
+      wrestlerMentions: wrestlerMentions.slice(0, 20), // Limit to prevent UI overflow
+      storylines: storylines.slice(0, 10) 
+    };
   } catch (error) {
     console.error('Error fetching unified data:', error);
-    return { sources: [], wrestlerMentions: [], storylines: [] };
+    
+    // Return fallback data in case of complete failure
+    console.log('Using complete fallback data due to error');
+    return { 
+      sources: getFallbackUnifiedSources(), 
+      wrestlerMentions: getFallbackWrestlerMentions(), 
+      storylines: getFallbackStorylines() 
+    };
   }
 };
 
@@ -165,7 +202,7 @@ const analyzeWrestlerMentions = (sources: UnifiedDataSource[]): WrestlerMention[
     .flat()
     .filter(mention => mention !== undefined)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .slice(0, 50); // Limit to 50 most recent mentions
+    .slice(0, 50);
 };
 
 const detectStorylines = (sources: UnifiedDataSource[]): DetectedStoryline[] => {
@@ -197,11 +234,10 @@ const detectStorylines = (sources: UnifiedDataSource[]): DetectedStoryline[] => 
     }
   });
 
-  // Merge similar storylines
   const merged = mergeStorylines(storylines);
   
   return merged
-    .filter(storyline => storyline.sources.length > 0) // Only storylines with real sources
+    .filter(storyline => storyline.sources.length > 0)
     .sort((a, b) => b.intensity - a.intensity)
     .slice(0, 10);
 };
@@ -210,7 +246,7 @@ const calculateSentiment = (content: string): number => {
   const positiveWords = ['great', 'amazing', 'awesome', 'incredible', 'fantastic', 'best', 'perfect', 'excellent'];
   const negativeWords = ['terrible', 'awful', 'bad', 'disappointing', 'boring', 'worst', 'horrible'];
   
-  let score = 0.5; // neutral
+  let score = 0.5;
   positiveWords.forEach(word => {
     if (content.includes(word)) score += 0.1;
   });
@@ -223,7 +259,7 @@ const calculateSentiment = (content: string): number => {
 
 const calculateIntensity = (content: string): number => {
   const intensityWords = ['attack', 'assault', 'betrayal', 'championship', 'main event', 'title', 'feud', 'rivalry'];
-  let intensity = 3; // base intensity
+  let intensity = 3;
   
   intensityWords.forEach(word => {
     if (content.includes(word)) intensity += 1;
