@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { fetchWrestlingTweets, TwitterPost } from '@/services/twitterService';
 
 export const useTwitterData = () => {
@@ -14,8 +14,8 @@ export const useTwitterData = () => {
         console.error('Twitter data fetch failed:', error);
       }
     },
-    // Keep previous data while refetching to improve UX
-    keepPreviousData: true,
+    // Use placeholderData instead of keepPreviousData for newer versions
+    placeholderData: keepPreviousData,
   });
 };
 
