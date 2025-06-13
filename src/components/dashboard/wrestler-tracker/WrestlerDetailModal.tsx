@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp, TrendingDown, Crown, Flame, ExternalLink, Calendar, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Crown, Flame, ExternalLink, Calendar, BarChart3, Activity, Target } from 'lucide-react';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 import { SourceLink } from '@/components/mentions/SourceLink';
 
@@ -42,20 +42,32 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
     return colors[promotion?.toUpperCase()] || 'bg-slate-500/20 text-slate-300 border-slate-500/40';
   };
 
+  const getScoreColor = (score: number, type: 'push' | 'burial' | 'momentum' | 'popularity') => {
+    if (type === 'burial') {
+      if (score >= 70) return 'text-red-500';
+      if (score >= 40) return 'text-orange-500';
+      return 'text-green-500';
+    }
+    
+    if (score >= 70) return 'text-emerald-500';
+    if (score >= 40) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-3">
-            <span className="text-xl font-bold">{wrestler.wrestler_name}</span>
+          <DialogTitle className="flex items-center space-x-3 text-xl sm:text-2xl">
+            <span className="font-bold">{wrestler.wrestler_name}</span>
             {wrestler.isChampion && <Crown className="h-6 w-6 text-yellow-400" />}
             {wrestler.isOnFire && <Flame className="h-6 w-6 text-orange-500" />}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 sm:space-y-8">
           {/* Header Info */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
             <Badge variant="secondary" className={`border ${getPromotionColor(wrestler.promotion)}`}>
               {wrestler.promotion}
             </Badge>
@@ -67,29 +79,29 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
 
           {/* Championship Title */}
           {wrestler.championshipTitle && (
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <div className="text-sm text-yellow-300 font-semibold">Current Champion</div>
-              <div className="text-yellow-400 font-bold">{wrestler.championshipTitle}</div>
+              <div className="text-yellow-400 font-bold text-lg">{wrestler.championshipTitle}</div>
             </div>
           )}
 
           {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-secondary/30 rounded-lg">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-secondary/30 rounded-lg border border-border/50">
               <div className="text-2xl font-bold text-wrestling-electric">
                 {wrestler.totalMentions}
               </div>
               <div className="text-sm text-muted-foreground">Total Mentions</div>
             </div>
             
-            <div className="text-center p-4 bg-secondary/30 rounded-lg">
+            <div className="text-center p-4 bg-secondary/30 rounded-lg border border-border/50">
               <div className={`text-2xl font-bold ${getSentimentColor(wrestler.sentimentScore)}`}>
                 {Math.round(wrestler.sentimentScore)}%
               </div>
               <div className="text-sm text-muted-foreground">Sentiment</div>
             </div>
             
-            <div className="text-center p-4 bg-secondary/30 rounded-lg">
+            <div className="text-center p-4 bg-secondary/30 rounded-lg border border-border/50">
               <div className="flex items-center justify-center space-x-2">
                 {getTrendIcon()}
                 <span className={`text-xl font-bold ${
@@ -102,7 +114,7 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
               <div className="text-sm text-muted-foreground">24h Change</div>
             </div>
             
-            <div className="text-center p-4 bg-secondary/30 rounded-lg">
+            <div className="text-center p-4 bg-secondary/30 rounded-lg border border-border/50">
               <Badge 
                 variant="outline" 
                 className={`text-sm font-bold ${
@@ -119,30 +131,84 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
 
           <Separator />
 
-          {/* Advanced Metrics */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-secondary/20 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Push Score</div>
-              <div className="text-xl font-bold text-emerald-400">
-                {Math.round(wrestler.pushScore)}
+          {/* Advanced Analytics Section */}
+          <div className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <Activity className="h-5 w-5 text-wrestling-electric" />
+              <h3 className="text-lg font-semibold">Advanced Analytics</h3>
+            </div>
+
+            {/* Advanced Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-lg border border-emerald-500/20">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Target className="h-4 w-4 text-emerald-400" />
+                  <div className="text-sm text-emerald-300 font-medium">Push Score</div>
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(wrestler.pushScore, 'push')}`}>
+                  {Math.round(wrestler.pushScore)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Booking momentum indicator
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-lg border border-red-500/20">
+                <div className="flex items-center space-x-2 mb-2">
+                  <TrendingDown className="h-4 w-4 text-red-400" />
+                  <div className="text-sm text-red-300 font-medium">Burial Score</div>
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(wrestler.burialScore, 'burial')}`}>
+                  {Math.round(wrestler.burialScore)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Negative booking indicator
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg border border-blue-500/20">
+                <div className="flex items-center space-x-2 mb-2">
+                  <BarChart3 className="h-4 w-4 text-blue-400" />
+                  <div className="text-sm text-blue-300 font-medium">Momentum</div>
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(wrestler.momentumScore, 'momentum')}`}>
+                  {wrestler.momentumScore}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Current trajectory
+                </div>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-lg border border-purple-500/20">
+                <div className="flex items-center space-x-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-purple-400" />
+                  <div className="text-sm text-purple-300 font-medium">Popularity</div>
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(wrestler.popularityScore, 'popularity')}`}>
+                  {wrestler.popularityScore}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Fan engagement level
+                </div>
               </div>
             </div>
-            <div className="p-4 bg-secondary/20 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Burial Score</div>
-              <div className="text-xl font-bold text-red-400">
-                {Math.round(wrestler.burialScore)}
-              </div>
-            </div>
-            <div className="p-4 bg-secondary/20 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Momentum</div>
-              <div className="text-xl font-bold text-wrestling-electric">
-                {wrestler.momentumScore}
-              </div>
-            </div>
-            <div className="p-4 bg-secondary/20 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Popularity</div>
-              <div className="text-xl font-bold text-blue-400">
-                {wrestler.popularityScore}
+
+            {/* Metrics Explanation */}
+            <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
+              <h4 className="text-sm font-semibold mb-2 text-wrestling-electric">Analytics Explanation</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-muted-foreground">
+                <div>
+                  <span className="font-medium text-emerald-400">Push Score:</span> Measures positive booking decisions and storyline prominence
+                </div>
+                <div>
+                  <span className="font-medium text-red-400">Burial Score:</span> Indicates negative booking patterns or decreased screen time
+                </div>
+                <div>
+                  <span className="font-medium text-blue-400">Momentum:</span> Overall trajectory based on recent mention patterns
+                </div>
+                <div>
+                  <span className="font-medium text-purple-400">Popularity:</span> Fan engagement and discussion volume
+                </div>
               </div>
             </div>
           </div>
@@ -156,18 +222,18 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
                 <Calendar className="h-5 w-5 text-wrestling-electric" />
                 <h3 className="text-lg font-semibold">Recent News</h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto">
                 {wrestler.relatedNews.map((news, index) => (
-                  <div key={index} className="p-3 bg-secondary/20 rounded-lg">
+                  <div key={index} className="p-3 bg-secondary/20 rounded-lg border border-border/30">
                     <div className="font-medium text-sm mb-1">{news.title}</div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                       <span>{news.source}</span>
                       <span>{new Date(news.pubDate).toLocaleDateString()}</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="mt-2 h-6 px-2 text-xs"
+                      className="h-6 px-2 text-xs"
                       onClick={() => window.open(news.link, '_blank')}
                     >
                       <ExternalLink className="h-3 w-3 mr-1" />
@@ -188,9 +254,9 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
                   {wrestler.mention_sources.length} sources
                 </Badge>
               </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {wrestler.mention_sources.map((source, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/20 rounded-lg border border-border/30">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{source.title}</div>
                       <div className="text-xs text-muted-foreground">{source.source_name}</div>
@@ -210,7 +276,7 @@ export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetai
 
           {/* Evidence */}
           {wrestler.evidence && (
-            <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
               <div className="text-sm text-muted-foreground mb-1">Analysis Evidence</div>
               <div className="text-sm">{wrestler.evidence}</div>
             </div>
