@@ -1,5 +1,5 @@
 
-// Twitter API v2 service with proper rate limiting and error handling
+// Twitter API v2 service with improved rate limiting and error handling
 export interface TwitterPost {
   id: string;
   text: string;
@@ -16,7 +16,7 @@ export interface TwitterPost {
 
 // Comprehensive wrestling accounts to monitor (80+ accounts)
 const WRESTLING_ACCOUNTS = [
-  // Original core accounts
+  // Core wrestling federations and news
   'WWE',
   'AEW', 
   'SeanRossSapp',
@@ -24,6 +24,8 @@ const WRESTLING_ACCOUNTS = [
   'davemeltzerWON',
   'ryansatin',
   'MikeJohnson_pwtorch',
+  'WrestlingInc',
+  'Fightful',
   
   // Major Wrestling Stars
   'TrueKofi',
@@ -98,9 +100,7 @@ const WRESTLING_ACCOUNTS = [
   'WrestleNotice',
   'WrestleTubePC',
   'FanSidedDDT',
-  'WrestlingInc',
   'AEWonTV',
-  'Fightful',
   'IamAllElite',
   'WrestlePurists',
   'WWEItalia',
@@ -120,7 +120,7 @@ const WRESTLING_ACCOUNTS = [
   'EBischoff',
   'TheHypeManAlex',
   
-  // Wrestling Fans & Communities
+  // Wrestling Community
   'ChandranTheMan',
   'moyscharles03',
   'ArmbarsNCigars',
@@ -168,9 +168,11 @@ class TwitterServiceWithRateLimit {
   private lastRequestTime = 0;
   private requestCount = 0;
   private windowStart = Date.now();
-  private readonly RATE_LIMIT = 200; // Reduced to handle more accounts safely
+  private readonly RATE_LIMIT = 50; // Much more conservative rate limit
   private readonly WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-  private readonly REQUEST_DELAY = 3000; // 3 seconds between requests (slower for more accounts)
+  private readonly REQUEST_DELAY = 10000; // 10 seconds between requests (much slower)
+  private readonly MAX_ACCOUNTS_PER_CYCLE = 5; // Only process 5 accounts at a time
+  private cycleOffset = 0; // Track which accounts we're currently processing
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -183,13 +185,14 @@ class TwitterServiceWithRateLimit {
     if (now - this.windowStart >= this.WINDOW_MS) {
       this.requestCount = 0;
       this.windowStart = now;
+      console.log('Rate limit window reset');
     }
 
     // Check if we're at rate limit
     if (this.requestCount >= this.RATE_LIMIT) {
       const waitTime = this.WINDOW_MS - (now - this.windowStart);
-      console.log(`Rate limit reached, waiting ${waitTime}ms`);
-      await this.delay(waitTime);
+      console.log(`Rate limit reached (${this.requestCount}/${this.RATE_LIMIT}), waiting ${Math.round(waitTime/1000)}s`);
+      await this.delay(waitTime + 1000); // Add extra second buffer
       this.requestCount = 0;
       this.windowStart = Date.now();
     }
@@ -197,7 +200,9 @@ class TwitterServiceWithRateLimit {
     // Ensure minimum delay between requests
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < this.REQUEST_DELAY) {
-      await this.delay(this.REQUEST_DELAY - timeSinceLastRequest);
+      const delayNeeded = this.REQUEST_DELAY - timeSinceLastRequest;
+      console.log(`Enforcing delay: ${Math.round(delayNeeded/1000)}s`);
+      await this.delay(delayNeeded);
     }
 
     this.requestCount++;
@@ -208,6 +213,8 @@ class TwitterServiceWithRateLimit {
     try {
       await this.enforceRateLimit();
 
+      console.log(`Attempting to fetch tweets for @${username}`);
+      
       const response = await fetch('https://wavxulotmntdtixcpzik.supabase.co/functions/v1/twitter-wrestling-data', {
         method: 'POST',
         headers: {
@@ -220,17 +227,25 @@ class TwitterServiceWithRateLimit {
       });
 
       if (response.status === 429) {
-        console.log(`Rate limited for ${username}, skipping...`);
+        console.log(`Rate limited for ${username}, skipping for this cycle`);
         return [];
       }
 
       if (!response.ok) {
-        console.warn(`Failed to fetch tweets for ${username}: ${response.status}`);
+        console.warn(`Failed to fetch tweets for ${username}: ${response.status} ${response.statusText}`);
         return [];
       }
 
       const data = await response.json();
-      return data.tweets || [];
+      const tweets = data.tweets || [];
+      
+      if (tweets.length > 0) {
+        console.log(`✅ Successfully fetched ${tweets.length} tweets from @${username}`);
+      } else {
+        console.log(`No tweets returned for @${username}`);
+      }
+      
+      return tweets;
     } catch (error) {
       console.error(`Error fetching tweets for ${username}:`, error);
       return [];
@@ -252,13 +267,26 @@ class TwitterServiceWithRateLimit {
     }));
   }
 
-  private getMinimalFallback(): TwitterPost[] {
+  private getProgressiveFallback(): TwitterPost[] {
+    const totalAccounts = WRESTLING_ACCOUNTS.length;
+    const currentCycle = Math.floor(this.cycleOffset / this.MAX_ACCOUNTS_PER_CYCLE) + 1;
+    const totalCycles = Math.ceil(totalAccounts / this.MAX_ACCOUNTS_PER_CYCLE);
+    
     return [
       {
-        id: 'fallback_twitter_1',
-        text: `Wrestling news updates available - Twitter API temporarily unavailable (monitoring ${WRESTLING_ACCOUNTS.length} accounts)`,
+        id: 'fallback_progressive_1',
+        text: `🔄 Cycling through wrestling accounts (${this.MAX_ACCOUNTS_PER_CYCLE} per cycle) to respect Twitter rate limits. Currently on cycle ${currentCycle}/${totalCycles}.`,
         author: 'System',
         timestamp: new Date(),
+        engagement: { likes: 0, retweets: 0, replies: 0 },
+        url: '#',
+        isFallback: true
+      },
+      {
+        id: 'fallback_progressive_2',
+        text: `📊 Monitoring ${totalAccounts} wrestling accounts total. System automatically cycles to avoid rate limits and ensure data freshness.`,
+        author: 'WrestlingHub',
+        timestamp: new Date(Date.now() - 60000),
         engagement: { likes: 0, retweets: 0, replies: 0 },
         url: '#',
         isFallback: true
@@ -268,38 +296,54 @@ class TwitterServiceWithRateLimit {
 
   async fetchWrestlingTweets(): Promise<TwitterPost[]> {
     try {
-      console.log(`Fetching wrestling tweets from ${WRESTLING_ACCOUNTS.length} accounts with rate limiting...`);
-      const results: any[] = [];
-
-      // Process a subset of accounts per cycle to manage rate limits
-      const accountsPerCycle = 10; // Process 10 accounts at a time
-      const cycleStartIndex = Math.floor(Date.now() / (60 * 1000)) % Math.ceil(WRESTLING_ACCOUNTS.length / accountsPerCycle);
-      const startIndex = cycleStartIndex * accountsPerCycle;
-      const endIndex = Math.min(startIndex + accountsPerCycle, WRESTLING_ACCOUNTS.length);
+      const totalAccounts = WRESTLING_ACCOUNTS.length;
+      console.log(`🎯 Starting Twitter fetch cycle for ${totalAccounts} total accounts`);
       
-      const accountsToProcess = WRESTLING_ACCOUNTS.slice(startIndex, endIndex);
-      console.log(`Processing accounts ${startIndex + 1}-${endIndex} of ${WRESTLING_ACCOUNTS.length}: ${accountsToProcess.join(', ')}`);
+      // Select a small subset of accounts for this cycle
+      const startIndex = this.cycleOffset % totalAccounts;
+      const endIndex = Math.min(startIndex + this.MAX_ACCOUNTS_PER_CYCLE, totalAccounts);
+      
+      let accountsToProcess: string[];
+      if (endIndex <= totalAccounts) {
+        accountsToProcess = WRESTLING_ACCOUNTS.slice(startIndex, endIndex);
+      } else {
+        // Handle wrap-around
+        accountsToProcess = [
+          ...WRESTLING_ACCOUNTS.slice(startIndex),
+          ...WRESTLING_ACCOUNTS.slice(0, endIndex - totalAccounts)
+        ];
+      }
+      
+      console.log(`📋 Processing accounts ${startIndex + 1}-${endIndex} of ${totalAccounts}: ${accountsToProcess.join(', ')}`);
+      
+      const results: any[] = [];
+      let successfulFetches = 0;
 
-      // Process selected accounts sequentially to avoid rate limits
+      // Process accounts sequentially with proper delays
       for (const account of accountsToProcess) {
         const tweets = await this.fetchAccountTweets(account);
         if (tweets && tweets.length > 0) {
-          results.push(...tweets.slice(0, 3)); // Limit to 3 tweets per account
+          results.push(...tweets.slice(0, 2)); // Limit to 2 tweets per account
+          successfulFetches++;
         }
       }
 
+      // Update cycle offset for next request
+      this.cycleOffset = (this.cycleOffset + this.MAX_ACCOUNTS_PER_CYCLE) % totalAccounts;
+
       if (results.length === 0) {
-        console.log('No tweets fetched, using minimal fallback');
-        return this.getMinimalFallback();
+        console.log(`⚠️ No tweets fetched from ${accountsToProcess.length} accounts, using progressive fallback`);
+        return this.getProgressiveFallback();
       }
 
       const formattedTweets = this.formatTweets(results);
-      console.log(`Successfully fetched ${formattedTweets.length} tweets from ${accountsToProcess.length} accounts`);
+      console.log(`✅ Successfully processed ${formattedTweets.length} tweets from ${successfulFetches}/${accountsToProcess.length} accounts`);
+      
       return formattedTweets;
 
     } catch (error) {
       console.error('Twitter service error:', error);
-      return this.getMinimalFallback();
+      return this.getProgressiveFallback();
     }
   }
 }

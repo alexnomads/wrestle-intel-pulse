@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { fetchWrestlingTweets, TwitterPost } from '@/services/twitterService';
 
@@ -6,15 +5,17 @@ export const useTwitterData = () => {
   return useQuery({
     queryKey: ['twitter-wrestling-data'],
     queryFn: fetchWrestlingTweets,
-    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
-    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized (longer to respect rate limits)
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 10 * 60 * 1000, // 10 minutes - longer stale time to reduce API calls
+    refetchInterval: 15 * 60 * 1000, // 15 minutes - much longer interval to respect rate limits
+    retry: 1, // Reduced retry attempts
+    retryDelay: 60000, // 1 minute delay between retries
     meta: {
       onError: (error: Error) => {
         console.error('Twitter data fetch failed:', error);
       }
-    }
+    },
+    // Keep previous data while refetching to improve UX
+    keepPreviousData: true,
   });
 };
 
@@ -23,12 +24,15 @@ export const useTwitterAnalytics = () => {
   
   // Filter out fallback data for analytics
   const realTweets = tweets.filter(tweet => !tweet.isFallback);
+  const fallbackTweets = tweets.filter(tweet => tweet.isFallback);
   
   return {
     tweets: realTweets,
-    fallbackCount: tweets.length - realTweets.length,
+    fallbackTweets,
+    fallbackCount: fallbackTweets.length,
     isLoading,
     error,
-    hasRealData: realTweets.length > 0
+    hasRealData: realTweets.length > 0,
+    totalTweets: tweets.length
   };
 };

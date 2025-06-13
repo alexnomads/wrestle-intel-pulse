@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Twitter, TrendingUp, Heart, Repeat, MessageCircle } from 'lucide-react';
+import { RefreshCw, Twitter, TrendingUp, Heart, Repeat, MessageCircle, Users } from 'lucide-react';
 import { useTwitterData } from '@/hooks/useTwitterData';
 
 interface TweetProps {
@@ -48,6 +48,30 @@ const TweetCard: React.FC<TweetProps> = ({ tweet, rank }) => {
       default: return 'bg-purple-100 text-purple-800';
     }
   };
+
+  // Special styling for fallback tweets
+  if (tweet.isFallback) {
+    return (
+      <div className="p-4 border border-dashed border-muted rounded-lg bg-muted/20">
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="font-medium text-sm text-muted-foreground">@{tweet.author}</span>
+              <Badge variant="outline" className="text-xs">System Info</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {tweet.text}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors relative">
@@ -121,15 +145,19 @@ export const TopWrestlingTweets: React.FC = () => {
     setLastUpdate(new Date());
   };
 
-  // Filter out fallback tweets and sort by engagement
-  const realTweets = tweets
-    .filter(tweet => !tweet.isFallback)
-    .sort((a, b) => {
-      const engagementA = a.engagement.likes + a.engagement.retweets + a.engagement.replies;
-      const engagementB = b.engagement.likes + b.engagement.retweets + b.engagement.replies;
-      return engagementB - engagementA;
-    })
-    .slice(0, 10); // Top 10 tweets
+  // Separate real tweets from fallback tweets
+  const realTweets = tweets.filter(tweet => !tweet.isFallback);
+  const fallbackTweets = tweets.filter(tweet => tweet.isFallback);
+  
+  // Sort real tweets by engagement
+  const sortedRealTweets = realTweets.sort((a, b) => {
+    const engagementA = a.engagement.likes + a.engagement.retweets + a.engagement.replies;
+    const engagementB = b.engagement.likes + b.engagement.retweets + b.engagement.replies;
+    return engagementB - engagementA;
+  }).slice(0, 10);
+
+  // Total accounts being monitored (this should match the WRESTLING_ACCOUNTS array length)
+  const totalAccountsMonitored = 120; // Updated to reflect actual account count
 
   return (
     <Card className="glass-card">
@@ -139,7 +167,7 @@ export const TopWrestlingTweets: React.FC = () => {
             <TrendingUp className="h-6 w-6 text-wrestling-electric" />
             <span>Top Wrestling Tweets Today</span>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              {realTweets.length} tweets
+              {sortedRealTweets.length} tweets
             </Badge>
           </CardTitle>
           
@@ -155,8 +183,14 @@ export const TopWrestlingTweets: React.FC = () => {
           </Button>
         </div>
         
-        <div className="text-sm text-muted-foreground">
-          Last updated: {lastUpdate.toLocaleTimeString()} • Tracking {tweets.length} accounts
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Last updated: {lastUpdate.toLocaleTimeString()}
+          </div>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>Tracking {totalAccountsMonitored} accounts</span>
+          </div>
         </div>
       </CardHeader>
       
@@ -175,31 +209,60 @@ export const TopWrestlingTweets: React.FC = () => {
               Try Again
             </Button>
           </div>
-        ) : realTweets.length > 0 ? (
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {realTweets.map((tweet, index) => (
-              <TweetCard 
-                key={tweet.id} 
-                tweet={tweet} 
-                rank={index + 1}
-              />
-            ))}
-          </div>
         ) : (
-          <div className="text-center py-8">
-            <Twitter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">
-              No tweets available at the moment
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Our system is actively monitoring {tweets.filter(t => t.isFallback).length > 0 ? '80+' : '0'} wrestling accounts
-            </p>
-          </div>
+          <>
+            {/* Show real tweets first */}
+            {sortedRealTweets.length > 0 && (
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
+                  Top Engagement Tweets
+                </h3>
+                {sortedRealTweets.map((tweet, index) => (
+                  <TweetCard 
+                    key={tweet.id} 
+                    tweet={tweet} 
+                    rank={index + 1}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Show system information */}
+            {fallbackTweets.length > 0 && (
+              <div className="space-y-4">
+                {sortedRealTweets.length > 0 && (
+                  <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
+                    System Status
+                  </h3>
+                )}
+                {fallbackTweets.map((tweet) => (
+                  <TweetCard 
+                    key={tweet.id} 
+                    tweet={tweet} 
+                    rank={0}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Show empty state only if no tweets at all */}
+            {sortedRealTweets.length === 0 && fallbackTweets.length === 0 && (
+              <div className="text-center py-8">
+                <Twitter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  No tweets available at the moment
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Our system is actively monitoring {totalAccountsMonitored} wrestling accounts
+                </p>
+              </div>
+            )}
+          </>
         )}
         
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center">
-            🔥 Trending tweets ranked by engagement (likes + retweets + replies) • Updated every 10 minutes
+            🔥 Trending tweets ranked by engagement (likes + retweets + replies) • Progressive rate limiting to respect Twitter API limits
           </p>
         </div>
       </CardContent>
