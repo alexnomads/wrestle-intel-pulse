@@ -13,7 +13,7 @@ interface StorylineMetricsProps {
 }
 
 export const StorylineMetrics = ({ storylines, newsItems, redditPosts, tweets }: StorylineMetricsProps) => {
-  // Calculate metrics
+  // Calculate real metrics from actual data
   const totalStorylines = storylines.length;
   const buildingStorylines = storylines.filter(s => s.status === 'building').length;
   const climaxStorylines = storylines.filter(s => s.status === 'climax').length;
@@ -27,8 +27,17 @@ export const StorylineMetrics = ({ storylines, newsItems, redditPosts, tweets }:
     ? storylines.reduce((sum, s) => sum + s.fan_reception_score, 0) / storylines.length 
     : 0;
 
-  // Total sources feeding into storylines
-  const totalSources = newsItems.length + redditPosts.length + tweets.filter(t => !t.isFallback).length;
+  // Count real sources (excluding fallback Twitter data)
+  const realTweets = tweets.filter(t => !t.isFallback);
+  const totalSources = newsItems.length + redditPosts.length + realTweets.length;
+
+  // Extract unique wrestlers mentioned across storylines
+  const uniqueWrestlers = new Set();
+  storylines.forEach(storyline => {
+    storyline.participants.forEach(participant => {
+      uniqueWrestlers.add(participant);
+    });
+  });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -68,17 +77,17 @@ export const StorylineMetrics = ({ storylines, newsItems, redditPosts, tweets }:
 
       <Card className="glass-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Avg Fan Reception</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Wrestlers Involved</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="text-2xl font-bold text-green-500">
-              {avgFanReception.toFixed(1)}
+              {uniqueWrestlers.size}
             </div>
             <Users className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Avg intensity: {avgIntensity.toFixed(1)}
+            Avg reception: {avgFanReception.toFixed(1)}
           </div>
         </CardContent>
       </Card>
@@ -95,7 +104,7 @@ export const StorylineMetrics = ({ storylines, newsItems, redditPosts, tweets }:
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            News, Reddit & Twitter
+            {newsItems.length} news • {redditPosts.length} reddit • {realTweets.length} tweets
           </div>
         </CardContent>
       </Card>
