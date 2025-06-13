@@ -1,5 +1,5 @@
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
-import { DetectedStoryline, UnifiedDataSource } from './unifiedDataService';
+import { DetectedStoryline, UnifiedSource } from './unifiedDataService';
 import { WrestlerTrend, TrendAlert, StorylineMomentum } from './predictiveAnalyticsService';
 
 // Fallback wrestler mentions for when external data sources fail
@@ -100,7 +100,7 @@ export const getFallbackStorylines = (): DetectedStoryline[] => {
 };
 
 // Fallback unified data sources
-export const getFallbackUnifiedSources = (): UnifiedDataSource[] => {
+export const getFallbackUnifiedSources = (): UnifiedSource[] => {
   return [
     {
       type: 'news',

@@ -2,10 +2,10 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Globe, MessageSquare, Twitter, Youtube } from 'lucide-react';
-import { UnifiedDataSource } from '@/services/unifiedDataService';
+import { UnifiedSource } from '@/services/unifiedDataService';
 
 interface PlatformBreakdownProps {
-  sources: UnifiedDataSource[];
+  sources: UnifiedSource[];
 }
 
 export const PlatformBreakdown = ({ sources }: PlatformBreakdownProps) => {

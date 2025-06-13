@@ -1,9 +1,10 @@
+
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
 import { fetchRSSFeeds } from './data/rssService';
 import { fetchRedditPosts } from './data/redditService';
 import { fetchWrestlingTweets } from './twitterService';
-import { fetchYouTubeVideos } from './youtubeService';
+import { fetchWrestlingVideos } from './youtubeService';
 import { analyzeSentiment, extractWrestlerMentions } from './data/sentimentAnalysisService';
 
 export interface UnifiedSource {
@@ -22,12 +23,42 @@ export interface UnifiedSource {
   };
 }
 
+export interface DetectedStoryline {
+  id: string;
+  title: string;
+  wrestlers: string[];
+  description: string;
+  intensity: number;
+  sources: Array<{
+    type: string;
+    title: string;
+    content: string;
+    timestamp: Date;
+    source: string;
+    url?: string;
+  }>;
+  platform: 'news' | 'reddit' | 'twitter' | 'mixed';
+}
+
 export interface UnifiedDataResponse {
   sources: UnifiedSource[];
   wrestlerMentions: WrestlerMention[];
+  storylines: DetectedStoryline[];
   lastUpdated: Date;
   totalSources: number;
 }
+
+// Helper function to safely get sentiment score as number
+const getSentimentScore = (text: string): number => {
+  const result = analyzeSentiment(text);
+  if (typeof result === 'number') {
+    return result;
+  }
+  if (typeof result === 'object' && result !== null && 'score' in result) {
+    return (result as any).score || 0.5;
+  }
+  return 0.5; // Default neutral sentiment
+};
 
 export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
   console.log('Fetching unified wrestling data from all sources...');
@@ -38,7 +69,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
       fetchRSSFeeds(),
       fetchRedditPosts(), 
       fetchWrestlingTweets(), // Now uses rate-limited service
-      fetchYouTubeVideos()
+      fetchWrestlingVideos()
     ]);
 
     const sources: UnifiedSource[] = [];
@@ -54,7 +85,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
           source: item.source || 'Wrestling News',
           timestamp: new Date(item.pubDate),
           url: item.link,
-          sentiment: analyzeSentiment(item.title + ' ' + (item.contentSnippet || '')),
+          sentiment: getSentimentScore(item.title + ' ' + (item.contentSnippet || '')),
           engagement: {
             score: 0,
             comments: 0,
@@ -75,7 +106,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
           source: `r/${post.subreddit}`,
           timestamp: new Date(post.created_utc * 1000),
           url: post.permalink.startsWith('http') ? post.permalink : `https://reddit.com${post.permalink}`,
-          sentiment: analyzeSentiment(post.title + ' ' + (post.selftext || '')),
+          sentiment: getSentimentScore(post.title + ' ' + (post.selftext || '')),
           engagement: {
             score: post.score,
             comments: post.num_comments,
@@ -97,7 +128,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
             source: `@${tweet.author}`,
             timestamp: tweet.timestamp,
             url: tweet.url,
-            sentiment: analyzeSentiment(tweet.text),
+            sentiment: getSentimentScore(tweet.text),
             engagement: {
               score: tweet.engagement.likes,
               comments: tweet.engagement.replies,
@@ -116,13 +147,13 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
           type: 'youtube',
           title: video.title,
           content: video.description,
-          source: video.channel,
-          timestamp: video.timestamp,
+          source: video.channelTitle,
+          timestamp: video.publishedAt,
           url: video.url,
-          sentiment: analyzeSentiment(video.title + ' ' + video.description),
+          sentiment: getSentimentScore(video.title + ' ' + video.description),
           engagement: {
-            score: video.engagement.views,
-            comments: video.engagement.comments,
+            score: video.viewCount,
+            comments: video.commentCount,
             shares: 0
           }
         });
@@ -130,7 +161,11 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
     }
 
     // Extract wrestler mentions from all sources
-    const wrestlerMentions = extractWrestlerMentions(sources);
+    const allContent = sources.map(s => s.title + ' ' + s.content).join(' ');
+    const wrestlerMentions = extractWrestlerMentions(allContent, sources);
+
+    // Generate basic storylines from sources
+    const storylines: DetectedStoryline[] = [];
 
     console.log(`Unified data: ${sources.length} sources, ${wrestlerMentions.length} wrestler mentions`);
     console.log('Source breakdown:', {
@@ -143,6 +178,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
     return {
       sources: sources.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 100),
       wrestlerMentions,
+      storylines,
       lastUpdated: new Date(),
       totalSources: sources.length
     };
@@ -152,6 +188,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
     return {
       sources: [],
       wrestlerMentions: [],
+      storylines: [],
       lastUpdated: new Date(),
       totalSources: 0
     };
