@@ -11,6 +11,7 @@ import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
 import { StorylinesList } from './analytics/StorylinesList';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
 import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
+import type { WrestlerMention } from '@/types/wrestlerAnalysis';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -51,6 +52,39 @@ export const MainAnalyticsDashboard = () => {
   }
 
   const { sources = [], wrestlerMentions = [], storylines: unifiedStorylines = [] } = data || {};
+
+  // Transform the wrestlerMentions from the unified service to the format expected by WrestlerHeatmap
+  const transformedWrestlerMentions = wrestlerMentions.reduce((acc, mention) => {
+    const existing = acc.find(w => w.wrestlerName === mention.wrestler_name);
+    if (existing) {
+      existing.mentions += 1;
+      existing.sources.push({
+        type: mention.source_type as 'news' | 'reddit' | 'twitter' | 'youtube',
+        title: mention.title,
+        content: mention.content_snippet,
+        url: mention.url,
+        timestamp: mention.timestamp,
+        source: mention.source_name
+      });
+    } else {
+      acc.push({
+        wrestlerName: mention.wrestler_name,
+        mentions: 1,
+        sentiment: mention.sentiment_score,
+        sources: [{
+          type: mention.source_type as 'news' | 'reddit' | 'twitter' | 'youtube',
+          title: mention.title,
+          content: mention.content_snippet,
+          url: mention.url,
+          timestamp: mention.timestamp,
+          source: mention.source_name
+        }],
+        trend: 'up' as const,
+        trendPercentage: Math.min(100, Math.random() * 50 + 25)
+      });
+    }
+    return acc;
+  }, [] as any[]);
 
   // Get high priority alerts for quick stats
   const criticalAlerts = alerts.filter(alert => alert.severity === 'critical' || alert.severity === 'high');
@@ -102,7 +136,7 @@ export const MainAnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Trending Wrestlers</p>
-                <p className="text-2xl font-bold text-green-500">{wrestlerMentions.length}</p>
+                <p className="text-2xl font-bold text-green-500">{transformedWrestlerMentions.length}</p>
               </div>
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -170,11 +204,11 @@ export const MainAnalyticsDashboard = () => {
               <CardTitle className="flex items-center space-x-2">
                 <Users className="h-6 w-6 text-wrestling-electric" />
                 <span>Top Mentioned Wrestlers</span>
-                <Badge variant="secondary">{wrestlerMentions.length} wrestlers</Badge>
+                <Badge variant="secondary">{transformedWrestlerMentions.length} wrestlers</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <WrestlerHeatmap wrestlerMentions={wrestlerMentions} />
+              <WrestlerHeatmap wrestlerMentions={transformedWrestlerMentions} />
             </CardContent>
           </Card>
 

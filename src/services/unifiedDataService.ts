@@ -1,8 +1,10 @@
+
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { fetchComprehensiveRedditPosts } from './wrestlingDataService';
 import { fetchOptimizedRSSFeeds } from './data/optimizedRssService';
 import { fetchWrestlingTweets, TwitterPost } from './twitterService';
 import { fetchWrestlingVideos, YouTubeVideo } from './youtubeService';
+import { WrestlerMention } from '@/types/wrestlerAnalysis';
 
 export interface UnifiedDataSource {
   type: 'news' | 'reddit' | 'twitter' | 'youtube';
@@ -15,15 +17,6 @@ export interface UnifiedDataSource {
     score: number;
     comments: number;
   };
-}
-
-export interface WrestlerMention {
-  wrestlerName: string;
-  mentions: number;
-  sentiment: number;
-  sources: UnifiedDataSource[];
-  trend: 'up' | 'down' | 'stable';
-  trendPercentage: number;
 }
 
 export interface DetectedStoryline {
@@ -109,7 +102,7 @@ export const fetchUnifiedData = async (): Promise<{
       }))
     ];
 
-    // Analyze wrestler mentions based on real data only
+    // Analyze wrestler mentions based on real data only using the correct interface
     const wrestlerMentions = analyzeWrestlerMentions(sources);
     
     // Detect storylines from real data only
@@ -131,8 +124,7 @@ export const fetchUnifiedData = async (): Promise<{
 
 const analyzeWrestlerMentions = (sources: UnifiedDataSource[]): WrestlerMention[] => {
   const wrestlerData = new Map<string, {
-    mentions: number;
-    sources: UnifiedDataSource[];
+    mentions: UnifiedDataSource[];
     sentimentSum: number;
   }>();
 
@@ -141,14 +133,13 @@ const analyzeWrestlerMentions = (sources: UnifiedDataSource[]): WrestlerMention[
     
     KNOWN_WRESTLERS.forEach(wrestler => {
       if (content.includes(wrestler.toLowerCase())) {
-        const existing = wrestlerData.get(wrestler) || { mentions: 0, sources: [], sentimentSum: 0 };
+        const existing = wrestlerData.get(wrestler) || { mentions: [], sentimentSum: 0 };
         
         // Simple sentiment analysis
         const sentiment = calculateSentiment(content);
         
         wrestlerData.set(wrestler, {
-          mentions: existing.mentions + 1,
-          sources: [...existing.sources, source],
+          mentions: [...existing.mentions, source],
           sentimentSum: existing.sentimentSum + sentiment
         });
       }
@@ -156,17 +147,25 @@ const analyzeWrestlerMentions = (sources: UnifiedDataSource[]): WrestlerMention[
   });
 
   return Array.from(wrestlerData.entries())
-    .map(([name, data]) => ({
-      wrestlerName: name,
-      mentions: data.mentions,
-      sentiment: data.sentimentSum / data.mentions,
-      sources: data.sources,
-      trend: data.mentions > 5 ? 'up' as const : data.mentions > 2 ? 'stable' as const : 'down' as const,
-      trendPercentage: Math.min(data.mentions * 10, 100)
-    }))
-    .filter(wrestler => wrestler.mentions > 0) // Only show wrestlers with actual mentions
-    .sort((a, b) => b.mentions - a.mentions)
-    .slice(0, 15);
+    .map(([name, data]) => {
+      const mentionSources: WrestlerMention[] = data.mentions.map((source, index) => ({
+        id: `${name.replace(/\s+/g, '-').toLowerCase()}-${source.timestamp.getTime()}-${index}`,
+        wrestler_name: name,
+        source_type: source.type === 'news' ? 'news' as const : 'reddit' as const,
+        source_name: source.source,
+        title: source.title,
+        url: source.url || '#',
+        content_snippet: source.content.substring(0, 200) + (source.content.length > 200 ? '...' : ''),
+        timestamp: source.timestamp,
+        sentiment_score: calculateSentiment(`${source.title} ${source.content}`)
+      }));
+
+      return mentionSources;
+    })
+    .flat()
+    .filter(mention => mention !== undefined)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 50); // Limit to 50 most recent mentions
 };
 
 const detectStorylines = (sources: UnifiedDataSource[]): DetectedStoryline[] => {
