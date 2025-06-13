@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Search, Database, Activity, TrendingUp, BarChart3, Zap } from "lucide-react";
+import { Users, Calendar, Search, Database, TrendingUp, BarChart3, Zap } from "lucide-react";
 
 interface HeaderProps {
   activeTab: string;
@@ -11,7 +11,6 @@ export const Header = ({ activeTab, onTabChange }: HeaderProps) => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'wrestler-intelligence', label: 'Wrestler Intel', icon: Users },
-    { id: 'storyline-tracker', label: 'Storylines', icon: Activity },
     { id: 'industry-analytics', label: 'Industry', icon: TrendingUp },
     { id: 'rosters', label: 'Rosters', icon: Users },
     { id: 'events', label: 'Events', icon: Calendar },

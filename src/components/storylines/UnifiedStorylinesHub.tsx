@@ -23,7 +23,15 @@ export const UnifiedStorylinesHub = () => {
   const { data: redditPosts = [] } = useRedditPosts();
   const { data: tweets = [] } = useTwitterData();
 
+  console.log('UnifiedStorylinesHub - Data loaded:', {
+    storylines: storylines.length,
+    newsItems: newsItems.length,
+    redditPosts: redditPosts.length,
+    tweets: tweets.length
+  });
+
   const handleRefresh = () => {
+    console.log('Refreshing storylines data...');
     refetchStorylines();
   };
 

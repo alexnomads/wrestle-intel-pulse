@@ -6,7 +6,6 @@ import { RosterTabs } from "./RosterTabs";
 import { EventCalendar } from "./EventCalendar";
 import { DataManagement } from "./DataManagement";
 import { WrestlerIntelligenceDashboard } from "./WrestlerIntelligenceDashboard";
-import { StorylineTracker } from "./StorylineTracker";
 import { IndustryAnalytics } from "./IndustryAnalytics";
 import { SmartSearchEngine } from "./SmartSearchEngine";
 
@@ -24,7 +23,6 @@ const Dashboard = () => {
         {activeTab === 'search' && <SmartSearchEngine />}
         {activeTab === 'data' && <DataManagement />}
         {activeTab === 'wrestler-intelligence' && <WrestlerIntelligenceDashboard />}
-        {activeTab === 'storyline-tracker' && <StorylineTracker />}
         {activeTab === 'industry-analytics' && <IndustryAnalytics />}
       </main>
     </div>
