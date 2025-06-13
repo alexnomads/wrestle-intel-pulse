@@ -10,7 +10,6 @@ import {
   type TrendAlert,
   type StorylineMomentum
 } from '@/services/predictiveAnalyticsService';
-import { getFallbackTrendAlerts } from '@/services/fallbackDataService';
 
 export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') => {
   const { data: unifiedData } = useUnifiedData();
@@ -115,54 +114,15 @@ export const useTrendAlerts = () => {
   return useQuery({
     queryKey: ['trend-alerts', trends.length, storylines.length],
     queryFn: () => {
-      console.log('=== TREND ALERTS DATA PIPELINE DEBUG ===');
-      console.log('Input data:', { 
-        trendsCount: trends.length, 
-        storylinesCount: storylines.length 
-      });
-      
-      // Generate alerts from the predictive analytics data
-      const generatedAlerts = generateTrendAlerts(trends, storylines);
-      console.log('Generated alerts from service:', {
-        count: generatedAlerts.length,
-        alertsWithSources: generatedAlerts.filter(a => a.mention_sources && a.mention_sources.length > 0).length,
-        sampleAlert: generatedAlerts[0] ? {
-          id: generatedAlerts[0].id,
-          title: generatedAlerts[0].title,
-          hasSources: !!generatedAlerts[0].mention_sources,
-          sourceCount: generatedAlerts[0].mention_sources?.length || 0
-        } : null
-      });
-      
-      // If we don't have enough alerts with sources, use fallback data
-      const alertsWithSources = generatedAlerts.filter(a => a.mention_sources && a.mention_sources.length > 0);
-      let finalAlerts = generatedAlerts;
-      
-      if (alertsWithSources.length < 2) {
-        console.log('Insufficient alerts with sources, adding fallback data');
-        const fallbackAlerts = getFallbackTrendAlerts();
-        console.log('Fallback alerts:', {
-          count: fallbackAlerts.length,
-          alertsWithSources: fallbackAlerts.filter(a => a.mention_sources && a.mention_sources.length > 0).length
-        });
-        
-        // Combine real and fallback alerts, prioritizing real ones
-        finalAlerts = [...generatedAlerts, ...fallbackAlerts].slice(0, 5);
-      }
-      
-      console.log('Final alerts being returned to UI:', {
-        count: finalAlerts.length,
-        alertsWithSources: finalAlerts.filter(a => a.mention_sources && a.mention_sources.length > 0).length,
-        alertDetails: finalAlerts.map(a => ({
-          id: a.id,
-          title: a.title,
-          sourceCount: a.mention_sources?.length || 0,
-          hasExpandableContent: !!(a.mention_sources && a.mention_sources.length > 0)
+      console.log('Generating trend alerts with enhanced source data...');
+      const alerts = generateTrendAlerts(trends, storylines);
+      console.log(`Generated ${alerts.length} alerts, each with source data:`, 
+        alerts.map(a => ({ 
+          title: a.title, 
+          sources: a.mention_sources?.length || 0 
         }))
-      });
-      console.log('=== END TREND ALERTS DEBUG ===');
-      
-      return finalAlerts;
+      );
+      return alerts;
     },
     enabled: true, // Always enabled to ensure fallback data
     staleTime: 1 * 60 * 1000, // 1 minute
