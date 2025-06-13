@@ -31,6 +31,29 @@ interface TwitterApiResponse {
   };
 }
 
+// Rate limiting state (in-memory for this function instance)
+let requestCount = 0;
+let windowStart = Date.now();
+const RATE_LIMIT = 250;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(): boolean {
+  const now = Date.now();
+  
+  // Reset window if needed
+  if (now - windowStart >= WINDOW_MS) {
+    requestCount = 0;
+    windowStart = now;
+  }
+
+  if (requestCount >= RATE_LIMIT) {
+    return false; // Rate limit exceeded
+  }
+
+  requestCount++;
+  return true;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -43,55 +66,34 @@ Deno.serve(async (req) => {
     if (!bearerToken) {
       console.error('Twitter Bearer Token not found');
       return new Response(
-        JSON.stringify({ error: 'Twitter API not configured' }),
+        JSON.stringify({ error: 'Twitter API not configured', tweets: [] }),
         { 
-          status: 500,
+          status: 200, // Return 200 with empty tweets instead of 500
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    const { accounts } = await req.json();
+    const { accounts, rateLimited } = await req.json();
+    
+    // Check rate limit if this is a rate-limited request
+    if (rateLimited && !checkRateLimit()) {
+      console.log('Rate limit exceeded, returning empty response');
+      return new Response(
+        JSON.stringify({ tweets: [], rateLimited: true }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     console.log('Fetching tweets for accounts:', accounts);
 
-    // Convert account usernames to user IDs by looking them up
-    const usernames = accounts.join(',');
-    const usersUrl = `https://api.twitter.com/2/users/by?usernames=${usernames}&user.fields=id,username,name`;
+    // Use a single account if multiple provided to reduce API calls
+    const targetAccount = Array.isArray(accounts) ? accounts[0] : accounts;
     
-    const usersResponse = await fetch(usersUrl, {
-      headers: {
-        'Authorization': `Bearer ${bearerToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!usersResponse.ok) {
-      const errorText = await usersResponse.text();
-      console.error('Twitter users API error:', usersResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user data from Twitter' }),
-        { 
-          status: usersResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const usersData = await usersResponse.json();
-    console.log('Users data:', usersData);
-
-    if (!usersData.data || usersData.data.length === 0) {
-      return new Response(
-        JSON.stringify({ tweets: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user IDs
-    const userIds = usersData.data.map((user: TwitterUser) => user.id).join(',');
-    
-    // Fetch recent tweets from these users
-    const tweetsUrl = `https://api.twitter.com/2/tweets/search/recent?query=from:${accounts.join(' OR from:')}&max_results=50&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=username,name`;
+    // Fetch tweets using search endpoint with from: operator
+    const tweetsUrl = `https://api.twitter.com/2/tweets/search/recent?query=from:${targetAccount} -is:retweet&max_results=10&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=username,name`;
     
     const tweetsResponse = await fetch(tweetsUrl, {
       headers: {
@@ -100,20 +102,31 @@ Deno.serve(async (req) => {
       },
     });
 
+    if (tweetsResponse.status === 429) {
+      console.log(`Rate limited by Twitter API for ${targetAccount}`);
+      return new Response(
+        JSON.stringify({ tweets: [], rateLimited: true }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     if (!tweetsResponse.ok) {
       const errorText = await tweetsResponse.text();
       console.error('Twitter tweets API error:', tweetsResponse.status, errorText);
+      
+      // Return empty response instead of error to prevent cascade failures
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch tweets from Twitter' }),
+        JSON.stringify({ tweets: [], error: `API Error: ${tweetsResponse.status}` }),
         { 
-          status: tweetsResponse.status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
     const tweetsData: TwitterApiResponse = await tweetsResponse.json();
-    console.log(`Fetched ${tweetsData.data?.length || 0} tweets`);
+    console.log(`Fetched ${tweetsData.data?.length || 0} tweets for ${targetAccount}`);
 
     // Process and format tweets
     const tweets = tweetsData.data?.map(tweet => {
@@ -131,16 +144,15 @@ Deno.serve(async (req) => {
     }) || [];
 
     return new Response(
-      JSON.stringify({ tweets }),
+      JSON.stringify({ tweets, requestCount, windowStart }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Twitter service error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ tweets: [], error: 'Internal server error' }),
       { 
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
