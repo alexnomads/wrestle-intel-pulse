@@ -1,4 +1,3 @@
-
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { analyzeSentiment, extractWrestlerMentions } from './data/sentimentAnalysisService';
 
@@ -16,6 +15,12 @@ export interface TrendAlert {
     change_percentage: number;
     timeframe: string;
   };
+  mention_sources?: Array<{
+    title: string;
+    url: string;
+    source_type: 'news' | 'reddit';
+    timestamp: Date;
+  }>;
 }
 
 export interface WrestlerTrend {
@@ -29,6 +34,13 @@ export interface WrestlerTrend {
   trending_direction: 'rising' | 'falling' | 'stable';
   momentum_score: number;
   timeframe: '24h' | '7d' | '30d';
+  mention_sources?: Array<{
+    title: string;
+    url: string;
+    source_type: 'news' | 'reddit';
+    source_name: string;
+    timestamp: Date;
+  }>;
 }
 
 export interface StorylineMomentum {
@@ -52,6 +64,13 @@ export const analyzeWrestlerTrends = (
     mentions: number;
     sentiments: number[];
     timestamps: Date[];
+    sources: Array<{
+      title: string;
+      url: string;
+      source_type: 'news' | 'reddit';
+      source_name: string;
+      timestamp: Date;
+    }>;
   }>();
 
   // Get cutoff time based on timeframe
@@ -78,10 +97,22 @@ export const analyzeWrestlerTrends = (
       const sentiment = analyzeSentiment(content);
       
       mentions.forEach(wrestler => {
-        const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [], timestamps: [] };
+        const existing = wrestlerStats.get(wrestler) || { 
+          mentions: 0, 
+          sentiments: [], 
+          timestamps: [],
+          sources: []
+        };
         existing.mentions++;
         existing.sentiments.push(sentiment.score);
         existing.timestamps.push(itemDate);
+        existing.sources.push({
+          title: item.title,
+          url: item.link || '#',
+          source_type: 'news',
+          source_name: item.source || 'Wrestling News',
+          timestamp: itemDate
+        });
         wrestlerStats.set(wrestler, existing);
       });
     }
@@ -96,10 +127,22 @@ export const analyzeWrestlerTrends = (
       const sentiment = analyzeSentiment(content);
       
       mentions.forEach(wrestler => {
-        const existing = wrestlerStats.get(wrestler) || { mentions: 0, sentiments: [], timestamps: [] };
+        const existing = wrestlerStats.get(wrestler) || { 
+          mentions: 0, 
+          sentiments: [], 
+          timestamps: [],
+          sources: []
+        };
         existing.mentions++;
         existing.sentiments.push(sentiment.score);
         existing.timestamps.push(postDate);
+        existing.sources.push({
+          title: post.title,
+          url: `https://reddit.com${post.permalink}`,
+          source_type: 'reddit',
+          source_name: `r/${post.subreddit}`,
+          timestamp: postDate
+        });
         wrestlerStats.set(wrestler, existing);
       });
     }
@@ -148,7 +191,8 @@ export const analyzeWrestlerTrends = (
         sentiment_change: Math.round(sentimentChange * 100) / 100,
         trending_direction: trendingDirection,
         momentum_score: Math.round(momentumScore),
-        timeframe
+        timeframe,
+        mention_sources: stats.sources.slice(0, 10) // Include recent sources
       });
     }
   });
@@ -172,11 +216,16 @@ export const generateTrendAlerts = (
       const severity = Math.abs(trend.mention_change_percentage) > 200 ? 'critical' :
                      Math.abs(trend.mention_change_percentage) > 100 ? 'high' : 'medium';
       
+      // Include source information in alert description
+      const sourcesText = trend.mention_sources && trend.mention_sources.length > 0
+        ? ` (${trend.mention_sources.filter(s => s.source_type === 'news').length} news, ${trend.mention_sources.filter(s => s.source_type === 'reddit').length} reddit)`
+        : '';
+      
       alerts.push({
         id: `alert-${alertId++}`,
         type: 'trend_spike',
         title: `${trend.wrestler_name} Mention ${trend.mention_change_percentage > 0 ? 'Surge' : 'Drop'}`,
-        description: `${trend.wrestler_name}'s mentions ${trend.mention_change_percentage > 0 ? 'increased' : 'decreased'} ${Math.abs(trend.mention_change_percentage)}% in ${trend.timeframe}`,
+        description: `${trend.wrestler_name}'s mentions ${trend.mention_change_percentage > 0 ? 'increased' : 'decreased'} ${Math.abs(trend.mention_change_percentage)}% in ${trend.timeframe}${sourcesText}`,
         severity,
         timestamp: new Date(),
         wrestler: trend.wrestler_name,
@@ -185,7 +234,13 @@ export const generateTrendAlerts = (
           previous_value: trend.previous_mentions,
           change_percentage: trend.mention_change_percentage,
           timeframe: trend.timeframe
-        }
+        },
+        mention_sources: trend.mention_sources?.map(source => ({
+          title: source.title,
+          url: source.url,
+          source_type: source.source_type,
+          timestamp: source.timestamp
+        }))
       });
     }
 
@@ -204,7 +259,13 @@ export const generateTrendAlerts = (
           previous_value: Math.round(trend.previous_sentiment * 100),
           change_percentage: Math.round(trend.sentiment_change * 100),
           timeframe: trend.timeframe
-        }
+        },
+        mention_sources: trend.mention_sources?.map(source => ({
+          title: source.title,
+          url: source.url,
+          source_type: source.source_type,
+          timestamp: source.timestamp
+        }))
       });
     }
   });

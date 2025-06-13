@@ -44,7 +44,7 @@ export const useWrestlerAnalysis = (
     const popularWrestlers = filterPopularWrestlers(wrestlers);
     console.log('Analyzing', popularWrestlers.length, 'filtered wrestlers');
     
-    // Pass minimum wrestler requirement to ensure at least 10
+    // Pass minimum wrestler requirement to ensure at least 10, include news items for mention sources
     return performWrestlerAnalysis(popularWrestlers, periodNewsItems, 10);
   }, [wrestlers, periodNewsItems]);
 

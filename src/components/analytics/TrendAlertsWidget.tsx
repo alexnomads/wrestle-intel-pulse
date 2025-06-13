@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, Activity, ExternalLink } from 'lucide-react';
 import { TrendAlert } from '@/services/predictiveAnalyticsService';
 import { useTrendAlerts } from '@/hooks/usePredictiveAnalytics';
+import { MentionSourceIndicator } from '@/components/mentions/MentionSourceIndicator';
+import { SourceLink } from '@/components/mentions/SourceLink';
 
 interface TrendAlertsWidgetProps {
   maxAlerts?: number;
@@ -13,6 +15,7 @@ interface TrendAlertsWidgetProps {
 
 export const TrendAlertsWidget = ({ maxAlerts = 3, showHeader = true }: TrendAlertsWidgetProps) => {
   const { data: alerts = [], isLoading } = useTrendAlerts();
+  const [expandedAlert, setExpandedAlert] = useState<string | null>(null);
 
   const getAlertIcon = (type: string) => {
     switch (type) {
@@ -82,11 +85,41 @@ export const TrendAlertsWidget = ({ maxAlerts = 3, showHeader = true }: TrendAle
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{alert.title}</p>
                     <p className="text-muted-foreground truncate">{alert.description}</p>
-                    <div className="flex items-center space-x-1 mt-1 text-muted-foreground">
-                      <span>{alert.data.change_percentage > 0 ? '+' : ''}{alert.data.change_percentage}%</span>
-                      <span>•</span>
-                      <span>{alert.timestamp.toLocaleTimeString()}</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center space-x-1 text-muted-foreground">
+                        <span>{alert.data.change_percentage > 0 ? '+' : ''}{alert.data.change_percentage}%</span>
+                        <span>•</span>
+                        <span>{alert.timestamp.toLocaleTimeString()}</span>
+                      </div>
+                      {alert.mention_sources && alert.mention_sources.length > 0 && (
+                        <button
+                          onClick={() => setExpandedAlert(expandedAlert === alert.id ? null : alert.id)}
+                          className="text-xs text-wrestling-electric hover:underline"
+                        >
+                          {alert.mention_sources.length} sources
+                        </button>
+                      )}
                     </div>
+                    {expandedAlert === alert.id && alert.mention_sources && (
+                      <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                        {alert.mention_sources.slice(0, 3).map((source, index) => (
+                          <div key={index} className="flex items-center justify-between p-1 bg-background/50 rounded">
+                            <span className="text-xs truncate flex-1">{source.title}</span>
+                            <SourceLink
+                              url={source.url}
+                              title={source.title}
+                              sourceType={source.source_type}
+                              compact={true}
+                            />
+                          </div>
+                        ))}
+                        {alert.mention_sources.length > 3 && (
+                          <div className="text-xs text-muted-foreground text-center">
+                            +{alert.mention_sources.length - 3} more sources
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
