@@ -8,10 +8,10 @@ import { RefreshCw, TrendingUp, Users, Zap, Target, AlertTriangle } from 'lucide
 import { useUnifiedData } from '@/hooks/useUnifiedData';
 import { usePredictiveAnalytics } from '@/hooks/usePredictiveAnalytics';
 import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
-import { StorylinesList } from './analytics/StorylinesList';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
 import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
 import { TopWrestlingTweets } from './dashboard/TopWrestlingTweets';
+import { UnifiedStorylinesHub } from './storylines/UnifiedStorylinesHub';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -51,7 +51,7 @@ export const MainAnalyticsDashboard = () => {
     );
   }
 
-  const { sources = [], wrestlerMentions = [], storylines: unifiedStorylines = [] } = data || {};
+  const { sources = [], wrestlerMentions = [] } = data || {};
 
   // Transform wrestlerMentions to the format expected by WrestlerHeatmap
   const wrestlerMentionCounts = wrestlerMentions.reduce((acc, mention) => {
@@ -164,7 +164,7 @@ export const MainAnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Storylines</p>
-                <p className="text-2xl font-bold text-blue-500">{unifiedStorylines.length}</p>
+                <p className="text-2xl font-bold text-blue-500">{storylines.length}</p>
               </div>
               <Target className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -188,8 +188,14 @@ export const MainAnalyticsDashboard = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid grid-cols-3 w-full">
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="storylines">
+            Storylines
+            <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
+              {storylines.length}
+            </Badge>
+          </TabsTrigger>
           <TabsTrigger value="predictive">
             Predictive Analytics
             {criticalAlerts.length > 0 && (
@@ -216,37 +222,22 @@ export const MainAnalyticsDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Core Feature 2 & 3: Storylines and Platform Data */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card className="glass-card h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="h-6 w-6 text-wrestling-electric" />
-                    <span>Top Storylines</span>
-                    <Badge variant="secondary">{unifiedStorylines.length} active</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <StorylinesList storylines={unifiedStorylines} />
-                </CardContent>
-              </Card>
-            </div>
+          {/* Platform Breakdown */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="h-6 w-6 text-wrestling-electric" />
+                <span>Platform Breakdown</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PlatformBreakdown sources={sources} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <div className="lg:col-span-1">
-              <Card className="glass-card h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Zap className="h-6 w-6 text-wrestling-electric" />
-                    <span>Platform Breakdown</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PlatformBreakdown sources={sources} />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        <TabsContent value="storylines" className="space-y-6">
+          <UnifiedStorylinesHub />
         </TabsContent>
 
         <TabsContent value="predictive" className="space-y-6">
