@@ -11,6 +11,7 @@ import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
 import { StorylinesList } from './analytics/StorylinesList';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
 import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
+import { TopWrestlingTweets } from './dashboard/TopWrestlingTweets';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -259,12 +260,7 @@ export const MainAnalyticsDashboard = () => {
         </TabsContent>
 
         <TabsContent value="realtime" className="space-y-6">
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Real-time monitoring dashboard coming soon...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Last updated: {lastUpdate.toLocaleTimeString()}
-            </p>
-          </div>
+          <TopWrestlingTweets />
         </TabsContent>
       </Tabs>
     </div>
