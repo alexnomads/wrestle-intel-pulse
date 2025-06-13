@@ -98,8 +98,11 @@ export const useRealTimeTrends = () => {
 
   return useQuery({
     queryKey: ['real-time-trends', newsItems.length, redditPosts.length],
-    queryFn: () => analyzeWrestlerTrends(newsItems, redditPosts, '24h'),
-    enabled: newsItems.length > 0 || redditPosts.length > 0,
+    queryFn: () => {
+      console.log('Analyzing real-time trends with enhanced source data...');
+      return analyzeWrestlerTrends(newsItems, redditPosts, '24h');
+    },
+    enabled: true, // Always enabled to ensure fallback data
     staleTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 5 * 60 * 1000, // 5 minutes
   });
@@ -110,8 +113,18 @@ export const useTrendAlerts = () => {
   
   return useQuery({
     queryKey: ['trend-alerts', trends.length, storylines.length],
-    queryFn: () => generateTrendAlerts(trends, storylines),
-    enabled: trends.length > 0 || storylines.length > 0,
+    queryFn: () => {
+      console.log('Generating trend alerts with enhanced source data...');
+      const alerts = generateTrendAlerts(trends, storylines);
+      console.log(`Generated ${alerts.length} alerts, each with source data:`, 
+        alerts.map(a => ({ 
+          title: a.title, 
+          sources: a.mention_sources?.length || 0 
+        }))
+      );
+      return alerts;
+    },
+    enabled: true, // Always enabled to ensure fallback data
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 };

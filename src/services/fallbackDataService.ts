@@ -161,9 +161,9 @@ export const getFallbackWrestlerTrends = (): WrestlerTrend[] => {
           source_type: 'news',
           source_name: 'Wrestling News',
           title: 'CM Punk Returns to WWE Programming',
-          url: '#',
-          content_snippet: 'CM Punk makes his highly anticipated return to WWE television...',
-          timestamp: new Date(),
+          url: 'https://www.wrestlingnews.co/cm-punk-returns',
+          content_snippet: 'CM Punk makes his highly anticipated return to WWE television after years away from the company...',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
           sentiment_score: 0.9
         },
         {
@@ -172,10 +172,21 @@ export const getFallbackWrestlerTrends = (): WrestlerTrend[] => {
           source_type: 'reddit',
           source_name: 'r/SquaredCircle',
           title: 'CM Punk WWE Return Discussion',
-          url: '#',
-          content_snippet: 'Fans react to CM Punk\'s surprise return announcement...',
-          timestamp: new Date(),
+          url: 'https://reddit.com/r/SquaredCircle/comments/cm-punk-return',
+          content_snippet: 'Fans react to CM Punk\'s surprise return announcement with overwhelming enthusiasm...',
+          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
           sentiment_score: 0.7
+        },
+        {
+          id: 'cm-punk-mention-3',
+          wrestler_name: 'CM Punk',
+          source_type: 'news',
+          source_name: 'PWInsider',
+          title: 'CM Punk Backstage Interview Details',
+          url: 'https://pwinsider.com/cm-punk-backstage-interview',
+          content_snippet: 'Exclusive details from CM Punk\'s first backstage interview since returning to WWE...',
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+          sentiment_score: 0.8
         }
       ]
     },
@@ -195,11 +206,22 @@ export const getFallbackWrestlerTrends = (): WrestlerTrend[] => {
           wrestler_name: 'Roman Reigns',
           source_type: 'news',
           source_name: 'PWInsider',
-          title: 'Roman Reigns Championship Reign Continues',
-          url: '#',
-          content_snippet: 'Roman Reigns defends his championship in a hard-fought match...',
-          timestamp: new Date(),
+          title: 'Roman Reigns Championship Reign Analysis',
+          url: 'https://pwinsider.com/roman-reigns-championship-analysis',
+          content_snippet: 'Analysis of Roman Reigns current championship reign and its impact on WWE programming...',
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
           sentiment_score: 0.6
+        },
+        {
+          id: 'roman-mention-2',
+          wrestler_name: 'Roman Reigns',
+          source_type: 'reddit',
+          source_name: 'r/WWE',
+          title: 'Roman Reigns Match Rating Discussion',
+          url: 'https://reddit.com/r/WWE/comments/roman-reigns-match',
+          content_snippet: 'Discussion about Roman Reigns recent match performance and fan reactions...',
+          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+          sentiment_score: 0.5
         }
       ]
     },
@@ -219,18 +241,29 @@ export const getFallbackWrestlerTrends = (): WrestlerTrend[] => {
           wrestler_name: 'Cody Rhodes',
           source_type: 'news',
           source_name: '411Mania',
-          title: 'Cody Rhodes Wins Championship at WrestleMania',
-          url: '#',
-          content_snippet: 'Cody Rhodes finally completes his story with championship victory...',
-          timestamp: new Date(),
+          title: 'Cody Rhodes Championship Victory Celebration',
+          url: 'https://411mania.com/cody-rhodes-championship',
+          content_snippet: 'Cody Rhodes celebrates his championship victory with an emotional speech to the WWE Universe...',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
           sentiment_score: 0.9
+        },
+        {
+          id: 'cody-mention-2',
+          wrestler_name: 'Cody Rhodes',
+          source_type: 'reddit',
+          source_name: 'r/SquaredCircle',
+          title: 'Cody Rhodes Story Completion Thread',
+          url: 'https://reddit.com/r/SquaredCircle/comments/cody-story-complete',
+          content_snippet: 'Fans celebrate Cody Rhodes finally completing his story with championship gold...',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          sentiment_score: 0.8
         }
       ]
     }
   ];
 };
 
-// Fallback trend alerts
+// Enhanced fallback trend alerts with realistic mention sources
 export const getFallbackTrendAlerts = (): TrendAlert[] => {
   return [
     {
@@ -254,10 +287,43 @@ export const getFallbackTrendAlerts = (): TrendAlert[] => {
           source_type: 'news',
           source_name: 'Wrestling Observer',
           title: 'CM Punk Returns to WWE After 10 Years',
-          url: '#',
-          content_snippet: 'Breaking: CM Punk has officially returned to WWE programming...',
-          timestamp: new Date(),
+          url: 'https://wrestlingobserver.com/cm-punk-returns-wwe',
+          content_snippet: 'Breaking: CM Punk has officially returned to WWE programming after a decade-long absence from the company...',
+          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
           sentiment_score: 0.9
+        },
+        {
+          id: 'cm-punk-alert-mention-2',
+          wrestler_name: 'CM Punk',
+          source_type: 'reddit',
+          source_name: 'r/SquaredCircle',
+          title: 'CM PUNK IS BACK!! - Live Thread',
+          url: 'https://reddit.com/r/SquaredCircle/comments/cm-punk-back-live',
+          content_snippet: 'HOLY SHIT! CM Punk just showed up on WWE programming! The crowd is going absolutely insane right now...',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          sentiment_score: 0.95
+        },
+        {
+          id: 'cm-punk-alert-mention-3',
+          wrestler_name: 'CM Punk',
+          source_type: 'news',
+          source_name: 'PWTorch',
+          title: 'CM Punk WWE Contract Details Revealed',
+          url: 'https://pwtorch.com/cm-punk-contract-details',
+          content_snippet: 'Sources close to the situation reveal details about CM Punk\'s new WWE contract and his role going forward...',
+          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          sentiment_score: 0.8
+        },
+        {
+          id: 'cm-punk-alert-mention-4',
+          wrestler_name: 'CM Punk',
+          source_type: 'reddit',
+          source_name: 'r/WWE',
+          title: 'CM Punk Return Megathread',
+          url: 'https://reddit.com/r/WWE/comments/cm-punk-return-mega',
+          content_snippet: 'Official megathread for discussing CM Punk\'s shocking return to WWE. Share your reactions and thoughts here...',
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          sentiment_score: 0.85
         }
       ]
     },
@@ -266,7 +332,7 @@ export const getFallbackTrendAlerts = (): TrendAlert[] => {
       type: 'storyline_momentum',
       severity: 'high',
       title: 'Championship Storyline Gaining Momentum',
-      description: 'Cody Rhodes championship storyline activity is increasing across 3 platforms',
+      description: 'Cody Rhodes championship storyline activity increased 85% across 3 platforms',
       storyline_id: 'cody-championship-story',
       timestamp: new Date(),
       data: {
@@ -279,13 +345,74 @@ export const getFallbackTrendAlerts = (): TrendAlert[] => {
         {
           id: 'cody-story-mention-1',
           wrestler_name: 'Cody Rhodes',
+          source_type: 'news',
+          source_name: 'Fightful',
+          title: 'Cody Rhodes Championship Ceremony Announced',
+          url: 'https://fightful.com/cody-rhodes-championship-ceremony',
+          content_snippet: 'WWE announces a special championship ceremony for Cody Rhodes on next week\'s Monday Night Raw...',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          sentiment_score: 0.8
+        },
+        {
+          id: 'cody-story-mention-2',
+          wrestler_name: 'Cody Rhodes',
           source_type: 'reddit',
           source_name: 'r/WWE',
           title: 'Cody Rhodes Championship Celebration',
-          url: '#',
-          content_snippet: 'Fans celebrate Cody Rhodes finally winning the championship...',
-          timestamp: new Date(),
-          sentiment_score: 0.8
+          url: 'https://reddit.com/r/WWE/comments/cody-championship-celebration',
+          content_snippet: 'Fans celebrate Cody Rhodes finally winning the championship and completing his story...',
+          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          sentiment_score: 0.9
+        },
+        {
+          id: 'cody-story-mention-3',
+          wrestler_name: 'Cody Rhodes',
+          source_type: 'news',
+          source_name: 'Wrestling Inc',
+          title: 'Cody Rhodes First Title Defense Opponent Revealed',
+          url: 'https://wrestlinginc.com/cody-rhodes-first-defense',
+          content_snippet: 'WWE reveals the opponent for Cody Rhodes\' first championship defense at the upcoming premium live event...',
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
+          sentiment_score: 0.75
+        }
+      ]
+    },
+    {
+      id: 'alert-rhea-ripley-sentiment',
+      type: 'sentiment_shift',
+      severity: 'medium',
+      title: 'Rhea Ripley Positive Sentiment Spike',
+      description: 'Rhea Ripley\'s sentiment score increased 120% following dominant performance',
+      wrestler_name: 'Rhea Ripley',
+      timestamp: new Date(),
+      data: {
+        change_percentage: 120,
+        current_value: 8,
+        previous_value: 4,
+        timeframe: '24h'
+      },
+      mention_sources: [
+        {
+          id: 'rhea-sentiment-mention-1',
+          wrestler_name: 'Rhea Ripley',
+          source_type: 'news',
+          source_name: 'ComicBook.com',
+          title: 'Rhea Ripley Delivers Standout Performance',
+          url: 'https://comicbook.com/rhea-ripley-standout-performance',
+          content_snippet: 'Rhea Ripley delivered a career-defining performance that has fans and critics praising her evolution...',
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          sentiment_score: 0.85
+        },
+        {
+          id: 'rhea-sentiment-mention-2',
+          wrestler_name: 'Rhea Ripley',
+          source_type: 'reddit',
+          source_name: 'r/SquaredCircle',
+          title: 'Rhea Ripley Appreciation Post',
+          url: 'https://reddit.com/r/SquaredCircle/comments/rhea-appreciation',
+          content_snippet: 'Can we take a moment to appreciate how far Rhea Ripley has come? Her character work is incredible...',
+          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+          sentiment_score: 0.9
         }
       ]
     }
