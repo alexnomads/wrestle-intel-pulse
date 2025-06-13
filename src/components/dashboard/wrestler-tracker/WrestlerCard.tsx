@@ -1,6 +1,6 @@
 
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Flame, Crown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Flame, Crown, AlertTriangle } from 'lucide-react';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 
 interface WrestlerCardProps {
@@ -31,7 +31,7 @@ const getWrestlerImage = (wrestlerName: string): string => {
 
 export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardProps) => {
   // Calculate card size based on mentions and position
-  const baseSize = Math.max(120, Math.min(200, (wrestler.totalMentions || 1) * 8));
+  const baseSize = Math.max(120, Math.min(200, (wrestler.totalMentions || 1) * 4));
   const sizeMultiplier = index < 3 ? 1.2 : index < 5 ? 1.0 : 0.8;
   const cardSize = baseSize * sizeMultiplier;
 
@@ -42,10 +42,19 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
     return null;
   };
 
+  const getTrendColor = (trend: string) => {
+    switch (trend) {
+      case 'push': return 'border-green-500 bg-green-500/10';
+      case 'burial': return 'border-red-500 bg-red-500/10';
+      case 'stable': return 'border-blue-500 bg-blue-500/10';
+      default: return 'border-gray-500 bg-gray-500/10';
+    }
+  };
+
   const getSentimentColor = (sentiment: number) => {
-    if (sentiment >= 80) return 'border-green-500 bg-green-500/10';
-    if (sentiment >= 60) return 'border-yellow-500 bg-yellow-500/10';
-    return 'border-red-500 bg-red-500/10';
+    if (sentiment >= 70) return 'text-green-400';
+    if (sentiment >= 50) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   const getPromotionColor = (promotion: string) => {
@@ -67,11 +76,15 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
   const isChampion = wrestler.isChampion || false;
   const isOnFire = wrestler.isOnFire || false;
   const championshipTitle = wrestler.championshipTitle;
+  const trend = wrestler.trend || 'stable';
+
+  // Check if this is mock data
+  const isRealData = (wrestler.mention_sources?.length || 0) > 0;
 
   return (
     <div 
       className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 
-        ${getSentimentColor(sentimentScore)} 
+        ${getTrendColor(trend)} 
         hover:scale-105 transition-all duration-300 cursor-pointer group bg-card/80 backdrop-blur-sm`}
       style={{ 
         width: `${cardSize}px`, 
@@ -85,14 +98,22 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
         #{index + 1}
       </div>
 
+      {/* Data Source Indicator */}
+      {!isRealData && (
+        <div className="absolute top-2 right-2 bg-orange-500/20 text-orange-300 text-xs px-1 py-0.5 rounded flex items-center space-x-1">
+          <AlertTriangle className="h-2 w-2" />
+          <span>Mock</span>
+        </div>
+      )}
+
       {/* Championship Crown */}
       {isChampion && (
-        <Crown className="absolute top-2 right-2 h-4 w-4 text-yellow-400" />
+        <Crown className="absolute top-2 right-8 h-4 w-4 text-yellow-400" />
       )}
 
       {/* Hot Topic Indicator */}
       {isOnFire && (
-        <Flame className="absolute top-2 right-8 h-4 w-4 text-orange-500 animate-pulse" />
+        <Flame className="absolute top-2 right-12 h-4 w-4 text-orange-500 animate-pulse" />
       )}
 
       {/* Wrestler Image */}
@@ -128,11 +149,8 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
         </div>
         
         <div className="flex items-center justify-center space-x-1 text-xs">
-          <span className={`font-semibold ${
-            sentimentScore >= 80 ? 'text-green-400' :
-            sentimentScore >= 60 ? 'text-yellow-400' : 'text-red-400'
-          }`}>
-            {sentimentScore}%
+          <span className={`font-semibold ${getSentimentColor(sentimentScore)}`}>
+            {Math.round(sentimentScore)}%
           </span>
           <span className="text-muted-foreground">sentiment</span>
         </div>
@@ -147,6 +165,18 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
             {change24h > 0 ? '+' : ''}{change24h}%
           </span>
         </div>
+
+        {/* Trend Badge */}
+        <Badge 
+          variant="outline" 
+          className={`text-xs ${
+            trend === 'push' ? 'border-green-500 text-green-400' :
+            trend === 'burial' ? 'border-red-500 text-red-400' :
+            'border-blue-500 text-blue-400'
+          }`}
+        >
+          {trend.toUpperCase()}
+        </Badge>
       </div>
 
       {/* Championship Title */}

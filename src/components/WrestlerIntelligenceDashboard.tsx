@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Users, TrendingUp } from 'lucide-react';
+import { RefreshCw, Users, TrendingUp, AlertTriangle, Database } from 'lucide-react';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
 import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
@@ -30,6 +30,11 @@ export const WrestlerIntelligenceDashboard = () => {
 
   // Only show wrestlers that actually have mentions, limit to top 7 for treemap
   const displayWrestlers = filteredAnalysis.length > 0 ? filteredAnalysis.slice(0, 7) : [];
+
+  // Calculate data quality metrics
+  const realDataCount = displayWrestlers.filter(w => (w.mention_sources?.length || 0) > 0).length;
+  const mockDataCount = displayWrestlers.length - realDataCount;
+  const hasRealData = realDataCount > 0;
 
   const handleRefresh = async () => {
     await refetch();
@@ -72,6 +77,29 @@ export const WrestlerIntelligenceDashboard = () => {
         </Button>
       </div>
 
+      {/* Data Quality Alert */}
+      {!hasRealData && displayWrestlers.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-orange-800">
+                  Limited Real Data Available
+                </p>
+                <p className="text-xs text-orange-600">
+                  Currently showing generated trend data. Real wrestling news analysis will appear when more sources are available.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-xs text-orange-600">
+                <Database className="h-4 w-4" />
+                <span>{newsItems.length} news sources</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 1st Section: Wrestler Popularity Treemap */}
       <Card className="glass-card">
         <CardHeader>
@@ -80,9 +108,15 @@ export const WrestlerIntelligenceDashboard = () => {
               <CardTitle className="flex items-center space-x-2">
                 <TrendingUp className="h-6 w-6 text-wrestling-electric" />
                 <span>Wrestler Popularity Treemap</span>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  LIVE
-                </Badge>
+                {hasRealData ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    LIVE DATA
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                    TREND ANALYSIS
+                  </Badge>
+                )}
               </CardTitle>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -90,9 +124,17 @@ export const WrestlerIntelligenceDashboard = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>Top Most Mentioned Wrestlers (24h) - Real Data Only</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>Top Most Mentioned Wrestlers (24h)</span>
+            </div>
+            {!hasRealData && (
+              <div className="flex items-center space-x-2 text-xs text-orange-600">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Generated data - based on trending patterns</span>
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -134,29 +176,39 @@ export const WrestlerIntelligenceDashboard = () => {
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-500">
-                    {displayWrestlers.filter(w => w.change24h > 0).length}
+                    {displayWrestlers.filter(w => w.trend === 'push').length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Rising</div>
+                  <div className="text-sm text-muted-foreground">Being Pushed</div>
+                </div>
+                
+                <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-500">
+                    {displayWrestlers.filter(w => w.trend === 'stable').length}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Stable</div>
                 </div>
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
                   <div className="text-2xl font-bold text-red-500">
-                    {displayWrestlers.filter(w => w.change24h < 0).length}
+                    {displayWrestlers.filter(w => w.trend === 'burial').length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Declining</div>
-                </div>
-                
-                <div className="text-center p-4 bg-secondary/30 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-500">
-                    {displayWrestlers.filter(w => w.isOnFire).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Hot Topics</div>
+                  <div className="text-sm text-muted-foreground">Being Buried</div>
                 </div>
               </div>
 
               {/* Data source info */}
               <div className="mt-4 text-center text-sm text-muted-foreground">
-                Treemap visualization • Data from {newsItems.length} news sources • Updated every 15 minutes • Real mentions only
+                {hasRealData ? (
+                  <>
+                    Treemap visualization • {realDataCount} wrestlers with real data, {mockDataCount} with trend analysis • 
+                    Data from {newsItems.length} news sources • Updated every 15 minutes
+                  </>
+                ) : (
+                  <>
+                    Treemap visualization • Trend analysis based on {newsItems.length} news sources • 
+                    Real-time data will appear when more wrestling news is available
+                  </>
+                )}
               </div>
             </>
           ) : (
@@ -179,7 +231,6 @@ export const WrestlerIntelligenceDashboard = () => {
 
       {/* 2nd and 3rd Sections: Wrestling Promotion Heatmap and Wrestling Hashtags Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* 2nd Section: Wrestling Promotion Heatmap (60% width) */}
         <div className="lg:col-span-3">
           <PromotionHeatmap 
             storylines={storylines}
@@ -188,7 +239,6 @@ export const WrestlerIntelligenceDashboard = () => {
             onPromotionClick={handlePromotionClick}
           />
         </div>
-        {/* 3rd Section: Wrestling Hashtags Analytics (40% width) */}
         <div className="lg:col-span-2">
           <PlatformBreakdown 
             redditPosts={redditPosts}
