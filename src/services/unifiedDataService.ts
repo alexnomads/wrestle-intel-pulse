@@ -159,9 +159,22 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
       });
     }
 
-    // Extract wrestler mentions from all sources - fix the function call
+    // Extract wrestler mentions from all sources and convert to proper WrestlerMention objects
     const allContent = sources.map(s => s.title + ' ' + s.content).join(' ');
-    const wrestlerMentions = extractWrestlerMentions(allContent);
+    const extractedWrestlerNames = extractWrestlerMentions(allContent);
+    
+    // Convert wrestler names to WrestlerMention objects
+    const wrestlerMentions: WrestlerMention[] = extractedWrestlerNames.map((wrestlerName, index) => ({
+      id: `mention-${Date.now()}-${index}`,
+      wrestler_name: wrestlerName,
+      source_type: 'news' as const,
+      source_name: 'Unified Sources',
+      title: `${wrestlerName} mentioned in recent content`,
+      url: '#',
+      content_snippet: `${wrestlerName} was mentioned across multiple wrestling sources`,
+      timestamp: new Date(),
+      sentiment_score: 0.5 // neutral sentiment as default
+    }));
 
     // Generate basic storylines from sources
     const storylines: DetectedStoryline[] = [];
