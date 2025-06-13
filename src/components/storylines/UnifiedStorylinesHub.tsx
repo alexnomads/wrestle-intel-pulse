@@ -1,17 +1,15 @@
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, TrendingUp, Flame, Filter } from "lucide-react";
+import { RefreshCw, TrendingUp, Flame } from "lucide-react";
 import { useStorylineAnalysis } from "@/hooks/useAdvancedAnalytics";
 import { useRSSFeeds, useRedditPosts } from "@/hooks/useWrestlingData";
 import { useTwitterData } from "@/hooks/useTwitterData";
-import { EnhancedStorylineCard } from "./EnhancedStorylineCard";
+import { StorylineHeader } from "./StorylineHeader";
+import { StorylineFilters } from "./StorylineFilters";
 import { StorylineMetrics } from "./StorylineMetrics";
-import { TrendingStorylines } from "./TrendingStorylines";
+import { StorylineTabsContent } from "./StorylineTabsContent";
 
 export const UnifiedStorylinesHub = () => {
   const [selectedPromotion, setSelectedPromotion] = useState('all');
@@ -69,25 +67,12 @@ export const UnifiedStorylinesHub = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Controls */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Storylines Dashboard</h2>
-          <p className="text-muted-foreground">Unified view of all active wrestling storylines</p>
-        </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={storylinesLoading}
-          variant="outline"
-          size="sm"
-          className="flex items-center space-x-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${storylinesLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </Button>
-      </div>
+      <StorylineHeader 
+        onRefresh={handleRefresh}
+        isLoading={storylinesLoading}
+        criticalAlertsCount={0}
+      />
 
-      {/* Metrics Overview */}
       <StorylineMetrics 
         storylines={filteredStorylines}
         newsItems={newsItems}
@@ -95,71 +80,16 @@ export const UnifiedStorylinesHub = () => {
         tweets={tweets}
       />
 
-      {/* Filters */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="h-5 w-5" />
-            <span>Filters & Options</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Promotion</label>
-              <Select value={selectedPromotion} onValueChange={setSelectedPromotion}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Promotions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Promotions</SelectItem>
-                  <SelectItem value="wwe">WWE</SelectItem>
-                  <SelectItem value="aew">AEW</SelectItem>
-                  <SelectItem value="tna">TNA</SelectItem>
-                  <SelectItem value="njpw">NJPW</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <StorylineFilters
+        selectedPromotion={selectedPromotion}
+        onPromotionChange={setSelectedPromotion}
+        intensityFilter={intensityFilter}
+        onIntensityFilterChange={setIntensityFilter}
+        timeframe={timeframe}
+        onTimeframeChange={setTimeframe}
+        filteredStorylinesCount={filteredStorylines.length}
+      />
 
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Intensity Level</label>
-              <Select value={intensityFilter} onValueChange={setIntensityFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Levels" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
-                  <SelectItem value="high">High (7+ intensity)</SelectItem>
-                  <SelectItem value="medium">Medium (4-7 intensity)</SelectItem>
-                  <SelectItem value="low">Low (Under 4)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Timeframe</label>
-              <Select value={timeframe} onValueChange={setTimeframe}>
-                <SelectTrigger>
-                  <SelectValue placeholder="7 Days" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">Last 24 Hours</SelectItem>
-                  <SelectItem value="7d">Last 7 Days</SelectItem>
-                  <SelectItem value="30d">Last 30 Days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {filteredStorylines.length} storylines
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Content Tabs */}
       <Tabs defaultValue="trending" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="trending">
@@ -183,59 +113,11 @@ export const UnifiedStorylinesHub = () => {
           <TabsTrigger value="all">All Active Storylines</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="trending" className="space-y-6">
-          <TrendingStorylines storylines={trendingStorylines} />
-        </TabsContent>
-
-        <TabsContent value="hot" className="space-y-6">
-          {hotStorylines.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="text-center py-8">
-                <Flame className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No hot storylines detected</p>
-                <p className="text-sm text-muted-foreground">
-                  Hot storylines have high fan reception and are actively building
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {hotStorylines.map((storyline) => (
-                <EnhancedStorylineCard 
-                  key={storyline.id} 
-                  storyline={storyline}
-                  showTrendingBadge={true}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="all" className="space-y-6">
-          {filteredStorylines.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="text-center py-8">
-                <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">
-                  No active storylines found with current filters
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Try adjusting the promotion or intensity filters, or check back later as we continuously monitor wrestling news and social media
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6">
-              {filteredStorylines.map((storyline) => (
-                <EnhancedStorylineCard 
-                  key={storyline.id} 
-                  storyline={storyline}
-                  showTrendingBadge={false}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        <StorylineTabsContent
+          trendingStorylines={trendingStorylines}
+          hotStorylines={hotStorylines}
+          filteredStorylines={filteredStorylines}
+        />
       </Tabs>
     </div>
   );
