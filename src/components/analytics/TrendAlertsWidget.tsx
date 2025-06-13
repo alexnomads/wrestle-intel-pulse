@@ -78,46 +78,64 @@ export const TrendAlertsWidget = ({ maxAlerts = 3, showHeader = true }: TrendAle
             displayedAlerts.map((alert) => (
               <div
                 key={alert.id}
-                className={`p-2 rounded-lg border-l-2 text-xs ${getSeverityColor(alert.severity)}`}
+                className={`p-3 rounded-lg border-l-4 text-xs ${getSeverityColor(alert.severity)} cursor-pointer hover:opacity-80 transition-opacity`}
+                onClick={() => setExpandedAlert(expandedAlert === alert.id ? null : alert.id)}
               >
                 <div className="flex items-start space-x-2">
                   {getAlertIcon(alert.type)}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{alert.title}</p>
                     <p className="text-muted-foreground truncate">{alert.description}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center space-x-1 text-muted-foreground">
-                        <span>{alert.data.change_percentage > 0 ? '+' : ''}{alert.data.change_percentage}%</span>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center space-x-2 text-muted-foreground">
+                        <span className="font-medium">
+                          {alert.data.change_percentage > 0 ? '+' : ''}{alert.data.change_percentage}%
+                        </span>
                         <span>•</span>
                         <span>{alert.timestamp.toLocaleTimeString()}</span>
                       </div>
                       {alert.mention_sources && alert.mention_sources.length > 0 && (
-                        <button
-                          onClick={() => setExpandedAlert(expandedAlert === alert.id ? null : alert.id)}
-                          className="text-xs text-wrestling-electric hover:underline"
-                        >
+                        <Badge variant="outline" className="text-xs">
                           {alert.mention_sources.length} sources
-                        </button>
+                        </Badge>
                       )}
                     </div>
+                    
+                    {/* Expanded source details */}
                     {expandedAlert === alert.id && alert.mention_sources && (
-                      <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                        {alert.mention_sources.slice(0, 3).map((source, index) => (
-                          <div key={index} className="flex items-center justify-between p-1 bg-background/50 rounded">
-                            <span className="text-xs truncate flex-1">{source.title}</span>
-                            <SourceLink
-                              url={source.url}
-                              title={source.title}
-                              sourceType={source.source_type}
-                              compact={true}
-                            />
-                          </div>
-                        ))}
-                        {alert.mention_sources.length > 3 && (
-                          <div className="text-xs text-muted-foreground text-center">
-                            +{alert.mention_sources.length - 3} more sources
-                          </div>
-                        )}
+                      <div className="mt-3 space-y-2 border-t pt-2">
+                        <p className="font-medium text-xs text-muted-foreground">Source Mentions:</p>
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                          {alert.mention_sources.slice(0, 5).map((source, index) => (
+                            <div key={index} className="flex items-start justify-between p-2 bg-background/50 rounded border">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{source.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {source.content_snippet.substring(0, 80)}...
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {source.source_name}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(source.timestamp).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <SourceLink
+                                url={source.url}
+                                title={source.title}
+                                sourceType={source.source_type}
+                                compact={true}
+                              />
+                            </div>
+                          ))}
+                          {alert.mention_sources.length > 5 && (
+                            <div className="text-xs text-muted-foreground text-center py-1">
+                              +{alert.mention_sources.length - 5} more sources
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
