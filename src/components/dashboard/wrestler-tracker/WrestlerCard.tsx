@@ -31,13 +31,14 @@ const getWrestlerImage = (wrestlerName: string): string => {
 
 export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardProps) => {
   // Calculate card size based on mentions and position
-  const baseSize = Math.max(120, Math.min(200, wrestler.totalMentions * 8));
+  const baseSize = Math.max(120, Math.min(200, (wrestler.totalMentions || 1) * 8));
   const sizeMultiplier = index < 3 ? 1.2 : index < 5 ? 1.0 : 0.8;
   const cardSize = baseSize * sizeMultiplier;
 
   const getTrendIcon = () => {
-    if (wrestler.change24h > 0) return <TrendingUp className="h-3 w-3 text-green-400" />;
-    if (wrestler.change24h < 0) return <TrendingDown className="h-3 w-3 text-red-400" />;
+    const change = wrestler.change24h || 0;
+    if (change > 0) return <TrendingUp className="h-3 w-3 text-green-400" />;
+    if (change < 0) return <TrendingDown className="h-3 w-3 text-red-400" />;
     return null;
   };
 
@@ -48,7 +49,7 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
   };
 
   const getPromotionColor = (promotion: string) => {
-    switch (promotion.toUpperCase()) {
+    switch (promotion?.toUpperCase()) {
       case 'WWE': return 'bg-yellow-500/20 text-yellow-300';
       case 'AEW': return 'bg-blue-500/20 text-blue-300';
       case 'TNA': return 'bg-red-500/20 text-red-300';
@@ -57,11 +58,21 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
     }
   };
 
+  // Ensure we have valid data with fallbacks
+  const wrestlerName = wrestler.wrestler_name || 'Unknown Wrestler';
+  const promotion = wrestler.promotion || 'Unknown';
+  const totalMentions = wrestler.totalMentions || 0;
+  const sentimentScore = wrestler.sentimentScore || 50;
+  const change24h = wrestler.change24h || 0;
+  const isChampion = wrestler.isChampion || false;
+  const isOnFire = wrestler.isOnFire || false;
+  const championshipTitle = wrestler.championshipTitle;
+
   return (
     <div 
       className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 
-        ${getSentimentColor(wrestler.sentimentScore)} 
-        hover:scale-105 transition-all duration-300 cursor-pointer group`}
+        ${getSentimentColor(sentimentScore)} 
+        hover:scale-105 transition-all duration-300 cursor-pointer group bg-card/80 backdrop-blur-sm`}
       style={{ 
         width: `${cardSize}px`, 
         height: `${cardSize}px`,
@@ -75,20 +86,20 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
       </div>
 
       {/* Championship Crown */}
-      {wrestler.isChampion && (
+      {isChampion && (
         <Crown className="absolute top-2 right-2 h-4 w-4 text-yellow-400" />
       )}
 
       {/* Hot Topic Indicator */}
-      {wrestler.isOnFire && (
+      {isOnFire && (
         <Flame className="absolute top-2 right-8 h-4 w-4 text-orange-500 animate-pulse" />
       )}
 
       {/* Wrestler Image */}
-      <div className="w-12 h-12 mb-2 rounded-full overflow-hidden border-2 border-border/50">
+      <div className="w-12 h-12 mb-2 rounded-full overflow-hidden border-2 border-border/50 bg-muted">
         <img 
-          src={getWrestlerImage(wrestler.wrestler_name)}
-          alt={wrestler.wrestler_name}
+          src={getWrestlerImage(wrestlerName)}
+          alt={wrestlerName}
           className="w-full h-full object-cover"
           onError={(e) => {
             // Fallback to placeholder if image fails to load
@@ -100,10 +111,10 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
       {/* Wrestler Name */}
       <div className="text-center mb-2">
         <div className="font-bold text-sm leading-tight text-foreground">
-          {wrestler.wrestler_name}
+          {wrestlerName}
         </div>
-        <Badge variant="secondary" className={`text-xs mt-1 ${getPromotionColor(wrestler.promotion)}`}>
-          {wrestler.promotion}
+        <Badge variant="secondary" className={`text-xs mt-1 ${getPromotionColor(promotion)}`}>
+          {promotion}
         </Badge>
       </div>
 
@@ -111,17 +122,17 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
       <div className="text-center space-y-1">
         <div className="flex items-center justify-center space-x-1 text-xs">
           <span className="font-semibold text-wrestling-electric">
-            {wrestler.totalMentions}
+            {totalMentions}
           </span>
           <span className="text-muted-foreground">mentions</span>
         </div>
         
         <div className="flex items-center justify-center space-x-1 text-xs">
           <span className={`font-semibold ${
-            wrestler.sentimentScore >= 80 ? 'text-green-400' :
-            wrestler.sentimentScore >= 60 ? 'text-yellow-400' : 'text-red-400'
+            sentimentScore >= 80 ? 'text-green-400' :
+            sentimentScore >= 60 ? 'text-yellow-400' : 'text-red-400'
           }`}>
-            {wrestler.sentimentScore}%
+            {sentimentScore}%
           </span>
           <span className="text-muted-foreground">sentiment</span>
         </div>
@@ -130,19 +141,19 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
         <div className="flex items-center justify-center space-x-1 text-xs">
           {getTrendIcon()}
           <span className={`font-semibold ${
-            wrestler.change24h > 0 ? 'text-green-400' :
-            wrestler.change24h < 0 ? 'text-red-400' : 'text-gray-400'
+            change24h > 0 ? 'text-green-400' :
+            change24h < 0 ? 'text-red-400' : 'text-gray-400'
           }`}>
-            {wrestler.change24h > 0 ? '+' : ''}{wrestler.change24h}%
+            {change24h > 0 ? '+' : ''}{change24h}%
           </span>
         </div>
       </div>
 
       {/* Championship Title */}
-      {wrestler.championshipTitle && (
+      {championshipTitle && (
         <div className="absolute bottom-1 left-1 right-1">
           <div className="text-xs bg-yellow-500/20 text-yellow-300 px-1 py-0.5 rounded text-center truncate">
-            {wrestler.championshipTitle}
+            {championshipTitle}
           </div>
         </div>
       )}
