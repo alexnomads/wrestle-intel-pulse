@@ -1,4 +1,3 @@
-
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
 import { fetchRSSFeeds } from './data/rssService';
@@ -160,9 +159,9 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
       });
     }
 
-    // Extract wrestler mentions from all sources
+    // Extract wrestler mentions from all sources - fix the function call
     const allContent = sources.map(s => s.title + ' ' + s.content).join(' ');
-    const wrestlerMentions = extractWrestlerMentions(allContent, sources);
+    const wrestlerMentions = extractWrestlerMentions(allContent);
 
     // Generate basic storylines from sources
     const storylines: DetectedStoryline[] = [];

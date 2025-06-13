@@ -1,3 +1,4 @@
+
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
 import { DetectedStoryline, UnifiedSource } from './unifiedDataService';
 import { WrestlerTrend, TrendAlert, StorylineMomentum } from './predictiveAnalyticsService';
@@ -103,39 +104,48 @@ export const getFallbackStorylines = (): DetectedStoryline[] => {
 export const getFallbackUnifiedSources = (): UnifiedSource[] => {
   return [
     {
+      id: 'fallback-news-1',
       type: 'news',
       title: 'WWE Monday Night Raw Results',
       content: 'Full results and highlights from this weeks Monday Night Raw',
       url: '#',
       timestamp: new Date(),
       source: 'Wrestling News',
+      sentiment: 0.7,
       engagement: {
         score: 150,
-        comments: 45
+        comments: 45,
+        shares: 12
       }
     },
     {
+      id: 'fallback-reddit-1',
       type: 'reddit',
       title: 'AEW Dynamite Discussion Thread',
       content: 'Live discussion thread for tonights AEW Dynamite',
       url: '#',
       timestamp: new Date(),
       source: 'r/AEWOfficial',
+      sentiment: 0.6,
       engagement: {
         score: 89,
-        comments: 234
+        comments: 234,
+        shares: 8
       }
     },
     {
+      id: 'fallback-news-2',
       type: 'news',
       title: 'Championship Match Announced',
       content: 'Major championship match announced for upcoming pay-per-view',
       url: '#',
       timestamp: new Date(),
       source: 'PWInsider',
+      sentiment: 0.8,
       engagement: {
         score: 200,
-        comments: 67
+        comments: 67,
+        shares: 25
       }
     }
   ];
