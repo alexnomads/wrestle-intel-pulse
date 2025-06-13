@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useUnifiedData } from './useUnifiedData';
+import { useRSSFeeds, useRedditPosts } from './useWrestlingData';
 import { 
   analyzeWrestlerTrends, 
   generateTrendAlerts, 
@@ -29,7 +30,10 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
           contentSnippet: s.content,
           link: s.url || '#',
           pubDate: s.timestamp.toISOString(),
-          source: s.source
+          source: s.source,
+          guid: s.url || `${s.source}-${s.timestamp.getTime()}`, // Add required guid property
+          author: undefined,
+          category: undefined
         }));
 
       const redditPosts = sources
@@ -41,7 +45,9 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
           created_utc: Math.floor(s.timestamp.getTime() / 1000),
           subreddit: s.source.replace('r/', ''),
           score: s.engagement?.score || 0,
-          num_comments: s.engagement?.comments || 0
+          num_comments: s.engagement?.comments || 0,
+          url: s.url || '',
+          author: 'unknown'
         }));
       
       // Analyze wrestler trends
