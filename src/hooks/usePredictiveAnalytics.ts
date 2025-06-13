@@ -11,11 +11,11 @@ import {
   type StorylineMomentum
 } from '@/services/predictiveAnalyticsService';
 
-export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') => {
+export const usePredictiveAnalytics = () => {
   const { data: unifiedData } = useUnifiedData();
 
   const analyticsQuery = useQuery({
-    queryKey: ['predictive-analytics', timeframe, unifiedData?.sources?.length || 0],
+    queryKey: ['predictive-analytics', '7d', unifiedData?.sources?.length || 0],
     queryFn: async () => {
       console.log('Running predictive analytics with unified data...');
       
@@ -50,8 +50,8 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
           author: 'unknown'
         }));
       
-      // Analyze wrestler trends
-      const trends = analyzeWrestlerTrends(newsItems, redditPosts, timeframe);
+      // Analyze wrestler trends with 7d timeframe
+      const trends = analyzeWrestlerTrends(newsItems, redditPosts, '7d');
       
       // Track storyline momentum
       const storylines = trackStorylineMomentum(newsItems, redditPosts);
@@ -100,7 +100,7 @@ export const useRealTimeTrends = () => {
     queryKey: ['real-time-trends', newsItems.length, redditPosts.length],
     queryFn: () => {
       console.log('Analyzing real-time trends with enhanced source data...');
-      return analyzeWrestlerTrends(newsItems, redditPosts, '24h');
+      return analyzeWrestlerTrends(newsItems, redditPosts, '7d');
     },
     enabled: true, // Always enabled to ensure fallback data
     staleTime: 5 * 60 * 1000, // 5 minutes - synchronized

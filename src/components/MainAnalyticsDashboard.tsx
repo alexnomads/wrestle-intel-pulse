@@ -15,7 +15,6 @@ import { UnifiedStorylinesHub } from './storylines/UnifiedStorylinesHub';
 
 export const MainAnalyticsDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d'>('24h');
   
   const { data, isLoading, error, refetch } = useUnifiedData();
   const { 
@@ -24,7 +23,7 @@ export const MainAnalyticsDashboard = () => {
     alerts, 
     isLoading: analyticsLoading, 
     refetch: refetchAnalytics 
-  } = usePredictiveAnalytics(selectedTimeframe);
+  } = usePredictiveAnalytics();
 
   const handleRefresh = async () => {
     await Promise.all([refetch(), refetchAnalytics()]);
