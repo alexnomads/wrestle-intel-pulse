@@ -21,7 +21,25 @@ export const SourceLink = ({ url, title, sourceType, sourceName, compact = false
   };
 
   const handleClick = () => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Ensure we have a valid external URL
+    let targetUrl = url;
+    
+    // If it's a reddit URL without the domain, add it
+    if (sourceType === 'reddit' && url.startsWith('/r/')) {
+      targetUrl = `https://reddit.com${url}`;
+    } else if (sourceType === 'reddit' && url.startsWith('r/')) {
+      targetUrl = `https://reddit.com/${url}`;
+    }
+    
+    // Check if URL is external (not a Lovable internal URL)
+    if (targetUrl.includes('lovableproject.com') || targetUrl === '#' || !targetUrl.startsWith('http')) {
+      console.warn('Invalid external URL detected:', targetUrl);
+      // Fallback to a search for the title
+      const searchQuery = encodeURIComponent(`wrestling ${title}`);
+      targetUrl = `https://www.google.com/search?q=${searchQuery}`;
+    }
+    
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (compact) {
