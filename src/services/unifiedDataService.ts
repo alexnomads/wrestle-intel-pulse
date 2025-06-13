@@ -1,3 +1,4 @@
+
 import { NewsItem, RedditPost } from './data/dataTypes';
 import { WrestlerMention } from '@/types/wrestlerAnalysis';
 import { fetchRSSFeeds } from './data/rssService';
@@ -67,7 +68,7 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
     const [newsItems, redditPosts, twitterPosts, youtubeVideos] = await Promise.allSettled([
       fetchRSSFeeds(),
       fetchRedditPosts(), 
-      fetchWrestlingTweets(), // Now uses rate-limited service
+      fetchWrestlingTweets(),
       fetchWrestlingVideos()
     ]);
 
@@ -159,22 +160,39 @@ export const fetchUnifiedData = async (): Promise<UnifiedDataResponse> => {
       });
     }
 
-    // Extract wrestler mentions from all sources and convert to proper WrestlerMention objects
-    const allContent = sources.map(s => s.title + ' ' + s.content).join(' ');
-    const extractedWrestlerNames = extractWrestlerMentions(allContent);
+    // Extract wrestler mentions from actual sources
+    const wrestlerMentions: WrestlerMention[] = [];
+    const wrestlerNames = new Set<string>();
     
-    // Convert wrestler names to WrestlerMention objects
-    const wrestlerMentions: WrestlerMention[] = extractedWrestlerNames.map((wrestlerName, index) => ({
-      id: `mention-${Date.now()}-${index}`,
-      wrestler_name: wrestlerName,
-      source_type: 'news' as const,
-      source_name: 'Unified Sources',
-      title: `${wrestlerName} mentioned in recent content`,
-      url: '#',
-      content_snippet: `${wrestlerName} was mentioned across multiple wrestling sources`,
-      timestamp: new Date(),
-      sentiment_score: 0.5 // neutral sentiment as default
-    }));
+    // Get unique wrestler names from all content
+    const allContent = sources.map(s => s.title + ' ' + s.content).join(' ');
+    const extractedNames = extractWrestlerMentions(allContent);
+    extractedNames.forEach(name => wrestlerNames.add(name));
+
+    // For each wrestler, find their actual mentions in sources
+    wrestlerNames.forEach(wrestlerName => {
+      sources.forEach(source => {
+        const content = `${source.title} ${source.content}`.toLowerCase();
+        const wrestlerNameLower = wrestlerName.toLowerCase();
+        
+        // Check if this source mentions the wrestler
+        if (content.includes(wrestlerNameLower)) {
+          wrestlerMentions.push({
+            id: `mention-${source.id}-${wrestlerName.replace(/\s+/g, '-')}`,
+            wrestler_name: wrestlerName,
+            source_type: source.type === 'news' ? 'news' : 'reddit', // Map other types to available types
+            source_name: source.source,
+            title: source.title,
+            url: source.url || '#',
+            content_snippet: source.content.length > 200 ? 
+              source.content.substring(0, 200) + '...' : 
+              source.content,
+            timestamp: source.timestamp,
+            sentiment_score: source.sentiment
+          });
+        }
+      });
+    });
 
     // Generate basic storylines from sources
     const storylines: DetectedStoryline[] = [];
