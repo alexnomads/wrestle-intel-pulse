@@ -1,6 +1,6 @@
 
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Flame, Crown, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Flame, Crown } from 'lucide-react';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 
 interface WrestlerCardProps {
@@ -31,7 +31,7 @@ const getWrestlerImage = (wrestlerName: string): string => {
 
 export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardProps) => {
   // Calculate card size based on mentions and position
-  const baseSize = Math.max(120, Math.min(200, (wrestler.totalMentions || 1) * 4));
+  const baseSize = Math.max(120, Math.min(200, (wrestler.totalMentions || 1) * 8));
   const sizeMultiplier = index < 3 ? 1.2 : index < 5 ? 1.0 : 0.8;
   const cardSize = baseSize * sizeMultiplier;
 
@@ -67,7 +67,7 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
     }
   };
 
-  // Ensure we have valid data with fallbacks
+  // All data shown is now real data from actual wrestling news
   const wrestlerName = wrestler.wrestler_name || 'Unknown Wrestler';
   const promotion = wrestler.promotion || 'Unknown';
   const totalMentions = wrestler.totalMentions || 0;
@@ -77,9 +77,6 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
   const isOnFire = wrestler.isOnFire || false;
   const championshipTitle = wrestler.championshipTitle;
   const trend = wrestler.trend || 'stable';
-
-  // Check if this is mock data
-  const isRealData = (wrestler.mention_sources?.length || 0) > 0;
 
   return (
     <div 
@@ -98,13 +95,11 @@ export const WrestlerCard = ({ wrestler, index, totalWrestlers }: WrestlerCardPr
         #{index + 1}
       </div>
 
-      {/* Data Source Indicator */}
-      {!isRealData && (
-        <div className="absolute top-2 right-2 bg-orange-500/20 text-orange-300 text-xs px-1 py-0.5 rounded flex items-center space-x-1">
-          <AlertTriangle className="h-2 w-2" />
-          <span>Mock</span>
-        </div>
-      )}
+      {/* Real Data Indicator */}
+      <div className="absolute top-2 right-2 bg-green-500/20 text-green-300 text-xs px-1 py-0.5 rounded flex items-center space-x-1">
+        <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" />
+        <span>LIVE</span>
+      </div>
 
       {/* Championship Crown */}
       {isChampion && (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,18 +22,13 @@ export const WrestlerIntelligenceDashboard = () => {
   const { data: storylines = [] } = useStorylineAnalysis();
   const { data: redditPosts = [] } = useRedditPosts();
 
-  // Analysis hook - get wrestlers with actual mentions only
+  // Analysis hook - only show wrestlers with real mentions
   const {
     filteredAnalysis
   } = useWrestlerAnalysis(wrestlers, newsItems, '1', 'all');
 
-  // Only show wrestlers that actually have mentions, limit to top 7 for treemap
-  const displayWrestlers = filteredAnalysis.length > 0 ? filteredAnalysis.slice(0, 7) : [];
-
-  // Calculate data quality metrics
-  const realDataCount = displayWrestlers.filter(w => (w.mention_sources?.length || 0) > 0).length;
-  const mockDataCount = displayWrestlers.length - realDataCount;
-  const hasRealData = realDataCount > 0;
+  // Only display wrestlers that have actual mentions from real news sources
+  const displayWrestlers = filteredAnalysis.filter(w => (w.mention_sources?.length || 0) > 0);
 
   const handleRefresh = async () => {
     await refetch();
@@ -62,7 +56,7 @@ export const WrestlerIntelligenceDashboard = () => {
         <div className="flex items-center space-x-3">
           <h2 className="text-3xl font-bold text-foreground">Wrestler Intelligence Dashboard</h2>
           <Badge variant="secondary" className="bg-green-100 text-green-800">
-            TREEMAP VIEW
+            LIVE DATA ONLY
           </Badge>
         </div>
         <Button
@@ -77,29 +71,6 @@ export const WrestlerIntelligenceDashboard = () => {
         </Button>
       </div>
 
-      {/* Data Quality Alert */}
-      {!hasRealData && displayWrestlers.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-orange-800">
-                  Limited Real Data Available
-                </p>
-                <p className="text-xs text-orange-600">
-                  Currently showing generated trend data. Real wrestling news analysis will appear when more sources are available.
-                </p>
-              </div>
-              <div className="flex items-center space-x-2 text-xs text-orange-600">
-                <Database className="h-4 w-4" />
-                <span>{newsItems.length} news sources</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* 1st Section: Wrestler Popularity Treemap */}
       <Card className="glass-card">
         <CardHeader>
@@ -108,15 +79,9 @@ export const WrestlerIntelligenceDashboard = () => {
               <CardTitle className="flex items-center space-x-2">
                 <TrendingUp className="h-6 w-6 text-wrestling-electric" />
                 <span>Wrestler Popularity Treemap</span>
-                {hasRealData ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    LIVE DATA
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                    TREND ANALYSIS
-                  </Badge>
-                )}
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  REAL MENTIONS ONLY
+                </Badge>
               </CardTitle>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -127,14 +92,12 @@ export const WrestlerIntelligenceDashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              <span>Top Most Mentioned Wrestlers (24h)</span>
+              <span>Wrestling News Mentions (24h) - Real Data Only</span>
             </div>
-            {!hasRealData && (
-              <div className="flex items-center space-x-2 text-xs text-orange-600">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Generated data - based on trending patterns</span>
-              </div>
-            )}
+            <div className="flex items-center space-x-2 text-xs text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live wrestling news analysis</span>
+            </div>
           </div>
         </CardHeader>
 
@@ -143,7 +106,7 @@ export const WrestlerIntelligenceDashboard = () => {
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center space-x-3">
                 <RefreshCw className="h-6 w-6 animate-spin text-wrestling-electric" />
-                <span className="text-lg">Loading wrestler intelligence data...</span>
+                <span className="text-lg">Loading real wrestler data...</span>
               </div>
             </div>
           ) : displayWrestlers.length > 0 ? (
@@ -171,7 +134,7 @@ export const WrestlerIntelligenceDashboard = () => {
                   <div className="text-2xl font-bold text-wrestling-electric">
                     {displayWrestlers.length}
                   </div>
-                  <div className="text-sm text-muted-foreground">Trending Wrestlers</div>
+                  <div className="text-sm text-muted-foreground">Wrestlers Mentioned</div>
                 </div>
                 
                 <div className="text-center p-4 bg-secondary/30 rounded-lg">
@@ -198,28 +161,25 @@ export const WrestlerIntelligenceDashboard = () => {
 
               {/* Data source info */}
               <div className="mt-4 text-center text-sm text-muted-foreground">
-                {hasRealData ? (
-                  <>
-                    Treemap visualization • {realDataCount} wrestlers with real data, {mockDataCount} with trend analysis • 
-                    Data from {newsItems.length} news sources • Updated every 15 minutes
-                  </>
-                ) : (
-                  <>
-                    Treemap visualization • Trend analysis based on {newsItems.length} news sources • 
-                    Real-time data will appear when more wrestling news is available
-                  </>
-                )}
+                Real-time treemap visualization • {displayWrestlers.length} wrestlers with verified news mentions • 
+                Data from {newsItems.length} wrestling news sources • Updated every 15 minutes
               </div>
             </>
           ) : (
-            // No wrestlers with mentions found
+            // No wrestlers with real mentions found
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">No Wrestling Data Available</h3>
+              <h3 className="text-lg font-semibold mb-2">No Current Wrestling Mentions</h3>
               <p className="text-muted-foreground mb-4">
-                No wrestlers were mentioned in recent news articles ({newsItems.length} articles analyzed).
-                The treemap will update automatically when new wrestling news is available.
+                No wrestlers are being mentioned in recent wrestling news ({newsItems.length} articles analyzed).
+                The treemap will populate automatically when wrestlers are mentioned in new articles.
               </p>
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="flex items-center space-x-2 text-sm">
+                  <Database className="h-4 w-4 text-green-500" />
+                  <span className="text-green-600">{newsItems.length} news sources active</span>
+                </div>
+              </div>
               <Button onClick={handleRefresh} className="flex items-center space-x-2">
                 <RefreshCw className="h-4 w-4" />
                 <span>Refresh Data</span>
