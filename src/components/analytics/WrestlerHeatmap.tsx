@@ -39,7 +39,15 @@ export const WrestlerHeatmap = ({ wrestlerMentions }: WrestlerHeatmapProps) => {
   const [selectedWrestler, setSelectedWrestler] = useState<WrestlerMention | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const topWrestlers = wrestlerMentions
+  // Filter out invalid wrestler data and ensure required properties exist
+  const validWrestlers = wrestlerMentions.filter(wrestler => 
+    wrestler && 
+    wrestler.wrestler_name && 
+    typeof wrestler.wrestler_name === 'string' &&
+    typeof wrestler.mentions === 'number'
+  );
+
+  const topWrestlers = validWrestlers
     .sort((a, b) => b.mentions - a.mentions)
     .slice(0, 8);
 
@@ -94,19 +102,20 @@ export const WrestlerHeatmap = ({ wrestlerMentions }: WrestlerHeatmapProps) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {topWrestlers.map((wrestler, index) => {
           const size = getHeatmapSize(wrestler.mentions, index);
-          const isChampion = wrestler.wrestler_name.toLowerCase().includes('champion') || 
-                           wrestler.wrestler_name.toLowerCase().includes('title');
+          const wrestlerName = wrestler.wrestler_name || 'Unknown Wrestler';
+          const isChampion = wrestlerName.toLowerCase().includes('champion') || 
+                           wrestlerName.toLowerCase().includes('title');
           
           return (
             <div
-              key={wrestler.id}
+              key={wrestler.id || `wrestler-${index}`}
               className="relative group cursor-pointer"
               onClick={() => handleWrestlerClick(wrestler)}
             >
               <div
                 className={`
                   relative rounded-lg p-4 transition-all duration-300 hover:scale-105
-                  ${getSentimentColor(wrestler.sentiment)} bg-opacity-20 border
+                  ${getSentimentColor(wrestler.sentiment || 0.5)} bg-opacity-20 border
                   ${isChampion ? 'border-wrestling-gold ring-2 ring-wrestling-gold/30' : 'border-muted'}
                 `}
                 style={{ minHeight: `${Math.max(120, size * 0.6)}px` }}
@@ -126,10 +135,10 @@ export const WrestlerHeatmap = ({ wrestlerMentions }: WrestlerHeatmapProps) => {
                 <div className="flex flex-col h-full">
                   <div className="flex-1">
                     <h3 className="font-semibold text-sm mb-1 line-clamp-2">
-                      {wrestler.wrestler_name}
+                      {wrestlerName}
                     </h3>
                     <Badge variant="secondary" className="text-xs mb-2">
-                      {wrestler.promotion}
+                      {wrestler.promotion || 'Unknown'}
                     </Badge>
                   </div>
 
@@ -143,7 +152,7 @@ export const WrestlerHeatmap = ({ wrestlerMentions }: WrestlerHeatmapProps) => {
                     ) : (
                       <div className="flex items-center space-x-1">
                         <span className="text-lg font-bold text-wrestling-electric">
-                          {wrestler.mentions}
+                          {wrestler.mentions || 0}
                         </span>
                         <span className="text-xs text-muted-foreground">mentions</span>
                       </div>
@@ -152,8 +161,8 @@ export const WrestlerHeatmap = ({ wrestlerMentions }: WrestlerHeatmapProps) => {
                     {/* Sentiment indicator */}
                     <div className="w-full bg-secondary rounded-full h-1.5">
                       <div
-                        className={`h-1.5 rounded-full transition-all duration-500 ${getSentimentColor(wrestler.sentiment)}`}
-                        style={{ width: `${wrestler.sentiment * 100}%` }}
+                        className={`h-1.5 rounded-full transition-all duration-500 ${getSentimentColor(wrestler.sentiment || 0.5)}`}
+                        style={{ width: `${(wrestler.sentiment || 0.5) * 100}%` }}
                       />
                     </div>
 
