@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,6 @@ export const PredictiveAnalyticsDashboard = ({
   onRefresh,
   isLoading = false
 }: PredictiveAnalyticsDashboardProps) => {
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d'>('24h');
-
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -56,32 +54,18 @@ export const PredictiveAnalyticsDashboard = ({
           <Target className="h-6 w-6 text-wrestling-electric" />
           <h2 className="text-2xl font-bold text-foreground">Predictive Analytics</h2>
           <Badge variant="secondary" className="bg-green-100 text-green-800">
-            LIVE
+            7 DAYS
           </Badge>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="flex space-x-1">
-            {(['24h', '7d', '30d'] as const).map((timeframe) => (
-              <Button
-                key={timeframe}
-                variant={selectedTimeframe === timeframe ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedTimeframe(timeframe)}
-              >
-                {timeframe}
-              </Button>
-            ))}
-          </div>
-          <Button
-            onClick={onRefresh}
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-          >
-            <Activity className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
+        <Button
+          onClick={onRefresh}
+          disabled={isLoading}
+          variant="outline"
+          size="sm"
+        >
+          <Activity className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Alerts Section */}
@@ -110,7 +94,7 @@ export const PredictiveAnalyticsDashboard = ({
                       <div className="flex items-center space-x-2 mt-2 text-xs text-muted-foreground">
                         <span>{alert.data.change_percentage > 0 ? '+' : ''}{alert.data.change_percentage}%</span>
                         <span>•</span>
-                        <span>{alert.data.timeframe}</span>
+                        <span>7 days</span>
                         <span>•</span>
                         <span>{alert.timestamp.toLocaleTimeString()}</span>
                       </div>
@@ -136,7 +120,7 @@ export const PredictiveAnalyticsDashboard = ({
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5 text-green-500" />
             <span>Wrestler Trend Analysis</span>
-            <Badge variant="secondary">{selectedTimeframe}</Badge>
+            <Badge variant="secondary">7 days</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
