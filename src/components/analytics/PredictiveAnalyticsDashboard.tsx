@@ -147,22 +147,22 @@ export const PredictiveAnalyticsDashboard = ({
                 className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  {getTrendIcon(trend.trending_direction, trend.mention_change_percentage)}
+                  {getTrendIcon(trend.trending_direction, trend.change_percentage)}
                   <div>
                     <h4 className="font-medium">{trend.wrestler_name}</h4>
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <span>{trend.current_mentions} mentions</span>
                       <span>•</span>
-                      <span>Sentiment: {Math.round(trend.current_sentiment * 100)}%</span>
+                      <span>Sentiment: {Math.round(trend.sentiment_score * 100)}%</span>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className={`text-lg font-bold ${
-                    trend.mention_change_percentage > 0 ? 'text-green-600' : 
-                    trend.mention_change_percentage < 0 ? 'text-red-600' : 'text-gray-600'
+                    trend.change_percentage > 0 ? 'text-green-600' : 
+                    trend.change_percentage < 0 ? 'text-red-600' : 'text-gray-600'
                   }`}>
-                    {trend.mention_change_percentage > 0 ? '+' : ''}{trend.mention_change_percentage}%
+                    {trend.change_percentage > 0 ? '+' : ''}{trend.change_percentage}%
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Momentum: <span className={getMomentumColor(trend.momentum_score)}>{trend.momentum_score}</span>
@@ -186,29 +186,28 @@ export const PredictiveAnalyticsDashboard = ({
           <div className="space-y-4">
             {storylines.map((storyline) => (
               <div
-                key={storyline.storyline_id}
+                key={storyline.id}
                 className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-medium text-lg">{storyline.title}</h4>
+                    <h4 className="font-medium text-lg">{storyline.storyline_title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {storyline.participants.join(' • ')}
+                      {storyline.wrestlers_involved.join(' • ')}
                     </p>
                   </div>
                   <Badge
                     className={`${
-                      storyline.momentum_direction === 'building' ? 'bg-green-100 text-green-800' :
-                      storyline.momentum_direction === 'peaked' ? 'bg-blue-100 text-blue-800' :
-                      storyline.momentum_direction === 'cooling' ? 'bg-orange-100 text-orange-800' :
-                      'bg-red-100 text-red-800'
+                      storyline.engagement_trend === 'increasing' ? 'bg-green-100 text-green-800' :
+                      storyline.engagement_trend === 'stable' ? 'bg-blue-100 text-blue-800' :
+                      'bg-orange-100 text-orange-800'
                     }`}
                   >
-                    {storyline.momentum_direction}
+                    {storyline.engagement_trend}
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-3">
+                <div className="grid grid-cols-2 gap-4 mb-3">
                   <div className="text-center">
                     <div className={`text-2xl font-bold ${getMomentumColor(storyline.momentum_score)}`}>
                       {storyline.momentum_score}
@@ -216,30 +215,18 @@ export const PredictiveAnalyticsDashboard = ({
                     <div className="text-xs text-muted-foreground">Momentum</div>
                   </div>
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${
-                      storyline.intensity_change > 0 ? 'text-green-600' : 
-                      storyline.intensity_change < 0 ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {storyline.intensity_change > 0 ? '+' : ''}{storyline.intensity_change}
+                    <div className="text-2xl font-bold text-blue-600">
+                      {storyline.related_sources.length}
                     </div>
-                    <div className="text-xs text-muted-foreground">Intensity Δ</div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${
-                      storyline.fan_engagement_trend > 0 ? 'text-green-600' : 
-                      storyline.fan_engagement_trend < 0 ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {storyline.fan_engagement_trend > 0 ? '+' : ''}{storyline.fan_engagement_trend}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Engagement Δ</div>
+                    <div className="text-xs text-muted-foreground">Sources</div>
                   </div>
                 </div>
 
-                {storyline.recent_events.length > 0 && (
+                {storyline.key_events.length > 0 && (
                   <div>
-                    <h5 className="text-sm font-medium mb-1">Recent Events:</h5>
+                    <h5 className="text-sm font-medium mb-1">Key Events:</h5>
                     <div className="flex flex-wrap gap-1">
-                      {storyline.recent_events.map((event, index) => (
+                      {storyline.key_events.map((event, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {event}
                         </Badge>
@@ -248,20 +235,13 @@ export const PredictiveAnalyticsDashboard = ({
                   </div>
                 )}
 
-                {storyline.predicted_peak && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Predicted peak: {storyline.predicted_peak.toLocaleDateString()}
-                  </div>
-                )}
-
                 <div className="mt-3">
                   <div className="w-full bg-secondary rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-500 ${
-                        storyline.momentum_direction === 'building' ? 'bg-green-500' :
-                        storyline.momentum_direction === 'peaked' ? 'bg-blue-500' :
-                        storyline.momentum_direction === 'cooling' ? 'bg-orange-500' :
-                        'bg-red-500'
+                        storyline.engagement_trend === 'increasing' ? 'bg-green-500' :
+                        storyline.engagement_trend === 'stable' ? 'bg-blue-500' :
+                        'bg-orange-500'
                       }`}
                       style={{ width: `${storyline.momentum_score}%` }}
                     />
