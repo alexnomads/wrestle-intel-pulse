@@ -17,8 +17,8 @@ export const useRSSFeeds = () => {
   return useQuery({
     queryKey: ['rss-feeds'],
     queryFn: fetchRSSFeeds,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
     retry: 3,
   });
 };
@@ -27,8 +27,8 @@ export const useComprehensiveNews = () => {
   const query = useQuery({
     queryKey: ['comprehensive-wrestling-news'],
     queryFn: fetchComprehensiveWrestlingNews,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
     retry: 3,
   });
 
@@ -53,8 +53,8 @@ export const useRedditPosts = () => {
   return useQuery({
     queryKey: ['reddit-posts'],
     queryFn: fetchRedditPosts,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
     retry: 3,
   });
 };
@@ -63,8 +63,8 @@ export const useComprehensiveReddit = () => {
   const query = useQuery({
     queryKey: ['comprehensive-reddit-posts'],
     queryFn: fetchComprehensiveRedditPosts,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 60 * 1000, // Refetch every 15 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
     retry: 3,
   });
 
@@ -89,8 +89,8 @@ export const useWrestlenomicsData = () => {
   return useQuery({
     queryKey: ['wrestlenomics-data'],
     queryFn: scrapeWrestlenomicsData,
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    refetchInterval: 60 * 60 * 1000, // Refetch every hour
+    staleTime: 10 * 60 * 1000, // 10 minutes - longer for less frequently changing data
+    refetchInterval: 20 * 60 * 1000, // 20 minutes - less frequent updates for wrestlenomics
     retry: 2,
   });
 };

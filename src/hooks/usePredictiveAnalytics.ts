@@ -78,8 +78,8 @@ export const usePredictiveAnalytics = (timeframe: '24h' | '7d' | '30d' = '24h') 
       };
     },
     enabled: true, // Always enabled now since we have fallback data
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
   });
 
   return {
@@ -103,8 +103,8 @@ export const useRealTimeTrends = () => {
       return analyzeWrestlerTrends(newsItems, redditPosts, '24h');
     },
     enabled: true, // Always enabled to ensure fallback data
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
   });
 };
 
@@ -125,6 +125,7 @@ export const useTrendAlerts = () => {
       return alerts;
     },
     enabled: true, // Always enabled to ensure fallback data
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized with auto-update
   });
 };

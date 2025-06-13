@@ -6,8 +6,8 @@ export const useTwitterData = () => {
   return useQuery({
     queryKey: ['twitter-wrestling-data'],
     queryFn: fetchWrestlingTweets,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 30 * 60 * 1000, // 30 minutes (much longer to respect rate limits)
+    staleTime: 5 * 60 * 1000, // 5 minutes - synchronized
+    refetchInterval: 10 * 60 * 1000, // 10 minutes - synchronized (longer to respect rate limits)
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     meta: {
