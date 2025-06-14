@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Twitter, Calendar, Settings, Wifi, DollarSign } from 'lucide-react';
+import { Newspaper, Calendar, Settings, Rss, DollarSign } from 'lucide-react';
 import { getDataStatusInfo, formatTimeAgo } from './top-wrestling-tweets/utils';
 import { useTopTweetsState } from './top-wrestling-tweets/hooks/useTopTweetsState';
 import TweetFilters from './top-wrestling-tweets/TweetFilters';
@@ -34,27 +34,27 @@ const TopWrestlingTweets = () => {
 
   const activeAccountsCount = accounts.filter(acc => acc.active).length;
   const statusInfo = getDataStatusInfo(dataStatus);
-  const StatusIcon = Wifi; // Always show connected for free mode
+  const StatusIcon = Rss; // Use RSS icon for news aggregator
 
   return (
     <Card className="glass-card">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Twitter className="h-6 w-6 text-green-400" />
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Newspaper className="h-6 w-6 text-blue-400" />
             </div>
             <div>
               <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <span>Enhanced Free Wrestling Social Feed</span>
-                <StatusIcon className="w-4 h-4 text-green-500" />
-                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                <span>Wrestling News Aggregator</span>
+                <StatusIcon className="w-4 h-4 text-blue-500" />
+                <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
                   <DollarSign className="w-3 h-3 mr-1" />
-                  ENHANCED FREE
+                  FREE NEWS
                 </Badge>
               </CardTitle>
               <p className="text-muted-foreground">
-                Improved reliability • Multiple sources • Monitoring {activeAccountsCount} wrestling accounts
+                Curated wrestling journalism • Social media references • Monitoring {activeAccountsCount} wrestling accounts
               </p>
             </div>
           </div>
@@ -77,14 +77,14 @@ const TopWrestlingTweets = () => {
 
         <TweetFilters filterType={filterType} onFilterChange={setFilterType} />
 
-        {/* Enhanced Free Mode Benefits Banner */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800/30">
+        {/* Wrestling News Aggregator Benefits Banner */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800/30">
           <div className="flex items-center space-x-3">
-            <DollarSign className="h-5 w-5 text-green-600" />
+            <Newspaper className="h-5 w-5 text-blue-600" />
             <div>
-              <h4 className="font-semibold text-green-800 dark:text-green-200">Enhanced Free Wrestling Social Aggregator</h4>
-              <p className="text-sm text-green-700 dark:text-green-300">
-                ✓ Improved reliability ✓ Multiple data sources ✓ Better error handling ✓ Enhanced content quality ✓ No API limits
+              <h4 className="font-semibold text-blue-800 dark:text-blue-200">Wrestling News Aggregator</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                ✓ Curated wrestling journalism ✓ Social media references ✓ Backstage reports ✓ Breaking news ✓ Reliable sources
               </p>
             </div>
           </div>
@@ -109,8 +109,8 @@ const TopWrestlingTweets = () => {
 
         {isLoading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Enhanced collection system gathering wrestling social content...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Wrestling news aggregator collecting content from journalism sites...</p>
           </div>
         ) : tweets.length > 0 ? (
           <div className="space-y-4">
@@ -120,10 +120,10 @@ const TopWrestlingTweets = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Twitter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
               {filterType === 'all' 
-                ? 'Enhanced content collection in progress. Improved reliability means better results!' 
+                ? 'Wrestling news aggregator collecting content from journalism sites. Real wrestling news coming soon!' 
                 : `No ${filterType} content found. Try another filter.`}
             </p>
           </div>
@@ -131,8 +131,8 @@ const TopWrestlingTweets = () => {
 
         <Separator />
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Enhanced free aggregator • {activeAccountsCount} accounts • Multiple sources • Improved reliability</span>
-          <span>Updates every 10 minutes • Better error handling</span>
+          <span>Wrestling news aggregator • {activeAccountsCount} accounts • Journalism sources • Curated content</span>
+          <span>Updates every 10 minutes • Real wrestling news</span>
         </div>
       </CardContent>
     </Card>
