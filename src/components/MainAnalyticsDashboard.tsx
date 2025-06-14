@@ -10,7 +10,7 @@ import { usePredictiveAnalytics } from '@/hooks/usePredictiveAnalytics';
 import { WrestlerHeatmap } from './analytics/WrestlerHeatmap';
 import { PlatformBreakdown } from './analytics/PlatformBreakdown';
 import { PredictiveAnalyticsDashboard } from './analytics/PredictiveAnalyticsDashboard';
-import { TopWrestlingTweets } from './dashboard/TopWrestlingTweets';
+import TopWrestlingTweets from './dashboard/TopWrestlingTweets';
 import { UnifiedStorylinesHub } from './storylines/UnifiedStorylinesHub';
 
 export const MainAnalyticsDashboard = () => {
