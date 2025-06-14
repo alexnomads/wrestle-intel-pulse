@@ -1,5 +1,6 @@
 
 import { TwitterPost } from './twitterService';
+import { WRESTLING_ACCOUNTS, getActiveAccounts } from '@/constants/wrestlingAccounts';
 
 export interface EnhancedTwitterMetrics {
   totalEngagement: number;
@@ -63,17 +64,12 @@ class EnhancedTwitterAnalytics {
       community: 0
     };
 
-    // This would need account type mapping from the main service
+    // Use the shared account data for accurate categorization
+    const accountMap = new Map(WRESTLING_ACCOUNTS.map(acc => [acc.username.toLowerCase(), acc.type]));
+
     this.tweets.forEach(tweet => {
-      // For now, we'll use a simple heuristic based on username
-      const author = tweet.author.toLowerCase();
-      if (['wwe', 'aew', 'njpw', 'tna'].some(fed => author.includes(fed))) {
-        breakdown.federation++;
-      } else if (['sapp', 'meltzer', 'satin', 'johnson'].some(journalist => author.includes(journalist))) {
-        breakdown.journalist++;
-      } else {
-        breakdown.wrestler++;
-      }
+      const accountType = accountMap.get(tweet.author.toLowerCase()) || 'community';
+      breakdown[accountType]++;
     });
 
     return breakdown;
@@ -137,12 +133,21 @@ class EnhancedTwitterAnalytics {
       verified: boolean;
     }>();
 
+    // Initialize with known account data
+    const knownAccounts = new Map(WRESTLING_ACCOUNTS.map(acc => [
+      acc.username.toLowerCase(), 
+      { type: acc.type, verified: acc.verified || false }
+    ]));
+
     this.tweets.forEach(tweet => {
+      const accountKey = tweet.author.toLowerCase();
+      const knownAccount = knownAccounts.get(accountKey);
+      
       const current = accountMap.get(tweet.author) || {
         tweets: 0,
         engagement: 0,
-        type: 'wrestler',
-        verified: false
+        type: knownAccount?.type || 'community',
+        verified: knownAccount?.verified || false
       };
 
       const tweetEngagement = tweet.engagement.likes + tweet.engagement.retweets + tweet.engagement.replies;
@@ -150,7 +155,7 @@ class EnhancedTwitterAnalytics {
       accountMap.set(tweet.author, {
         tweets: current.tweets + 1,
         engagement: current.engagement + tweetEngagement,
-        type: current.type, // Would be properly determined from account data
+        type: current.type,
         verified: current.verified
       });
     });
@@ -166,9 +171,13 @@ class EnhancedTwitterAnalytics {
   }
 
   rankTweetsByEngagement(tweets: TwitterPost[], accountTypes: Map<string, string>): TwitterPost[] {
+    // Use shared account data if no accountTypes provided
+    const typeMap = accountTypes.size > 0 ? accountTypes : 
+      new Map(WRESTLING_ACCOUNTS.map(acc => [acc.username.toLowerCase(), acc.type]));
+
     return tweets
       .map(tweet => {
-        const accountType = accountTypes.get(tweet.author) || 'community';
+        const accountType = typeMap.get(tweet.author.toLowerCase()) || 'community';
         const velocity = this.calculateEngagementVelocity(tweet);
         
         // Enhanced scoring with velocity and account type

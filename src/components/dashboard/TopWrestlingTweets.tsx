@@ -1,20 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Twitter, TrendingUp, Users, Heart, MessageCircle, Repeat2, Calendar, Flame, Crown, Settings, Plus, X, Filter } from 'lucide-react';
+import { Twitter, TrendingUp, Users, Heart, MessageCircle, Repeat2, Calendar, Flame, Crown, Settings, Plus, X, Filter, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useTwitterData } from '@/hooks/useTwitterData';
-
-interface TwitterAccount {
-  username: string;
-  displayName: string;
-  type: 'wrestler' | 'federation' | 'journalist' | 'insider' | 'legend' | 'community';
-  active: boolean;
-  priority?: 'high' | 'medium' | 'low';
-  verified?: boolean;
-}
+import { WRESTLING_ACCOUNTS, TwitterAccount } from '@/constants/wrestlingAccounts';
 
 interface EnhancedTweet {
   id: string;
@@ -30,53 +21,8 @@ interface EnhancedTweet {
   verified: boolean;
   account_type: string;
   trending?: boolean;
+  isFallback?: boolean;
 }
-
-const WRESTLING_ACCOUNTS: TwitterAccount[] = [
-  // Major Federations
-  { username: 'WWE', displayName: 'WWE', type: 'federation', active: true, priority: 'high', verified: true },
-  { username: 'AEW', displayName: 'All Elite Wrestling', type: 'federation', active: true, priority: 'high', verified: true },
-  { username: 'njpw1972', displayName: 'NJPW', type: 'federation', active: true, priority: 'high', verified: true },
-  { username: 'ThisIsTNA', displayName: 'TNA Wrestling', type: 'federation', active: true, priority: 'high', verified: true },
-
-  // Top Wrestlers
-  { username: 'CMPunk', displayName: 'CM Punk', type: 'wrestler', active: true, priority: 'high', verified: true },
-  { username: 'RomanReigns', displayName: 'Roman Reigns', type: 'wrestler', active: true, priority: 'high', verified: true },
-  { username: 'TheRock', displayName: 'The Rock', type: 'wrestler', active: true, priority: 'high', verified: true },
-  { username: 'JohnCena', displayName: 'John Cena', type: 'wrestler', active: true, priority: 'high', verified: true },
-  { username: 'AJStylesOrg', displayName: 'AJ Styles', type: 'wrestler', active: true, priority: 'high', verified: true },
-  { username: 'WWESheamus', displayName: 'Sheamus', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'FightOwensFight', displayName: 'Kevin Owens', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'mikethemiz', displayName: 'The Miz', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'TrueKofi', displayName: 'Kofi Kingston', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: '_Theory1', displayName: 'Theory', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'WWEGable', displayName: 'Chad Gable', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'KingRicochet', displayName: 'Ricochet', type: 'wrestler', active: true, priority: 'medium', verified: true },
-  { username: 'MustafaAli_X', displayName: 'Mustafa Ali', type: 'wrestler', active: true, priority: 'medium', verified: true },
-
-  // Wrestling Journalists & Insiders
-  { username: 'SeanRossSapp', displayName: 'Sean Ross Sapp', type: 'journalist', active: true, priority: 'high', verified: true },
-  { username: 'WrestleVotes', displayName: 'WrestleVotes', type: 'insider', active: true, priority: 'high', verified: false },
-  { username: 'davemeltzerWON', displayName: 'Dave Meltzer', type: 'journalist', active: true, priority: 'high', verified: true },
-  { username: 'ryansatin', displayName: 'Ryan Satin', type: 'journalist', active: true, priority: 'high', verified: true },
-  { username: 'MikeJohnson_pwtorch', displayName: 'Mike Johnson', type: 'journalist', active: true, priority: 'high', verified: true },
-  { username: 'WrestlingInc', displayName: 'Wrestling Inc', type: 'journalist', active: true, priority: 'medium', verified: true },
-  { username: 'Fightful', displayName: 'Fightful', type: 'journalist', active: true, priority: 'medium', verified: true },
-
-  // Wrestling Legends
-  { username: 'RicFlairNatrBoy', displayName: 'Ric Flair', type: 'legend', active: true, priority: 'high', verified: true },
-  { username: 'steveaustinBSR', displayName: 'Steve Austin', type: 'legend', active: true, priority: 'high', verified: true },
-  { username: 'ShawnMichaels', displayName: 'Shawn Michaels', type: 'legend', active: true, priority: 'high', verified: true },
-  { username: 'TheMarkHenry', displayName: 'Mark Henry', type: 'legend', active: true, priority: 'medium', verified: true },
-  { username: 'JerryLawler', displayName: 'Jerry Lawler', type: 'legend', active: true, priority: 'medium', verified: true },
-  { username: 'RealKurtAngle', displayName: 'Kurt Angle', type: 'legend', active: true, priority: 'medium', verified: true },
-
-  // Community & Content Creators
-  { username: 'WrestleNotice', displayName: 'Wrestling Notice', type: 'community', active: true, priority: 'medium', verified: false },
-  { username: 'WrestleTubePC', displayName: 'WrestleTube', type: 'community', active: true, priority: 'low', verified: false },
-  { username: 'BustedOpenRadio', displayName: 'Busted Open Radio', type: 'community', active: true, priority: 'medium', verified: true },
-  { username: 'WrestlePurists', displayName: 'Wrestling Purists', type: 'community', active: true, priority: 'low', verified: false }
-];
 
 const TopWrestlingTweets = () => {
   const [tweets, setTweets] = useState<EnhancedTweet[]>([]);
@@ -86,12 +32,13 @@ const TopWrestlingTweets = () => {
   const [newAccount, setNewAccount] = useState({ username: '', displayName: '', type: 'wrestler' as const });
   const [showAddForm, setShowAddForm] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [dataStatus, setDataStatus] = useState<'live' | 'fallback' | 'mixed'>('live');
 
   const { data: twitterData = [], isLoading, error } = useTwitterData();
 
   // Enhanced tweet ranking algorithm
   const calculateEngagementScore = (tweet: any, accountType: string, verified: boolean): number => {
-    const baseScore = tweet.engagement?.likes + tweet.engagement?.retweets + tweet.engagement?.replies;
+    const baseScore = (tweet.engagement?.likes || 0) + (tweet.engagement?.retweets || 0) + (tweet.engagement?.replies || 0);
     
     // Account type multipliers
     const typeMultipliers = {
@@ -113,14 +60,34 @@ const TopWrestlingTweets = () => {
     return Math.round(baseScore * typeMultipliers[accountType] * verifiedBonus * recencyBonus);
   };
 
-  // Process and rank tweets
+  // Process and rank tweets with improved fallback handling
   const processTwitterData = () => {
     if (!twitterData.length) return;
+
+    console.log(`Processing ${twitterData.length} tweets from Twitter data`);
 
     const enhancedTweets: EnhancedTweet[] = twitterData.map(tweet => {
       const account = accounts.find(acc => acc.username === tweet.author);
       const accountType = account?.type || 'community';
       const verified = account?.verified || false;
+      
+      // Handle fallback tweets differently
+      if (tweet.isFallback) {
+        return {
+          id: tweet.id,
+          username: tweet.author,
+          displayName: tweet.author,
+          text: tweet.text,
+          timestamp: tweet.timestamp.toISOString(),
+          likes: 0,
+          retweets: 0,
+          replies: 0,
+          engagement_score: 0,
+          verified: false,
+          account_type: 'community',
+          isFallback: true
+        };
+      }
       
       const engagementScore = calculateEngagementScore(tweet, accountType, verified);
       
@@ -136,17 +103,36 @@ const TopWrestlingTweets = () => {
         engagement_score: engagementScore,
         verified,
         account_type: accountType,
-        trending: engagementScore > 50000 // Mark high-engagement tweets as trending
+        trending: engagementScore > 50000,
+        isFallback: false
       };
     });
 
-    // Sort by engagement score and take top 10
-    const topTweets = enhancedTweets
-      .sort((a, b) => b.engagement_score - a.engagement_score)
-      .slice(0, 10);
+    // Separate real tweets from fallback
+    const realTweets = enhancedTweets.filter(tweet => !tweet.isFallback);
+    const fallbackTweets = enhancedTweets.filter(tweet => tweet.isFallback);
 
-    setTweets(topTweets);
+    // Determine data status
+    let status: 'live' | 'fallback' | 'mixed' = 'fallback';
+    if (realTweets.length > 0 && fallbackTweets.length === 0) {
+      status = 'live';
+    } else if (realTweets.length > 0 && fallbackTweets.length > 0) {
+      status = 'mixed';
+    }
+    setDataStatus(status);
+
+    // Sort real tweets by engagement score and combine with fallback
+    const sortedRealTweets = realTweets
+      .sort((a, b) => b.engagement_score - a.engagement_score)
+      .slice(0, 8); // Take top 8 real tweets
+
+    // Combine real tweets with fallback tweets (fallback tweets go at the end)
+    const combinedTweets = [...sortedRealTweets, ...fallbackTweets.slice(0, 3)];
+
+    setTweets(combinedTweets);
     setLastUpdated(new Date());
+
+    console.log(`Processed ${realTweets.length} real tweets and ${fallbackTweets.length} fallback tweets`);
   };
 
   useEffect(() => {
@@ -211,11 +197,23 @@ const TopWrestlingTweets = () => {
     return { icon: `${index + 1}`, color: 'bg-blue-500', text: 'text-white' };
   };
 
+  const getDataStatusInfo = () => {
+    switch (dataStatus) {
+      case 'live':
+        return { icon: Wifi, color: 'text-green-500', text: 'Live Data', desc: 'Real-time Twitter data' };
+      case 'mixed':
+        return { icon: Wifi, color: 'text-yellow-500', text: 'Mixed Data', desc: 'Live + System status' };
+      case 'fallback':
+        return { icon: WifiOff, color: 'text-orange-500', text: 'System Status', desc: 'Rate limited - showing status' };
+    }
+  };
+
   const filteredTweets = filterType === 'all' 
     ? tweets 
     : tweets.filter(tweet => tweet.account_type === filterType);
 
   const activeAccountsCount = accounts.filter(acc => acc.active).length;
+  const statusInfo = getDataStatusInfo();
 
   return (
     <Card className="glass-card">
@@ -227,11 +225,14 @@ const TopWrestlingTweets = () => {
             </div>
             <div>
               <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <span>Top Wrestling Tweets</span>
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span>Wrestling Twitter Feed</span>
+                <statusInfo.icon className={`w-4 h-4 ${statusInfo.color}`} />
+                <Badge variant="outline" className={statusInfo.color}>
+                  {statusInfo.text}
+                </Badge>
               </CardTitle>
               <p className="text-muted-foreground">
-                Most engaging tweets from {activeAccountsCount} wrestling accounts
+                {statusInfo.desc} • Monitoring {activeAccountsCount} accounts
               </p>
             </div>
           </div>
@@ -277,7 +278,7 @@ const TopWrestlingTweets = () => {
             <div className="flex items-center justify-between">
               <h3 className="font-semibold flex items-center">
                 <Users className="h-4 w-4 mr-2" />
-                Account Management ({activeAccountsCount} active)
+                Account Management ({activeAccountsCount} active of {accounts.length} total)
               </h3>
               <Button
                 variant="outline"
@@ -322,7 +323,7 @@ const TopWrestlingTweets = () => {
             )}
 
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {accounts.map((account) => (
+              {accounts.slice(0, 20).map((account) => (
                 <div
                   key={account.username}
                   className={`flex items-center space-x-2 px-3 py-1 rounded-full border transition-all ${
@@ -350,6 +351,11 @@ const TopWrestlingTweets = () => {
                   </button>
                 </div>
               ))}
+              {accounts.length > 20 && (
+                <Badge variant="outline" className="text-xs">
+                  +{accounts.length - 20} more accounts
+                </Badge>
+              )}
             </div>
           </div>
         )}
@@ -360,7 +366,7 @@ const TopWrestlingTweets = () => {
         {isLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading top wrestling tweets...</p>
+            <p className="text-muted-foreground">Loading wrestling tweets...</p>
           </div>
         ) : filteredTweets.length > 0 ? (
           <div className="space-y-4">
@@ -369,12 +375,18 @@ const TopWrestlingTweets = () => {
               return (
                 <div
                   key={tweet.id}
-                  className="flex space-x-4 p-4 bg-secondary/20 rounded-lg border hover:bg-secondary/30 transition-colors"
+                  className={`flex space-x-4 p-4 rounded-lg border transition-colors ${
+                    tweet.isFallback 
+                      ? 'bg-amber-50/50 border-amber-200/50 dark:bg-amber-950/20 dark:border-amber-800/30' 
+                      : 'bg-secondary/20 hover:bg-secondary/30'
+                  }`}
                 >
                   {/* Ranking Badge */}
                   <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${rankBadge.color} ${rankBadge.text} font-bold text-sm`}>
-                      {rankBadge.icon}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      tweet.isFallback ? 'bg-amber-500 text-white' : `${rankBadge.color} ${rankBadge.text}`
+                    } font-bold text-sm`}>
+                      {tweet.isFallback ? 'ℹ️' : rankBadge.icon}
                     </div>
                   </div>
 
@@ -388,9 +400,16 @@ const TopWrestlingTweets = () => {
                         </div>
                       )}
                       <span className="text-muted-foreground">@{tweet.username}</span>
-                      <Badge variant="outline" className={getTypeColor(tweet.account_type)}>
-                        {tweet.account_type}
-                      </Badge>
+                      {!tweet.isFallback && (
+                        <Badge variant="outline" className={getTypeColor(tweet.account_type)}>
+                          {tweet.account_type}
+                        </Badge>
+                      )}
+                      {tweet.isFallback && (
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                          System Status
+                        </Badge>
+                      )}
                       {tweet.trending && (
                         <div className="flex items-center space-x-1 text-orange-500">
                           <Flame className="h-3 w-3" />
@@ -405,25 +424,27 @@ const TopWrestlingTweets = () => {
                     <p className="text-foreground mb-3 leading-relaxed">{tweet.text}</p>
                     
                     {/* Engagement Metrics */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-muted-foreground">
-                        <div className="flex items-center space-x-1">
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="text-sm">{formatNumber(tweet.replies)}</span>
+                    {!tweet.isFallback && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4 text-muted-foreground">
+                          <div className="flex items-center space-x-1">
+                            <MessageCircle className="h-4 w-4" />
+                            <span className="text-sm">{formatNumber(tweet.replies)}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Repeat2 className="h-4 w-4" />
+                            <span className="text-sm">{formatNumber(tweet.retweets)}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Heart className="h-4 w-4" />
+                            <span className="text-sm">{formatNumber(tweet.likes)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Repeat2 className="h-4 w-4" />
-                          <span className="text-sm">{formatNumber(tweet.retweets)}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Heart className="h-4 w-4" />
-                          <span className="text-sm">{formatNumber(tweet.likes)}</span>
-                        </div>
+                        <Badge variant="secondary">
+                          {formatNumber(tweet.engagement_score)} score
+                        </Badge>
                       </div>
-                      <Badge variant="secondary">
-                        {formatNumber(tweet.engagement_score)} score
-                      </Badge>
-                    </div>
+                    )}
                   </div>
                 </div>
               );
@@ -443,8 +464,8 @@ const TopWrestlingTweets = () => {
         {/* Footer Stats */}
         <Separator />
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Tracking {activeAccountsCount} wrestling accounts</span>
-          <span>Updates every 15 minutes</span>
+          <span>Tracking {activeAccountsCount} wrestling accounts • Smart cycling enabled</span>
+          <span>Updates every 15 minutes • API optimized</span>
         </div>
       </CardContent>
     </Card>
