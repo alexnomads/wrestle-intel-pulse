@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { TwitterAccount, WRESTLING_ACCOUNTS } from '@/constants/wrestlingAccounts';
 import { processTwitterData } from '../utils';
-import { useTwitterData } from '@/hooks/useTwitterData';
+import { useFreeWrestlingSocial } from '@/hooks/useFreeWrestlingSocial';
 
 export const useTopTweetsState = () => {
   const [accounts, setAccounts] = useState<TwitterAccount[]>(WRESTLING_ACCOUNTS);
@@ -18,16 +18,31 @@ export const useTopTweetsState = () => {
   const [dataStatus, setDataStatus] = useState<'live' | 'fallback' | 'mixed'>('live');
   const [tweets, setTweets] = useState([]);
 
-  const { data: twitterData = [], isLoading, error } = useTwitterData();
+  const { data: freeWrestlingData = [], isLoading, error } = useFreeWrestlingSocial();
 
   useEffect(() => {
-    if (twitterData.length > 0) {
-      const { tweets: processedTweets, dataStatus: status } = processTwitterData(twitterData, accounts);
+    if (freeWrestlingData.length > 0) {
+      // Convert FreeSocialPost to the format expected by processTwitterData
+      const convertedData = freeWrestlingData.map(post => ({
+        id: post.id,
+        text: post.text,
+        author: post.author,
+        timestamp: post.timestamp,
+        engagement: {
+          likes: post.engagement.likes,
+          retweets: post.engagement.retweets,
+          replies: post.engagement.replies
+        },
+        url: post.original_url,
+        isFallback: post.text.includes('🔄') || post.text.includes('📱') || post.text.includes('🆓')
+      }));
+
+      const { tweets: processedTweets, dataStatus: status } = processTwitterData(convertedData, accounts);
       setTweets(processedTweets);
       setDataStatus(status);
       setLastUpdated(new Date());
     }
-  }, [twitterData, accounts]);
+  }, [freeWrestlingData, accounts]);
 
   const addAccount = () => {
     if (newAccount.username && newAccount.displayName) {

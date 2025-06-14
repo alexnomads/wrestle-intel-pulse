@@ -42,10 +42,10 @@ export const calculateEngagementScore = (tweet: any, accountType: string, verifi
   return Math.round(baseScore * typeMultipliers[accountType] * verifiedBonus * recencyBonus);
 };
 
-export const processTwitterData = (twitterData: TwitterPost[], accounts: TwitterAccount[]) => {
+export const processTwitterData = (twitterData: any[], accounts: TwitterAccount[]) => {
   if (!twitterData.length) return { tweets: [], dataStatus: 'fallback' as const };
 
-  console.log(`Processing ${twitterData.length} tweets from Twitter data`);
+  console.log(`Processing ${twitterData.length} posts from Free Wrestling Social Aggregator`);
 
   const enhancedTweets: EnhancedTweet[] = twitterData.map(tweet => {
     const account = accounts.find(acc => acc.username === tweet.author);
@@ -59,7 +59,7 @@ export const processTwitterData = (twitterData: TwitterPost[], accounts: Twitter
         username: tweet.author,
         displayName: tweet.author,
         text: tweet.text,
-        timestamp: tweet.timestamp.toISOString(),
+        timestamp: tweet.timestamp.toISOString ? tweet.timestamp.toISOString() : tweet.timestamp,
         likes: 0,
         retweets: 0,
         replies: 0,
@@ -77,7 +77,7 @@ export const processTwitterData = (twitterData: TwitterPost[], accounts: Twitter
       username: tweet.author,
       displayName: account?.displayName || tweet.author,
       text: tweet.text,
-      timestamp: tweet.timestamp.toISOString(),
+      timestamp: tweet.timestamp.toISOString ? tweet.timestamp.toISOString() : tweet.timestamp,
       likes: tweet.engagement?.likes || 0,
       retweets: tweet.engagement?.retweets || 0,
       replies: tweet.engagement?.replies || 0,
@@ -109,7 +109,7 @@ export const processTwitterData = (twitterData: TwitterPost[], accounts: Twitter
   // Combine real tweets with fallback tweets (fallback tweets go at the end)
   const combinedTweets = [...sortedRealTweets, ...fallbackTweets.slice(0, 3)];
 
-  console.log(`Processed ${realTweets.length} real tweets and ${fallbackTweets.length} fallback tweets`);
+  console.log(`Processed ${realTweets.length} real posts and ${fallbackTweets.length} system posts from free sources`);
 
   return { tweets: combinedTweets, dataStatus };
 };
@@ -152,10 +152,10 @@ export const getRankingBadge = (index: number) => {
 export const getDataStatusInfo = (dataStatus: 'live' | 'fallback' | 'mixed') => {
   switch (dataStatus) {
     case 'live':
-      return { icon: 'Wifi', color: 'text-green-500', text: 'Live Data', desc: 'Real-time Twitter data' };
+      return { icon: 'Wifi', color: 'text-green-500', text: 'Free Live Data', desc: 'Real wrestling social content' };
     case 'mixed':
-      return { icon: 'Wifi', color: 'text-yellow-500', text: 'Mixed Data', desc: 'Live + System status' };
+      return { icon: 'Wifi', color: 'text-yellow-500', text: 'Free Mixed Data', desc: 'Live content + system status' };
     case 'fallback':
-      return { icon: 'WifiOff', color: 'text-orange-500', text: 'System Status', desc: 'Rate limited - showing status' };
+      return { icon: 'Wifi', color: 'text-blue-500', text: 'Free System Active', desc: 'Collecting content from free sources' };
   }
 };
