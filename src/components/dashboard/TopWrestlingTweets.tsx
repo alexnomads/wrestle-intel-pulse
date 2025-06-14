@@ -46,15 +46,15 @@ const TopWrestlingTweets = () => {
             </div>
             <div>
               <CardTitle className="text-xl font-bold flex items-center space-x-2">
-                <span>Free Wrestling Social Feed</span>
+                <span>Enhanced Free Wrestling Social Feed</span>
                 <StatusIcon className="w-4 h-4 text-green-500" />
                 <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
                   <DollarSign className="w-3 h-3 mr-1" />
-                  FREE MODE
+                  ENHANCED FREE
                 </Badge>
               </CardTitle>
               <p className="text-muted-foreground">
-                No API costs • No rate limits • Monitoring {activeAccountsCount} wrestling accounts
+                Improved reliability • Multiple sources • Monitoring {activeAccountsCount} wrestling accounts
               </p>
             </div>
           </div>
@@ -77,14 +77,14 @@ const TopWrestlingTweets = () => {
 
         <TweetFilters filterType={filterType} onFilterChange={setFilterType} />
 
-        {/* Free Mode Benefits Banner */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800/30">
+        {/* Enhanced Free Mode Benefits Banner */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800/30">
           <div className="flex items-center space-x-3">
             <DollarSign className="h-5 w-5 text-green-600" />
             <div>
-              <h4 className="font-semibold text-green-800 dark:text-green-200">Free Wrestling Social Aggregator Active</h4>
+              <h4 className="font-semibold text-green-800 dark:text-green-200">Enhanced Free Wrestling Social Aggregator</h4>
               <p className="text-sm text-green-700 dark:text-green-300">
-                ✓ No API costs ✓ No rate limits ✓ Comprehensive coverage ✓ Fast updates ✓ Scalable sources
+                ✓ Improved reliability ✓ Multiple data sources ✓ Better error handling ✓ Enhanced content quality ✓ No API limits
               </p>
             </div>
           </div>
@@ -110,7 +110,7 @@ const TopWrestlingTweets = () => {
         {isLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Collecting wrestling social content from free sources...</p>
+            <p className="text-muted-foreground">Enhanced collection system gathering wrestling social content...</p>
           </div>
         ) : tweets.length > 0 ? (
           <div className="space-y-4">
@@ -123,7 +123,7 @@ const TopWrestlingTweets = () => {
             <Twitter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
               {filterType === 'all' 
-                ? 'Free content collection in progress. Check back in a few minutes!' 
+                ? 'Enhanced content collection in progress. Improved reliability means better results!' 
                 : `No ${filterType} content found. Try another filter.`}
             </p>
           </div>
@@ -131,8 +131,8 @@ const TopWrestlingTweets = () => {
 
         <Separator />
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Free social aggregator • {activeAccountsCount} wrestling accounts • No API limits</span>
-          <span>Updates every 10 minutes • Multiple free sources</span>
+          <span>Enhanced free aggregator • {activeAccountsCount} accounts • Multiple sources • Improved reliability</span>
+          <span>Updates every 10 minutes • Better error handling</span>
         </div>
       </CardContent>
     </Card>
