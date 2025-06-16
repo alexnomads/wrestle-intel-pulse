@@ -36,35 +36,44 @@ export const analyzeWrestlerMentions = async (
     return [];
   }
 
-  // Debug: Show sample news items
-  console.log('📰 Sample news items:', newsItems.slice(0, 3).map(item => ({
+  // Debug: Show sample news items with more detail
+  console.log('📰 Sample news items for matching:', newsItems.slice(0, 5).map((item, index) => ({
+    index: index + 1,
     title: item.title,
-    snippet: item.contentSnippet?.substring(0, 100),
-    link: item.link
+    snippet: item.contentSnippet?.substring(0, 150) + '...',
+    source: item.source,
+    link: item.link || 'No link'
   })));
+
+  // Debug: Show sample wrestler names
+  console.log('👥 Sample wrestler names to match:', wrestlers.slice(0, 10).map(w => w.name));
 
   const analyses: WrestlerAnalysis[] = [];
   const mentionsToStore: any[] = [];
   let totalProcessed = 0;
   let totalWithMentions = 0;
+  let totalPotentialMatches = 0;
 
   for (const wrestler of wrestlers) {
     totalProcessed++;
-    console.log(`\n🔍 [${totalProcessed}/${wrestlers.length}] Analyzing wrestler: ${wrestler.name}`);
+    console.log(`\n🔍 [${totalProcessed}/${wrestlers.length}] Analyzing wrestler: "${wrestler.name}"`);
     
     const relatedNews = newsItems.filter(item => {
       const content = `${item.title} ${item.contentSnippet || ''}`;
+      totalPotentialMatches++;
+      
       const isMatched = isWrestlerMentioned(wrestler.name, content);
       if (isMatched) {
-        console.log(`  📰 Matched article: "${item.title}" - Link: ${item.link || 'No link'}`);
+        console.log(`  ✅ MATCHED: "${item.title.substring(0, 100)}..." - Link: ${item.link || 'No link'}`);
+        console.log(`    Content: "${content.substring(0, 200)}..."`);
       }
       return isMatched;
     });
 
-    console.log(`  📊 Found ${relatedNews.length} related articles for ${wrestler.name}`);
+    console.log(`  📊 Found ${relatedNews.length} related articles for "${wrestler.name}"`);
 
     if (relatedNews.length === 0) {
-      console.log(`  ❌ No mentions found for ${wrestler.name}`);
+      console.log(`  ❌ No mentions found for "${wrestler.name}"`);
       continue;
     }
 
@@ -103,7 +112,7 @@ export const analyzeWrestlerMentions = async (
     const momentumScore = Math.round(Math.min(100, pushScore * 0.8 + relatedNews.length * 3));
     const popularityScore = Math.round(Math.min(100, (pushScore + mentionBonus) * 0.9));
 
-    console.log(`  📈 Metrics for ${wrestler.name}:`, {
+    console.log(`  📈 Metrics for "${wrestler.name}":`, {
       mentions: relatedNews.length,
       avgSentiment: Math.round(avgSentiment * 100),
       pushScore,
@@ -159,8 +168,15 @@ export const analyzeWrestlerMentions = async (
   console.log(`\n✅ Analysis Summary:`, {
     totalProcessed,
     totalWithMentions,
+    totalPotentialMatches,
+    matchingEfficiency: `${((totalWithMentions / totalProcessed) * 100).toFixed(1)}%`,
     analysesGenerated: analyses.length,
-    mentionsToStore: mentionsToStore.length
+    mentionsToStore: mentionsToStore.length,
+    topWrestlers: analyses.slice(0, 5).map(a => ({ 
+      name: a.wrestler_name, 
+      mentions: a.totalMentions, 
+      push: a.pushScore 
+    }))
   });
 
   // Store mentions in database
@@ -217,10 +233,7 @@ export const analyzeWrestlerMentions = async (
     }
   }
 
-  console.log(`🏁 Enhanced wrestler analysis completed`, {
-    totalAnalyses: analyses.length,
-    topWrestlers: analyses.slice(0, 3).map(a => ({ name: a.wrestler_name, mentions: a.totalMentions, push: a.pushScore }))
-  });
+  console.log(`🏁 Enhanced wrestler analysis completed with ${analyses.length} wrestlers found with mentions`);
 
   return analyses.sort((a, b) => b.totalMentions - a.totalMentions);
 };
