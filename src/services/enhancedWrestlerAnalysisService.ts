@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis, WrestlerMention } from '@/types/wrestlerAnalysis';
@@ -40,7 +39,8 @@ export const analyzeWrestlerMentions = async (
   // Debug: Show sample news items
   console.log('📰 Sample news items:', newsItems.slice(0, 3).map(item => ({
     title: item.title,
-    snippet: item.contentSnippet?.substring(0, 100)
+    snippet: item.contentSnippet?.substring(0, 100),
+    link: item.link
   })));
 
   const analyses: WrestlerAnalysis[] = [];
@@ -56,7 +56,7 @@ export const analyzeWrestlerMentions = async (
       const content = `${item.title} ${item.contentSnippet || ''}`;
       const isMatched = isWrestlerMentioned(wrestler.name, content);
       if (isMatched) {
-        console.log(`  📰 Matched article: "${item.title}"`);
+        console.log(`  📰 Matched article: "${item.title}" - Link: ${item.link || 'No link'}`);
       }
       return isMatched;
     });
@@ -70,7 +70,7 @@ export const analyzeWrestlerMentions = async (
 
     totalWithMentions++;
 
-    // Generate mentions for storage
+    // Generate mentions for storage with proper URLs
     const mentions = relatedNews.map(item => {
       const sentimentAnalysis = analyzeSentiment(item.title + ' ' + (item.contentSnippet || ''));
       return {
@@ -128,11 +128,12 @@ export const analyzeWrestlerMentions = async (
       trend: pushScore > 70 ? 'push' : burialScore > 60 ? 'burial' : 'stable',
       evidence: `Based on ${relatedNews.length} recent news articles with ${Math.round(avgSentiment * 100)}% avg sentiment`,
       change24h: Math.round((Math.random() - 0.5) * 20),
-      relatedNews: relatedNews.slice(0, 3).map(item => ({
+      relatedNews: relatedNews.slice(0, 5).map(item => ({
         title: item.title,
         link: item.link || '#',
         source: item.source || 'Wrestling News',
-        pubDate: item.pubDate
+        pubDate: item.pubDate,
+        contentSnippet: item.contentSnippet
       })),
       mention_sources: mentions.map(m => ({
         id: `mention-${wrestler.id}-${Date.now()}-${Math.random()}`,
