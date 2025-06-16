@@ -244,18 +244,17 @@ export const analyzeWrestlerMentions = async (
     
     metricsToStore.push(metrics);
     
-    // Create analysis result with proper mention sources mapping
+    // Create analysis result with proper mention sources mapping - Fixed to include all required WrestlerMention properties
     const mappedMentionSources = wrestlerMentions.map(mention => ({
       id: mention.wrestler_id + mention.source_url,
-      url: mention.source_url,
-      timestamp: new Date().toISOString(),
-      source_url: mention.source_url,
+      wrestler_name: mention.wrestler_name, // Added missing property
+      source_type: mention.source_type, // Added missing property
       source_name: mention.source_name,
-      source_credibility_tier: mention.source_credibility_tier,
       title: mention.title,
+      url: mention.source_url,
       content_snippet: mention.content_snippet,
-      sentiment_score: mention.sentiment_score,
-      created_at: new Date().toISOString()
+      timestamp: new Date(),
+      sentiment_score: mention.sentiment_score
     }));
     
     const analysis: WrestlerAnalysis = {
@@ -289,10 +288,7 @@ export const analyzeWrestlerMentions = async (
         news_count: wrestlerMentions.length,
         reddit_count: 0,
         total_sources: wrestlerMentions.length
-      },
-      confidence_level: confidence_level,
-      last_updated: new Date().toISOString(),
-      data_sources: metrics.data_sources
+      }
     };
     
     wrestlerAnalyses.push(analysis);
@@ -377,17 +373,17 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
     
     if (!wrestlerData) continue;
     
+    // Fixed to include all required WrestlerMention properties
     const mappedMentionSources = (mentionsData || []).map(mention => ({
       id: mention.id,
-      url: mention.source_url,
-      timestamp: mention.created_at,
-      source_url: mention.source_url,
+      wrestler_name: mention.wrestler_name, // Added missing property
+      source_type: mention.source_type as 'news' | 'reddit', // Added missing property with proper typing
       source_name: mention.source_name,
-      source_credibility_tier: mention.source_credibility_tier,
       title: mention.title,
+      url: mention.source_url,
       content_snippet: mention.content_snippet,
-      sentiment_score: mention.sentiment_score,
-      created_at: mention.created_at
+      timestamp: new Date(mention.created_at),
+      sentiment_score: mention.sentiment_score
     }));
     
     const analysis: WrestlerAnalysis = {
@@ -421,10 +417,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
         news_count: metric.mention_count,
         reddit_count: 0,
         total_sources: metric.mention_count
-      },
-      confidence_level: metric.confidence_level as 'high' | 'medium' | 'low',
-      last_updated: metric.updated_at,
-      data_sources: metric.data_sources as any
+      }
     };
     
     analyses.push(analysis);
