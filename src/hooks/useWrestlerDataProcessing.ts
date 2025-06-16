@@ -38,7 +38,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
       ? analysis.relatedNews 
       : (analysis.mention_sources || []).map(source => ({
           title: source.title,
-          link: source.url || source.source_url || '#',
+          link: source.url || '#',
           source: source.source_name,
           pubDate: source.timestamp ? new Date(source.timestamp).toISOString() : new Date().toISOString(),
           contentSnippet: source.content_snippet || ''
