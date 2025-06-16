@@ -28,7 +28,9 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     console.log(`📋 Processing wrestler for UI: ${analysis.wrestler_name}`, {
       mentions: analysis.totalMentions,
       pushScore: analysis.pushScore,
-      burialScore: analysis.burialScore
+      burialScore: analysis.burialScore,
+      relatedNewsCount: analysis.relatedNews?.length || 0,
+      mentionSourcesCount: analysis.mention_sources?.length || 0
     });
 
     return {
@@ -56,7 +58,16 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
         hours_since_last_mention: 24,
         source_breakdown: analysis.source_breakdown || {}
       },
-      last_updated: new Date().toISOString()
+      last_updated: new Date().toISOString(),
+      // Ensure news data is properly included
+      relatedNews: analysis.relatedNews || [],
+      mention_sources: analysis.mention_sources || [],
+      // Add debug info
+      _debug: {
+        hasRelatedNews: !!(analysis.relatedNews && analysis.relatedNews.length > 0),
+        hasMentionSources: !!(analysis.mention_sources && analysis.mention_sources.length > 0),
+        totalNewsItems: (analysis.relatedNews?.length || 0) + (analysis.mention_sources?.length || 0)
+      }
     };
   });
 

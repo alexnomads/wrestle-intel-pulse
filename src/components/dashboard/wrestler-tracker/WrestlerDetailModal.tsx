@@ -22,37 +22,48 @@ interface WrestlerDetailModalProps {
 export const WrestlerDetailModal = ({ wrestler, isOpen, onClose }: WrestlerDetailModalProps) => {
   if (!wrestler) return null;
 
+  console.log('WrestlerDetailModal - full wrestler data:', wrestler);
+
+  // Ensure we have the data in the right format
+  const enhancedWrestler = {
+    ...wrestler,
+    // Make sure related news is accessible
+    relatedNews: wrestler.relatedNews || wrestler.mention_sources || [],
+    // Ensure mention_sources is available
+    mention_sources: wrestler.mention_sources || wrestler.relatedNews || []
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="space-y-6 sm:space-y-8">
-          <WrestlerModalHeader wrestler={wrestler} />
+          <WrestlerModalHeader wrestler={enhancedWrestler} />
 
           {/* Data Quality Indicator */}
-          {wrestler.confidence_level && wrestler.data_sources && (
+          {enhancedWrestler.confidence_level && enhancedWrestler.data_sources && (
             <DataQualityIndicator
-              confidenceLevel={wrestler.confidence_level}
-              mentionCount={wrestler.mention_count || 0}
-              lastUpdated={new Date(wrestler.last_updated || Date.now())}
-              dataSources={wrestler.data_sources}
+              confidenceLevel={enhancedWrestler.confidence_level}
+              mentionCount={enhancedWrestler.mention_count || enhancedWrestler.totalMentions || 0}
+              lastUpdated={new Date(enhancedWrestler.last_updated || Date.now())}
+              dataSources={enhancedWrestler.data_sources}
             />
           )}
 
-          <ChampionshipSection wrestler={wrestler} />
+          <ChampionshipSection wrestler={enhancedWrestler} />
 
-          <KeyMetricsGrid wrestler={wrestler} />
-
-          <Separator />
-
-          <AdvancedAnalyticsSection wrestler={wrestler} />
+          <KeyMetricsGrid wrestler={enhancedWrestler} />
 
           <Separator />
 
-          <RecentNewsSection wrestler={wrestler} />
+          <AdvancedAnalyticsSection wrestler={enhancedWrestler} />
 
-          <MentionSourcesSection wrestler={wrestler} />
+          <Separator />
 
-          <EvidenceSection wrestler={wrestler} />
+          <RecentNewsSection wrestler={enhancedWrestler} />
+
+          <MentionSourcesSection wrestler={enhancedWrestler} />
+
+          <EvidenceSection wrestler={enhancedWrestler} />
         </div>
       </DialogContent>
     </Dialog>

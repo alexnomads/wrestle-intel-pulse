@@ -8,8 +8,18 @@ interface RecentNewsSectionProps {
 }
 
 export const RecentNewsSection = ({ wrestler }: RecentNewsSectionProps) => {
-  // Get related news from multiple possible sources
-  const relatedNews = wrestler.relatedNews || wrestler.mention_sources || [];
+  // Get related news from multiple possible sources with better fallback logic
+  const relatedNews = wrestler.relatedNews || 
+                     wrestler.mention_sources || 
+                     (wrestler.recentNews ? wrestler.recentNews : []);
+  
+  console.log('RecentNewsSection - wrestler data:', {
+    wrestlerName: wrestler.wrestler_name || wrestler.name,
+    relatedNews: relatedNews?.length || 0,
+    mentionSources: wrestler.mention_sources?.length || 0,
+    hasRelatedNews: !!wrestler.relatedNews,
+    wrestlerKeys: Object.keys(wrestler)
+  });
   
   if (!relatedNews || relatedNews.length === 0) {
     return (
@@ -21,7 +31,11 @@ export const RecentNewsSection = ({ wrestler }: RecentNewsSectionProps) => {
         <div className="text-center py-8 text-muted-foreground">
           <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>No recent news articles found for {wrestler.wrestler_name || wrestler.name}</p>
-          <p className="text-sm">This wrestler's data may be from historical analysis</p>
+          <p className="text-sm">Try refreshing to get newer articles or check the news sources</p>
+          <div className="text-xs mt-2 text-yellow-600">
+            Debug: Checked relatedNews ({wrestler.relatedNews?.length || 0}), 
+            mention_sources ({wrestler.mention_sources?.length || 0})
+          </div>
         </div>
       </div>
     );
@@ -36,12 +50,12 @@ export const RecentNewsSection = ({ wrestler }: RecentNewsSectionProps) => {
       </div>
       <div className="space-y-3 max-h-64 overflow-y-auto">
         {relatedNews.map((news: any, index: number) => {
-          // Handle different data structures
+          // Handle different data structures more robustly
           const title = news.title;
           const source = news.source || news.source_name || 'Wrestling News';
           const link = news.link || news.url || news.source_url;
-          const pubDate = news.pubDate || news.timestamp;
-          const snippet = news.content_snippet || news.contentSnippet;
+          const pubDate = news.pubDate || news.timestamp || news.published_at;
+          const snippet = news.content_snippet || news.contentSnippet || news.content;
 
           return (
             <div key={index} className="p-3 bg-secondary/20 rounded-lg border border-border/30 hover:bg-secondary/30 transition-colors">
