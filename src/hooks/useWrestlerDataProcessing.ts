@@ -6,6 +6,7 @@ import { useWrestlerAnalysis } from './useWrestlerAnalysis';
 export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[]) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessTime, setLastProcessTime] = useState<Date | null>(null);
+  const [hasInitialData, setHasInitialData] = useState(false);
 
   // Use the enhanced wrestler analysis
   const {
@@ -47,6 +48,13 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     last_updated: (analysis as any).last_updated || new Date().toISOString()
   }));
 
+  // Track when we first get data to prevent unnecessary loading states
+  useEffect(() => {
+    if (processedWrestlers.length > 0 && !hasInitialData) {
+      setHasInitialData(true);
+    }
+  }, [processedWrestlers.length, hasInitialData]);
+
   // Force refresh function
   const forceRefresh = async () => {
     console.log('Force refresh triggered');
@@ -62,21 +70,21 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     }
   };
 
-  // Update processing state based on analysis - avoid false loading states
+  // Update processing state - only show loading on initial load
   useEffect(() => {
-    // Only show processing if we're actually analyzing AND don't have data yet
-    const shouldShowProcessing = isAnalyzing && processedWrestlers.length === 0;
+    // Only show processing if we're analyzing AND don't have initial data yet
+    const shouldShowProcessing = isAnalyzing && !hasInitialData && processedWrestlers.length === 0;
     setIsProcessing(shouldShowProcessing);
     
     if (lastAnalysisTime) {
       setLastProcessTime(lastAnalysisTime);
     }
-  }, [isAnalyzing, lastAnalysisTime, processedWrestlers.length]);
+  }, [isAnalyzing, lastAnalysisTime, hasInitialData, processedWrestlers.length]);
 
   return {
     processedWrestlers,
     isProcessing,
-    hasRealData,
+    hasRealData: hasRealData || hasInitialData,
     lastProcessTime,
     forceRefresh
   };

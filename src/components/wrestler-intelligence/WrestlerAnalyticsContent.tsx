@@ -23,20 +23,26 @@ export const WrestlerAnalyticsContent = ({
   onWrestlerClick,
   onRefresh
 }: WrestlerAnalyticsContentProps) => {
-  // Show loading only when actually loading and no data exists
-  if (isLoading && processedWrestlers.length === 0) {
+  // Only show loading on initial load when no wrestlers exist at all
+  const shouldShowLoading = isLoading && processedWrestlers.length === 0 && !hasRealData;
+  
+  if (shouldShowLoading) {
     return (
       <div className="flex items-center justify-center py-16 lg:py-20">
         <div className="flex flex-col items-center space-y-4">
           <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
-          <span className="text-lg">Loading wrestler data...</span>
+          <span className="text-lg">Setting up enhanced analytics for wrestling data. This will take a moment...</span>
+          <Button onClick={onRefresh} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
         </div>
       </div>
     );
   }
 
-  // Show empty state only when not loading and no wrestlers
-  if (!isLoading && processedWrestlers.length === 0) {
+  // Show empty state only when not loading and genuinely no wrestlers available
+  if (!isLoading && processedWrestlers.length === 0 && !hasRealData) {
     return (
       <div className="text-center py-16 lg:py-20">
         <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-yellow-400 opacity-50" />
