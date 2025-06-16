@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
-import { analyzeWrestlerMentions, getStoredWrestlerMetrics } from '@/services/enhancedWrestlerAnalysisService';
+import { analyzeWrestlerMentions, getStoredWrestlerMetrics } from '@/services/wrestler-analysis';
 
 export const useWrestlerAnalysis = (
   wrestlers: any[],
