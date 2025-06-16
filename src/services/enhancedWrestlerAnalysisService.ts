@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis, WrestlerMention } from '@/types/wrestlerAnalysis';
-import { isWrestlerMentioned } from '@/components/dashboard/wrestler-tracker/utils/wrestlerNameMatcher';
+import { isWrestlerMentioned } from '@/services/analysis/wrestlerNameMatcher';
 import { analyzeSentiment } from '@/services/data/sentimentAnalysisService';
 
 interface RawWrestlerMetric {
@@ -23,86 +23,110 @@ interface RawWrestlerMetric {
   };
 }
 
-interface WrestlerMentionLog {
-    wrestler_id: string;
-    wrestler_name: string;
-    source_type: string;
-    source_name: string;
-    source_url: string;
-    title: string;
-    content_snippet: string;
-    mention_context: string;
-    sentiment_score: number;
-    source_credibility_tier: number;
-    keywords: string;
-}
-
 export const analyzeWrestlerMentions = async (
   wrestlers: any[],
   newsItems: NewsItem[]
 ): Promise<WrestlerAnalysis[]> => {
-  console.log('Starting enhanced wrestler analysis...', {
+  console.log('🚀 Starting enhanced wrestler analysis...', {
     wrestlersCount: wrestlers.length,
     newsItemsCount: newsItems.length
   });
 
   if (wrestlers.length === 0 || newsItems.length === 0) {
-    console.log('No wrestlers or news items provided');
+    console.log('⚠️ No wrestlers or news items provided');
     return [];
   }
 
+  // Debug: Show sample news items
+  console.log('📰 Sample news items:', newsItems.slice(0, 3).map(item => ({
+    title: item.title,
+    snippet: item.contentSnippet?.substring(0, 100)
+  })));
+
   const analyses: WrestlerAnalysis[] = [];
   const mentionsToStore: any[] = [];
+  let totalProcessed = 0;
+  let totalWithMentions = 0;
 
   for (const wrestler of wrestlers) {
-    console.log('Analyzing wrestler:', wrestler.name);
+    totalProcessed++;
+    console.log(`\n🔍 [${totalProcessed}/${wrestlers.length}] Analyzing wrestler: ${wrestler.name}`);
     
     const relatedNews = newsItems.filter(item => {
       const content = `${item.title} ${item.contentSnippet || ''}`;
-      return isWrestlerMentioned(wrestler.name, content);
+      const isMatched = isWrestlerMentioned(wrestler.name, content);
+      if (isMatched) {
+        console.log(`  📰 Matched article: "${item.title}"`);
+      }
+      return isMatched;
     });
 
-    if (relatedNews.length === 0) continue;
+    console.log(`  📊 Found ${relatedNews.length} related articles for ${wrestler.name}`);
+
+    if (relatedNews.length === 0) {
+      console.log(`  ❌ No mentions found for ${wrestler.name}`);
+      continue;
+    }
+
+    totalWithMentions++;
 
     // Generate mentions for storage
-    const mentions = relatedNews.map(item => ({
-      wrestler_id: wrestler.id,
-      wrestler_name: wrestler.name,
-      source_type: 'news',
-      source_name: item.source || 'Wrestling News',
-      source_url: item.link || '#',
-      title: item.title,
-      content_snippet: item.contentSnippet || item.title.substring(0, 150),
-      mention_context: 'news_article',
-      sentiment_score: analyzeSentiment(item.title + ' ' + (item.contentSnippet || '')).score,
-      source_credibility_tier: 2,
-      keywords: JSON.stringify([wrestler.name])
-    }));
+    const mentions = relatedNews.map(item => {
+      const sentimentAnalysis = analyzeSentiment(item.title + ' ' + (item.contentSnippet || ''));
+      return {
+        wrestler_id: wrestler.id,
+        wrestler_name: wrestler.name,
+        source_type: 'news',
+        source_name: item.source || 'Wrestling News',
+        source_url: item.link || '#',
+        title: item.title,
+        content_snippet: item.contentSnippet || item.title.substring(0, 150),
+        mention_context: 'news_article',
+        sentiment_score: sentimentAnalysis.score,
+        source_credibility_tier: 2,
+        keywords: JSON.stringify([wrestler.name])
+      };
+    });
 
     mentionsToStore.push(...mentions);
 
-    // Calculate metrics
-    const sentimentScore = mentions.reduce((sum, m) => sum + m.sentiment_score, 0) / mentions.length * 100;
-    const pushScore = Math.min(100, Math.max(10, sentimentScore * 1.2));
-    const burialScore = Math.min(100, Math.max(5, (100 - sentimentScore) * 0.8));
-    const momentumScore = Math.round(Math.min(100, pushScore * 0.9 + relatedNews.length * 5));
-    const popularityScore = Math.round(Math.min(100, pushScore * 0.8 + relatedNews.length * 3));
+    // Calculate enhanced metrics
+    const sentimentScores = mentions.map(m => m.sentiment_score);
+    const avgSentiment = sentimentScores.reduce((sum, score) => sum + score, 0) / sentimentScores.length;
+    
+    // More realistic scoring algorithm
+    const baseScore = Math.round(avgSentiment * 100);
+    const mentionBonus = Math.min(relatedNews.length * 5, 30); // Cap bonus at 30
+    
+    const pushScore = Math.min(100, Math.max(0, baseScore + mentionBonus));
+    const burialScore = Math.min(100, Math.max(0, (100 - baseScore) * 0.7)); // Less aggressive burial scoring
+    const momentumScore = Math.round(Math.min(100, pushScore * 0.8 + relatedNews.length * 3));
+    const popularityScore = Math.round(Math.min(100, (pushScore + mentionBonus) * 0.9));
+
+    console.log(`  📈 Metrics for ${wrestler.name}:`, {
+      mentions: relatedNews.length,
+      avgSentiment: Math.round(avgSentiment * 100),
+      pushScore,
+      burialScore,
+      momentumScore,
+      popularityScore
+    });
 
     const analysis: WrestlerAnalysis = {
       id: wrestler.id,
       wrestler_name: wrestler.name,
       promotion: wrestler.promotions?.name || wrestler.brand || 'Unknown',
-      pushScore: Math.round(pushScore),
-      burialScore: Math.round(burialScore),
+      pushScore,
+      burialScore,
       momentumScore,
       popularityScore,
       totalMentions: relatedNews.length,
-      sentimentScore: Math.round(sentimentScore),
+      sentimentScore: Math.round(avgSentiment * 100),
       isChampion: wrestler.is_champion || false,
       championshipTitle: wrestler.championship_title,
-      isOnFire: pushScore > 80 || relatedNews.length > 8,
+      isOnFire: pushScore > 70 || relatedNews.length > 5,
       trend: pushScore > 70 ? 'push' : burialScore > 60 ? 'burial' : 'stable',
-      evidence: `Based on ${relatedNews.length} recent news articles`,
+      evidence: `Based on ${relatedNews.length} recent news articles with ${Math.round(avgSentiment * 100)}% avg sentiment`,
       change24h: Math.round((Math.random() - 0.5) * 20),
       relatedNews: relatedNews.slice(0, 3).map(item => ({
         title: item.title,
@@ -131,44 +155,51 @@ export const analyzeWrestlerMentions = async (
     analyses.push(analysis);
   }
 
+  console.log(`\n✅ Analysis Summary:`, {
+    totalProcessed,
+    totalWithMentions,
+    analysesGenerated: analyses.length,
+    mentionsToStore: mentionsToStore.length
+  });
+
   // Store mentions in database
   if (mentionsToStore.length > 0) {
-    console.log('Storing', mentionsToStore.length, 'wrestler mentions...');
+    console.log(`💾 Storing ${mentionsToStore.length} wrestler mentions...`);
     try {
       const { error: mentionsError } = await supabase
         .from('wrestler_mentions_log')
         .insert(mentionsToStore);
 
       if (mentionsError) {
-        console.error('Error storing wrestler mentions:', mentionsError);
+        console.error('❌ Error storing wrestler mentions:', mentionsError);
       } else {
-        console.log('Successfully stored wrestler mentions');
+        console.log('✅ Successfully stored wrestler mentions');
       }
     } catch (error) {
-      console.error('Error storing mentions:', error);
+      console.error('❌ Error storing mentions:', error);
     }
   }
 
   // Store metrics in database with proper JSON conversion
   if (analyses.length > 0) {
-    console.log('Storing', analyses.length, 'wrestler metrics...');
+    console.log(`💾 Storing ${analyses.length} wrestler metrics...`);
     try {
       const metricsToStore = analyses.map(analysis => ({
         wrestler_id: analysis.id,
-        push_score: Math.round(analysis.pushScore),
-        burial_score: Math.round(analysis.burialScore),
-        momentum_score: Math.round(analysis.momentumScore),
-        popularity_score: Math.round(analysis.popularityScore),
+        push_score: analysis.pushScore,
+        burial_score: analysis.burialScore,
+        momentum_score: analysis.momentumScore,
+        popularity_score: analysis.popularityScore,
         mention_count: analysis.totalMentions,
         confidence_level: analysis.totalMentions >= 5 ? 'high' : analysis.totalMentions >= 3 ? 'medium' : 'low',
-        data_sources: JSON.parse(JSON.stringify({
+        data_sources: {
           total_mentions: analysis.totalMentions,
           tier_1_mentions: 0,
           tier_2_mentions: analysis.totalMentions,
           tier_3_mentions: 0,
           hours_since_last_mention: 1,
           source_breakdown: analysis.source_breakdown || {}
-        }))
+        } as any
       }));
 
       const { error: metricsError } = await supabase
@@ -176,17 +207,18 @@ export const analyzeWrestlerMentions = async (
         .insert(metricsToStore);
 
       if (metricsError) {
-        console.error('Error storing wrestler metrics:', metricsError);
+        console.error('❌ Error storing wrestler metrics:', metricsError);
       } else {
-        console.log('Successfully stored wrestler metrics');
+        console.log('✅ Successfully stored wrestler metrics');
       }
     } catch (error) {
-      console.error('Error storing metrics:', error);
+      console.error('❌ Error storing metrics:', error);
     }
   }
 
-  console.log('Enhanced wrestler analysis completed', {
-    totalAnalyses: analyses.length
+  console.log(`🏁 Enhanced wrestler analysis completed`, {
+    totalAnalyses: analyses.length,
+    topWrestlers: analyses.slice(0, 3).map(a => ({ name: a.wrestler_name, mentions: a.totalMentions, push: a.pushScore }))
   });
 
   return analyses.sort((a, b) => b.totalMentions - a.totalMentions);
@@ -201,12 +233,12 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       .order('created_at', { ascending: false });
 
     if (metricsError) {
-      console.error('Error fetching stored metrics:', metricsError);
+      console.error('❌ Error fetching stored metrics:', metricsError);
       return [];
     }
 
     if (!metrics || metrics.length === 0) {
-      console.log('No stored wrestler metrics found');
+      console.log('⚠️ No stored wrestler metrics found');
       return [];
     }
 
@@ -218,7 +250,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       .in('id', wrestlerIds);
 
     if (wrestlersError) {
-      console.error('Error fetching wrestlers:', wrestlersError);
+      console.error('❌ Error fetching wrestlers:', wrestlersError);
       return [];
     }
 
@@ -228,7 +260,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       wrestlerMap.set(wrestler.id, wrestler);
     });
 
-    console.log('Retrieved', metrics.length, 'stored wrestler analyses');
+    console.log(`📊 Retrieved ${metrics.length} stored wrestler analyses`);
 
     return metrics.map(metric => {
       const wrestler = wrestlerMap.get(metric.wrestler_id);
@@ -254,7 +286,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
         change24h: 0,
         relatedNews: [],
         mention_sources: [],
-        source_breakdown: dataSources.source_breakdown || {
+        source_breakdown: (dataSources as any).source_breakdown || {
           news_count: metric.mention_count,
           reddit_count: 0,
           total_sources: metric.mention_count
@@ -262,7 +294,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       };
     });
   } catch (error) {
-    console.error('Error in getStoredWrestlerMetrics:', error);
+    console.error('❌ Error in getStoredWrestlerMetrics:', error);
     return [];
   }
 };

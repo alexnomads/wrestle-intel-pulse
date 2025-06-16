@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Users, AlertTriangle, RefreshCw, Info } from 'lucide-react';
+import { TrendingUp, Users, AlertTriangle, RefreshCw, Info, Search } from 'lucide-react';
 import { EnhancedWrestlerCard } from './EnhancedWrestlerCard';
 
 interface WrestlerAnalyticsContentProps {
@@ -23,6 +23,13 @@ export const WrestlerAnalyticsContent = ({
   onWrestlerClick,
   onRefresh
 }: WrestlerAnalyticsContentProps) => {
+  console.log('🎨 WrestlerAnalyticsContent render:', {
+    isLoading,
+    processedWrestlersCount: processedWrestlers.length,
+    hasRealData,
+    newsItemsCount
+  });
+
   // Only show loading when we truly have no data and are loading for the first time
   const shouldShowLoading = isLoading && processedWrestlers.length === 0;
   
@@ -31,7 +38,10 @@ export const WrestlerAnalyticsContent = ({
       <div className="flex items-center justify-center py-16 lg:py-20">
         <div className="flex flex-col items-center space-y-4">
           <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
-          <span className="text-lg">Loading wrestler analytics...</span>
+          <span className="text-lg">Analyzing wrestler mentions in news...</span>
+          <div className="text-sm text-muted-foreground text-center max-w-md">
+            Processing {newsItemsCount} news articles to find wrestler mentions and calculate analytics
+          </div>
           <Button onClick={onRefresh} variant="outline" className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
@@ -41,19 +51,34 @@ export const WrestlerAnalyticsContent = ({
     );
   }
 
-  // Show empty state only when we have no wrestlers and aren't loading
+  // Show empty state when we have no wrestlers and aren't loading
   if (processedWrestlers.length === 0 && !isLoading) {
     return (
       <div className="text-center py-16 lg:py-20">
-        <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-yellow-400 opacity-50" />
-        <h3 className="text-xl font-semibold mb-3">No Wrestler Data Available</h3>
-        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          No wrestlers found with recent mentions. Try refreshing the data or check back later.
-        </p>
-        <Button onClick={onRefresh} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Data
-        </Button>
+        <Search className="h-16 w-16 mx-auto mb-6 text-blue-400 opacity-50" />
+        <h3 className="text-xl font-semibold mb-3">No Wrestler Mentions Found</h3>
+        <div className="text-muted-foreground mb-6 max-w-2xl mx-auto space-y-2">
+          <p>
+            We've analyzed {newsItemsCount} news articles but haven't found any mentions of wrestlers in your roster.
+          </p>
+          <p className="text-sm">
+            This could mean:
+          </p>
+          <ul className="text-sm list-disc list-inside space-y-1 max-w-md mx-auto">
+            <li>The news articles don't contain wrestler names we can recognize</li>
+            <li>The wrestler names in your roster don't match how they're mentioned in news</li>
+            <li>There might not be recent wrestling news in the current feed</li>
+          </ul>
+        </div>
+        <div className="space-y-4">
+          <Button onClick={onRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Analysis
+          </Button>
+          <div className="text-xs text-muted-foreground">
+            Try refreshing to get newer articles, or check back later when there's more wrestling news
+          </div>
+        </div>
       </div>
     );
   }
@@ -102,7 +127,7 @@ export const WrestlerAnalyticsContent = ({
           <div className="text-xl lg:text-2xl font-bold text-wrestling-electric">
             {processedWrestlers.length}
           </div>
-          <div className="text-sm text-muted-foreground">Active Wrestlers</div>
+          <div className="text-sm text-muted-foreground">With Mentions</div>
         </div>
         
         <div className="text-center p-4 lg:p-6 bg-secondary/30 rounded-lg border border-border/50">
@@ -127,17 +152,19 @@ export const WrestlerAnalyticsContent = ({
         </div>
       </div>
 
-      {/* Data source info */}
+      {/* Data source info with more detail */}
       <div className="mt-8 text-center text-sm text-muted-foreground space-y-2">
         <div className="font-medium">
-          Live analytics for {processedWrestlers.length} wrestlers from {newsItemsCount} sources
+          Live analytics for {processedWrestlers.length} wrestlers from {newsItemsCount} news sources
         </div>
         <div>
-          Real-time sentiment analysis • Source credibility weighting • Historical tracking
+          Advanced name matching • Real-time sentiment analysis • Source credibility weighting
         </div>
         <div className="flex items-center justify-center space-x-1 text-emerald-600">
           <Info className="h-3 w-3" />
-          <span className="text-xs">Click any wrestler for detailed analytics</span>
+          <span className="text-xs">
+            Only wrestlers mentioned in recent news are shown • Click any wrestler for detailed analytics
+          </span>
         </div>
       </div>
     </>
