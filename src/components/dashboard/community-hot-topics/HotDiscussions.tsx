@@ -23,11 +23,7 @@ export const HotDiscussions = ({ hotDiscussions }: HotDiscussionsProps) => {
             <div 
               key={post.url + index}
               className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleRedditClick(post.permalink, post.title);
-              }}
+              onClick={() => handleRedditClick(post.permalink, post.title)}
             >
               <div className="flex items-center space-x-3 flex-1">
                 <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
