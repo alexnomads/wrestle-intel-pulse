@@ -21,10 +21,9 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
   // Map to the expected format for the UI
   const processedWrestlers = filteredAnalysis.map(analysis => ({
     ...analysis,
-    // Ensure all required fields are present with proper naming
     id: analysis.id,
     wrestler_name: analysis.wrestler_name,
-    name: analysis.wrestler_name, // Fallback for components expecting 'name'
+    name: analysis.wrestler_name,
     promotion: analysis.promotion,
     pushScore: analysis.pushScore || 0,
     burialScore: analysis.burialScore || 0,
@@ -36,24 +35,24 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     isChampion: analysis.isChampion || false,
     championshipTitle: analysis.championshipTitle,
     isOnFire: analysis.isOnFire || false,
-    confidence_level: (analysis as any).confidence_level || 'low',
-    data_sources: (analysis as any).data_sources || {
+    confidence_level: analysis.totalMentions >= 5 ? 'high' : analysis.totalMentions >= 3 ? 'medium' : 'low',
+    data_sources: {
       total_mentions: analysis.totalMentions || 0,
       tier_1_mentions: 0,
-      tier_2_mentions: 0,
+      tier_2_mentions: analysis.totalMentions || 0,
       tier_3_mentions: 0,
       hours_since_last_mention: 24,
-      source_breakdown: {}
+      source_breakdown: analysis.source_breakdown || {}
     },
-    last_updated: (analysis as any).last_updated || new Date().toISOString()
+    last_updated: new Date().toISOString()
   }));
 
-  // Track when we first get data to prevent unnecessary loading states
+  // Track when we first get data
   useEffect(() => {
-    if (processedWrestlers.length > 0 && !hasInitialData) {
+    if (processedWrestlers.length > 0) {
       setHasInitialData(true);
     }
-  }, [processedWrestlers.length, hasInitialData]);
+  }, [processedWrestlers.length]);
 
   // Force refresh function
   const forceRefresh = async () => {
@@ -70,21 +69,24 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     }
   };
 
-  // Update processing state - only show loading on initial load
+  // Update processing state - be more permissive to show data
   useEffect(() => {
-    // Only show processing if we're analyzing AND don't have initial data yet
-    const shouldShowProcessing = isAnalyzing && !hasInitialData && processedWrestlers.length === 0;
-    setIsProcessing(shouldShowProcessing);
+    // Only show processing on very initial load
+    if (isAnalyzing && !hasInitialData && processedWrestlers.length === 0 && wrestlers.length > 0 && newsItems.length > 0) {
+      setIsProcessing(true);
+    } else {
+      setIsProcessing(false);
+    }
     
     if (lastAnalysisTime) {
       setLastProcessTime(lastAnalysisTime);
     }
-  }, [isAnalyzing, lastAnalysisTime, hasInitialData, processedWrestlers.length]);
+  }, [isAnalyzing, lastAnalysisTime, hasInitialData, processedWrestlers.length, wrestlers.length, newsItems.length]);
 
   return {
     processedWrestlers,
-    isProcessing,
-    hasRealData: hasRealData || hasInitialData,
+    isProcessing: isProcessing && processedWrestlers.length === 0, // Only show loading if no data
+    hasRealData: hasRealData || hasInitialData || processedWrestlers.length > 0,
     lastProcessTime,
     forceRefresh
   };

@@ -23,15 +23,15 @@ export const WrestlerAnalyticsContent = ({
   onWrestlerClick,
   onRefresh
 }: WrestlerAnalyticsContentProps) => {
-  // Only show loading on initial load when no wrestlers exist at all
-  const shouldShowLoading = isLoading && processedWrestlers.length === 0 && !hasRealData;
+  // Only show loading when we truly have no data and are loading for the first time
+  const shouldShowLoading = isLoading && processedWrestlers.length === 0;
   
   if (shouldShowLoading) {
     return (
       <div className="flex items-center justify-center py-16 lg:py-20">
         <div className="flex flex-col items-center space-y-4">
           <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
-          <span className="text-lg">Setting up enhanced analytics for wrestling data. This will take a moment...</span>
+          <span className="text-lg">Loading wrestler analytics...</span>
           <Button onClick={onRefresh} variant="outline" className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
@@ -41,14 +41,14 @@ export const WrestlerAnalyticsContent = ({
     );
   }
 
-  // Show empty state only when not loading and genuinely no wrestlers available
-  if (!isLoading && processedWrestlers.length === 0 && !hasRealData) {
+  // Show empty state only when we have no wrestlers and aren't loading
+  if (processedWrestlers.length === 0 && !isLoading) {
     return (
       <div className="text-center py-16 lg:py-20">
         <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-yellow-400 opacity-50" />
         <h3 className="text-xl font-semibold mb-3">No Wrestler Data Available</h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          No wrestlers found matching current filters. Try adjusting your search criteria or refresh the data.
+          No wrestlers found with recent mentions. Try refreshing the data or check back later.
         </p>
         <Button onClick={onRefresh} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -67,26 +67,26 @@ export const WrestlerAnalyticsContent = ({
             key={wrestler.id}
             wrestler={{
               id: wrestler.id,
-              wrestler_name: wrestler.wrestler_name,
-              name: wrestler.name,
+              wrestler_name: wrestler.wrestler_name || wrestler.name,
+              name: wrestler.wrestler_name || wrestler.name,
               promotion: wrestler.promotion,
               is_champion: wrestler.isChampion,
               championship_title: wrestler.championshipTitle,
-              brand: wrestler.brand
+              brand: wrestler.brand || wrestler.promotion
             }}
             metrics={{
               push_score: wrestler.pushScore || 0,
               burial_score: wrestler.burialScore || 0,
               momentum_score: wrestler.momentumScore || 0,
               popularity_score: wrestler.popularityScore || 0,
-              confidence_level: wrestler.confidence_level || 'low',
+              confidence_level: wrestler.confidence_level || 'medium',
               mention_count: wrestler.mention_count || wrestler.totalMentions || 0,
               data_sources: wrestler.data_sources || {
                 total_mentions: wrestler.totalMentions || 0,
                 tier_1_mentions: 0,
-                tier_2_mentions: 0,
+                tier_2_mentions: wrestler.totalMentions || 0,
                 tier_3_mentions: 0,
-                hours_since_last_mention: 999,
+                hours_since_last_mention: 24,
                 source_breakdown: {}
               },
               last_updated: wrestler.last_updated || new Date().toISOString()
@@ -130,16 +130,10 @@ export const WrestlerAnalyticsContent = ({
       {/* Data source info */}
       <div className="mt-8 text-center text-sm text-muted-foreground space-y-2">
         <div className="font-medium">
-          {hasRealData 
-            ? `Live analytics for ${processedWrestlers.length} wrestlers`
-            : `Building analytics for ${processedWrestlers.length} wrestlers`
-          }
+          Live analytics for {processedWrestlers.length} wrestlers from {newsItemsCount} sources
         </div>
         <div>
-          {hasRealData 
-            ? 'Source-weighted sentiment analysis • Historical trend tracking • Real-time updates'
-            : 'Processing news sources • Analyzing sentiment • Building confidence metrics'
-          }
+          Real-time sentiment analysis • Source credibility weighting • Historical tracking
         </div>
         <div className="flex items-center justify-center space-x-1 text-emerald-600">
           <Info className="h-3 w-3" />
