@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,44 @@ export const WrestlerIntelligenceDashboard = () => {
   const { data: enhancedMetrics = [], isLoading: metricsLoading, refetch: refetchMetrics } = useEnhancedWrestlerMetrics();
   const { data: storylines = [] } = useStorylineAnalysis();
   const { data: redditPosts = [] } = useRedditPosts();
+
+  // Define applyFiltersAndSorting function BEFORE using it in useMemo
+  const applyFiltersAndSorting = React.useCallback((wrestlersList: any[]) => {
+    let filtered = wrestlersList;
+
+    if (searchTerm) {
+      filtered = filtered.filter(wrestler =>
+        wrestler.wrestler_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        wrestler.promotion.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (selectedPromotion !== 'all') {
+      filtered = filtered.filter(wrestler =>
+        wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'mentions':
+          return b.totalMentions - a.totalMentions;
+        case 'sentiment':
+          return b.sentimentScore - a.sentimentScore;
+        case 'change':
+          return b.change24h - a.change24h;
+        case 'push':
+          return b.pushScore - a.pushScore;
+        case 'name':
+          return a.wrestler_name.localeCompare(b.wrestler_name);
+        default:
+          return b.totalMentions - a.totalMentions;
+      }
+    });
+
+    return filtered;
+  }, [searchTerm, selectedPromotion, sortBy]);
 
   // Auto-process metrics when data is available and hasn't been processed yet
   useEffect(() => {
@@ -121,44 +160,7 @@ export const WrestlerIntelligenceDashboard = () => {
     }));
 
     return applyFiltersAndSorting(wrestlersWithDefaults);
-  }, [wrestlers, enhancedMetrics, searchTerm, selectedPromotion, sortBy]);
-
-  const applyFiltersAndSorting = (wrestlersList: any[]) => {
-    let filtered = wrestlersList;
-
-    if (searchTerm) {
-      filtered = filtered.filter(wrestler =>
-        wrestler.wrestler_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        wrestler.promotion.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (selectedPromotion !== 'all') {
-      filtered = filtered.filter(wrestler =>
-        wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'mentions':
-          return b.totalMentions - a.totalMentions;
-        case 'sentiment':
-          return b.sentimentScore - a.sentimentScore;
-        case 'change':
-          return b.change24h - a.change24h;
-        case 'push':
-          return b.pushScore - a.pushScore;
-        case 'name':
-          return a.wrestler_name.localeCompare(b.wrestler_name);
-        default:
-          return b.totalMentions - a.totalMentions;
-      }
-    });
-
-    return filtered;
-  };
+  }, [wrestlers, enhancedMetrics, applyFiltersAndSorting]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
