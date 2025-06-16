@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ExternalLink, Zap, Clock, Play, Pause } from "lucide-react";
@@ -18,6 +17,7 @@ export const DataManagement = () => {
   const [scrapingStatus, setScrapingStatus] = useState<{ [key: string]: boolean }>({});
   const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(true);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
+  const [hasAutoUpdatedOnMount, setHasAutoUpdatedOnMount] = useState(false);
   
   const { data: promotions = [] } = usePromotions();
   const { data: wrestlers = [], refetch: refetchWrestlers } = useSupabaseWrestlers();
@@ -30,8 +30,49 @@ export const DataManagement = () => {
   const { data: comprehensiveNews = [], refetch: refetchComprehensiveNews } = useComprehensiveNews();
   const { data: comprehensiveReddit = [], refetch: refetchComprehensiveReddit } = useComprehensiveReddit();
 
+  // Auto-update all data when component mounts (user visits the website)
   useEffect(() => {
-    // Register comprehensive data updates with auto-update service
+    const performInitialUpdate = async () => {
+      if (hasAutoUpdatedOnMount) return;
+      
+      console.log('🚀 DataManagement: Auto-updating all data on website visit...');
+      setHasAutoUpdatedOnMount(true);
+      
+      try {
+        // Trigger comprehensive data refresh
+        await Promise.allSettled([
+          refetchComprehensiveNews(),
+          refetchComprehensiveReddit(),
+          refetchRealTimeData(),
+          refetchAll(),
+          refetchWrestlers()
+        ]);
+        
+        setLastUpdateTime(new Date().toLocaleTimeString());
+        
+        toast({
+          title: "Data Refreshed",
+          description: `All wrestling data updated automatically at ${new Date().toLocaleTimeString()}`,
+        });
+        
+        console.log('✅ DataManagement: Auto-update on mount completed');
+      } catch (error) {
+        console.error('❌ DataManagement: Auto-update on mount failed:', error);
+        toast({
+          title: "Update Notice",
+          description: "Some data sources may need manual refresh",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Small delay to ensure all hooks are ready
+    const timer = setTimeout(performInitialUpdate, 1000);
+    return () => clearTimeout(timer);
+  }, []); // Empty dependency array ensures this only runs once on mount
+
+  // Register comprehensive data updates with auto-update service
+  useEffect(() => {
     const updateCallback = async () => {
       try {
         setLastUpdateTime(new Date().toLocaleTimeString());
@@ -157,7 +198,7 @@ export const DataManagement = () => {
           <p className="text-muted-foreground">
             Comprehensive wrestling data from {comprehensiveNews.length + news.length} news sources, {comprehensiveReddit.length} Reddit posts, and official promotions.
             <span className="inline-flex items-center ml-2 text-wrestling-electric">
-              Auto-updates every 10 minutes 
+              Auto-updates on every visit + every 10 minutes 
               <Clock className="h-3 w-3 ml-1" />
             </span>
           </p>
@@ -197,7 +238,7 @@ export const DataManagement = () => {
 
       <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-4">
         <div className="text-sm text-green-400">
-          🔴 LIVE: Auto-updating from {comprehensiveNews.length > 0 ? 'comprehensive' : 'standard'} wrestling news sources every 10 minutes
+          🔴 LIVE: Auto-updating from {comprehensiveNews.length > 0 ? 'comprehensive' : 'standard'} wrestling news sources on every website visit + every 10 minutes
         </div>
       </div>
 
