@@ -26,7 +26,8 @@ interface WrestlerMetrics {
 interface EnhancedWrestlerCardProps {
   wrestler: {
     id: string;
-    name: string;
+    wrestler_name?: string;
+    name?: string;
     promotion?: string;
     is_champion?: boolean;
     championship_title?: string;
@@ -43,6 +44,8 @@ export const EnhancedWrestlerCard = ({
   onWrestlerClick,
   showTrend = true
 }: EnhancedWrestlerCardProps) => {
+  const wrestlerName = wrestler.wrestler_name || wrestler.name || 'Unknown Wrestler';
+  
   const getScoreColor = (score: number, type: 'push' | 'burial' | 'momentum' | 'popularity') => {
     if (type === 'burial') {
       if (score >= 70) return 'text-red-500';
@@ -73,12 +76,12 @@ export const EnhancedWrestlerCard = ({
       onClick={() => onWrestlerClick({ ...wrestler, ...metrics })}
     >
       <CardContent className="p-4 space-y-4">
-        {/* Header */}
+        {/* Header with wrestler name prominently displayed */}
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-bold text-lg group-hover:text-wrestling-electric transition-colors">
-                {wrestler.name}
+                {wrestlerName}
               </h3>
               {wrestler.is_champion && <Crown className="h-4 w-4 text-yellow-400" />}
               {isOnFire && <Flame className="h-4 w-4 text-orange-500" />}
@@ -104,13 +107,16 @@ export const EnhancedWrestlerCard = ({
             )}
           </div>
 
-          <DataQualityIndicator
-            confidenceLevel={metrics.confidence_level}
-            mentionCount={metrics.mention_count}
-            lastUpdated={new Date(metrics.last_updated)}
-            dataSources={metrics.data_sources}
-            compact
-          />
+          {/* Only show data quality indicator for high confidence */}
+          {metrics.confidence_level === 'high' && (
+            <DataQualityIndicator
+              confidenceLevel={metrics.confidence_level}
+              mentionCount={metrics.mention_count}
+              lastUpdated={new Date(metrics.last_updated)}
+              dataSources={metrics.data_sources}
+              compact
+            />
+          )}
         </div>
 
         {/* Metrics Grid */}
@@ -156,10 +162,9 @@ export const EnhancedWrestlerCard = ({
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-          <span>{metrics.mention_count} mentions</span>
-          <span className="capitalize">{metrics.confidence_level} confidence</span>
+        {/* Quick Stats - Only show mention count */}
+        <div className="flex items-center justify-center text-xs text-muted-foreground pt-2 border-t border-border/50">
+          <span className="font-medium">{metrics.mention_count} mentions</span>
         </div>
       </CardContent>
     </Card>

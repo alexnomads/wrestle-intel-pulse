@@ -23,7 +23,8 @@ export const WrestlerAnalyticsContent = ({
   onWrestlerClick,
   onRefresh
 }: WrestlerAnalyticsContentProps) => {
-  if (isLoading) {
+  // Show loading only when actually loading and no data exists
+  if (isLoading && processedWrestlers.length === 0) {
     return (
       <div className="flex items-center justify-center py-16 lg:py-20">
         <div className="flex flex-col items-center space-y-4">
@@ -34,13 +35,14 @@ export const WrestlerAnalyticsContent = ({
     );
   }
 
-  if (processedWrestlers.length === 0) {
+  // Show empty state only when not loading and no wrestlers
+  if (!isLoading && processedWrestlers.length === 0) {
     return (
       <div className="text-center py-16 lg:py-20">
         <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-yellow-400 opacity-50" />
-        <h3 className="text-xl font-semibold mb-3">Loading Wrestler Data</h3>
+        <h3 className="text-xl font-semibold mb-3">No Wrestler Data Available</h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          Setting up enhanced analytics for wrestling data. This will take a moment...
+          No wrestlers found matching current filters. Try adjusting your search criteria or refresh the data.
         </p>
         <Button onClick={onRefresh} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -57,16 +59,24 @@ export const WrestlerAnalyticsContent = ({
         {processedWrestlers.map((wrestler) => (
           <EnhancedWrestlerCard
             key={wrestler.id}
-            wrestler={wrestler}
+            wrestler={{
+              id: wrestler.id,
+              wrestler_name: wrestler.wrestler_name,
+              name: wrestler.name,
+              promotion: wrestler.promotion,
+              is_champion: wrestler.isChampion,
+              championship_title: wrestler.championshipTitle,
+              brand: wrestler.brand
+            }}
             metrics={{
               push_score: wrestler.pushScore || 0,
               burial_score: wrestler.burialScore || 0,
               momentum_score: wrestler.momentumScore || 0,
               popularity_score: wrestler.popularityScore || 0,
               confidence_level: wrestler.confidence_level || 'low',
-              mention_count: wrestler.mention_count || 0,
+              mention_count: wrestler.mention_count || wrestler.totalMentions || 0,
               data_sources: wrestler.data_sources || {
-                total_mentions: 0,
+                total_mentions: wrestler.totalMentions || 0,
                 tier_1_mentions: 0,
                 tier_2_mentions: 0,
                 tier_3_mentions: 0,
@@ -121,7 +131,7 @@ export const WrestlerAnalyticsContent = ({
         </div>
         <div>
           {hasRealData 
-            ? 'Source-weighted sentiment analysis • Historical trend tracking • Confidence indicators'
+            ? 'Source-weighted sentiment analysis • Historical trend tracking • Real-time updates'
             : 'Processing news sources • Analyzing sentiment • Building confidence metrics'
           }
         </div>
