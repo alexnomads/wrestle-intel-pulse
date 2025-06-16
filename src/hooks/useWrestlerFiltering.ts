@@ -1,41 +1,40 @@
 
-import React from 'react';
+import { useState, useMemo } from 'react';
 
-export const useWrestlerFiltering = (searchTerm: string, selectedPromotion: string, sortBy: string) => {
-  return React.useCallback((wrestlersList: any[]) => {
-    let filtered = wrestlersList;
+export const useWrestlerFiltering = (wrestlers: any[]) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPromotion, setSelectedPromotion] = useState('all');
+  const [minMentions, setMinMentions] = useState('1');
+  const [sortBy, setSortBy] = useState('mentions');
+
+  const filteredWrestlers = useMemo(() => {
+    let filtered = wrestlers;
 
     if (searchTerm) {
       filtered = filtered.filter(wrestler =>
-        wrestler.wrestler_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        wrestler.promotion.toLowerCase().includes(searchTerm.toLowerCase())
+        wrestler.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        wrestler.promotions?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (selectedPromotion !== 'all') {
       filtered = filtered.filter(wrestler =>
-        wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
+        wrestler.promotions?.name?.toLowerCase().includes(selectedPromotion.toLowerCase())
       );
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'mentions':
-          return b.totalMentions - a.totalMentions;
-        case 'sentiment':
-          return b.sentimentScore - a.sentimentScore;
-        case 'change':
-          return b.change24h - a.change24h;
-        case 'push':
-          return b.pushScore - a.pushScore;
-        case 'name':
-          return a.wrestler_name.localeCompare(b.wrestler_name);
-        default:
-          return b.totalMentions - a.totalMentions;
-      }
-    });
-
     return filtered;
-  }, [searchTerm, selectedPromotion, sortBy]);
+  }, [wrestlers, searchTerm, selectedPromotion]);
+
+  return {
+    filteredWrestlers,
+    searchTerm,
+    setSearchTerm,
+    selectedPromotion,
+    setSelectedPromotion,
+    minMentions,
+    setMinMentions,
+    sortBy,
+    setSortBy
+  };
 };

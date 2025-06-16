@@ -26,8 +26,8 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
     momentumScore: analysis.momentumScore || 0,
     popularityScore: analysis.popularityScore || 0,
     mention_count: analysis.totalMentions || 0,
-    confidence_level: analysis.confidence_level || 'low',
-    data_sources: analysis.data_sources || {
+    confidence_level: (analysis as any).confidence_level || 'low',
+    data_sources: (analysis as any).data_sources || {
       total_mentions: analysis.totalMentions || 0,
       tier_1_mentions: 0,
       tier_2_mentions: 0,
@@ -35,7 +35,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
       hours_since_last_mention: 24,
       source_breakdown: {}
     },
-    last_updated: analysis.last_updated || new Date().toISOString()
+    last_updated: (analysis as any).last_updated || new Date().toISOString()
   }));
 
   // Force refresh function

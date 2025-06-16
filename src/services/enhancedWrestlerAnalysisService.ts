@@ -218,7 +218,7 @@ export const analyzeWrestlerMentions = async (
       hours_since_last_mention: hoursOld
     });
     
-    const confidence_level = confidenceResult || 'low';
+    const confidence_level = (confidenceResult as 'high' | 'medium' | 'low') || 'low';
     
     // Prepare metrics for storage
     const metrics: WrestlerMetrics = {
@@ -231,9 +231,9 @@ export const analyzeWrestlerMentions = async (
       mention_count: wrestlerMentions.length,
       data_sources: {
         total_mentions: wrestlerMentions.length,
-        tier_1_mentions,
-        tier_2_mentions,
-        tier_3_mentions,
+        tier_1_mentions: tier1_mentions,
+        tier_2_mentions: tier2_mentions,
+        tier_3_mentions: tier3_mentions,
         hours_since_last_mention: hoursOld,
         source_breakdown: wrestlerMentions.reduce((acc, mention) => {
           acc[mention.source_name] = (acc[mention.source_name] || 0) + 1;
@@ -244,7 +244,20 @@ export const analyzeWrestlerMentions = async (
     
     metricsToStore.push(metrics);
     
-    // Create analysis result
+    // Create analysis result with proper mention sources mapping
+    const mappedMentionSources = wrestlerMentions.map(mention => ({
+      id: mention.wrestler_id + mention.source_url,
+      url: mention.source_url,
+      timestamp: new Date().toISOString(),
+      source_url: mention.source_url,
+      source_name: mention.source_name,
+      source_credibility_tier: mention.source_credibility_tier,
+      title: mention.title,
+      content_snippet: mention.content_snippet,
+      sentiment_score: mention.sentiment_score,
+      created_at: new Date().toISOString()
+    }));
+    
     const analysis: WrestlerAnalysis = {
       id: wrestler.id,
       wrestler_name: wrestler.name,
@@ -271,12 +284,15 @@ export const analyzeWrestlerMentions = async (
         source: mention.source_name,
         pubDate: new Date().toISOString()
       })),
-      mention_sources: wrestlerMentions,
+      mention_sources: mappedMentionSources,
       source_breakdown: {
         news_count: wrestlerMentions.length,
         reddit_count: 0,
         total_sources: wrestlerMentions.length
-      }
+      },
+      confidence_level: confidence_level,
+      last_updated: new Date().toISOString(),
+      data_sources: metrics.data_sources
     };
     
     wrestlerAnalyses.push(analysis);
@@ -323,15 +339,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
   
   const { data: metricsData, error: metricsError } = await supabase
     .from('wrestler_metrics_history')
-    .select(`
-      *,
-      wrestlers:wrestler_id (
-        name,
-        is_champion,
-        championship_title,
-        promotions (name)
-      )
-    `)
+    .select('*')
     .eq('date', today)
     .order('mention_count', { ascending: false });
   
@@ -345,10 +353,21 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
     return [];
   }
   
-  // Get mentions for each wrestler
+  // Get wrestler details for each metric
   const analyses: WrestlerAnalysis[] = [];
   
   for (const metric of metricsData) {
+    const { data: wrestlerData } = await supabase
+      .from('wrestlers')
+      .select(`
+        name,
+        is_champion,
+        championship_title,
+        promotions (name)
+      `)
+      .eq('id', metric.wrestler_id)
+      .single();
+    
     const { data: mentionsData } = await supabase
       .from('wrestler_mentions_log')
       .select('*')
@@ -356,13 +375,25 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false });
     
-    const wrestler = metric.wrestlers;
-    if (!wrestler) continue;
+    if (!wrestlerData) continue;
+    
+    const mappedMentionSources = (mentionsData || []).map(mention => ({
+      id: mention.id,
+      url: mention.source_url,
+      timestamp: mention.created_at,
+      source_url: mention.source_url,
+      source_name: mention.source_name,
+      source_credibility_tier: mention.source_credibility_tier,
+      title: mention.title,
+      content_snippet: mention.content_snippet,
+      sentiment_score: mention.sentiment_score,
+      created_at: mention.created_at
+    }));
     
     const analysis: WrestlerAnalysis = {
       id: metric.wrestler_id,
-      wrestler_name: wrestler.name,
-      promotion: wrestler.promotions?.name || 'Unknown',
+      wrestler_name: wrestlerData.name,
+      promotion: (wrestlerData.promotions as any)?.name || 'Unknown',
       pushScore: metric.push_score,
       burialScore: metric.burial_score,
       trend: metric.push_score > metric.burial_score + 10 ? 'push' : 
@@ -370,8 +401,8 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       totalMentions: metric.mention_count,
       sentimentScore: mentionsData?.length > 0 ? 
         mentionsData.reduce((sum, m) => sum + m.sentiment_score, 0) / mentionsData.length * 100 : 50,
-      isChampion: wrestler.is_champion || false,
-      championshipTitle: wrestler.championship_title,
+      isChampion: wrestlerData.is_champion || false,
+      championshipTitle: wrestlerData.championship_title,
       evidence: metric.mention_count > 0 ? 
         `Based on ${metric.mention_count} recent mentions from multiple sources` :
         'No recent mentions found',
@@ -379,21 +410,21 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       momentumScore: metric.momentum_score,
       popularityScore: metric.popularity_score,
       change24h: 0,
-      relatedNews: mentionsData?.slice(0, 5).map(mention => ({
+      relatedNews: (mentionsData || []).slice(0, 5).map(mention => ({
         title: mention.title,
         link: mention.source_url,
         source: mention.source_name,
         pubDate: mention.created_at
-      })) || [],
-      mention_sources: mentionsData || [],
-      source_breakdown: metric.data_sources?.source_breakdown || {
+      })),
+      mention_sources: mappedMentionSources,
+      source_breakdown: (metric.data_sources as any)?.source_breakdown || {
         news_count: metric.mention_count,
         reddit_count: 0,
         total_sources: metric.mention_count
       },
-      confidence_level: metric.confidence_level,
+      confidence_level: metric.confidence_level as 'high' | 'medium' | 'low',
       last_updated: metric.updated_at,
-      data_sources: metric.data_sources
+      data_sources: metric.data_sources as any
     };
     
     analyses.push(analysis);
