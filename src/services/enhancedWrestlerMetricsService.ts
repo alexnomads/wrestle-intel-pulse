@@ -25,6 +25,8 @@ interface WrestlerMetricsData {
 export class EnhancedWrestlerMetricsService {
   async getWrestlerMetrics(wrestlerId?: string): Promise<WrestlerMetricsData[]> {
     try {
+      console.log('Fetching wrestler metrics...', { wrestlerId });
+      
       // Initialize source credibility cache
       await enhancedSentimentService.initializeSourceCredibility();
 
@@ -48,23 +50,32 @@ export class EnhancedWrestlerMetricsService {
         query = query.eq('wrestler_id', wrestlerId);
       }
 
-      const { data: metricsHistory, error } = await query.limit(100);
+      const { data: metricsHistory, error } = await query.limit(1000);
 
       if (error) {
         console.error('Error fetching wrestler metrics:', error);
         return [];
       }
 
+      console.log('Raw metrics data:', metricsHistory?.length || 0, 'entries');
+
+      if (!metricsHistory || metricsHistory.length === 0) {
+        console.log('No metrics found in database');
+        return [];
+      }
+
       // Group by wrestler_id and get the most recent entry for each
       const latestMetrics = new Map<string, any>();
       
-      metricsHistory?.forEach(entry => {
+      metricsHistory.forEach(entry => {
         const wrestlerId = entry.wrestler_id;
         if (!latestMetrics.has(wrestlerId) || 
             new Date(entry.updated_at) > new Date(latestMetrics.get(wrestlerId).updated_at)) {
           latestMetrics.set(wrestlerId, entry);
         }
       });
+
+      console.log('Grouped metrics for', latestMetrics.size, 'wrestlers');
 
       const result: WrestlerMetricsData[] = Array.from(latestMetrics.values()).map(entry => ({
         wrestler_id: entry.wrestler_id,
@@ -86,6 +97,7 @@ export class EnhancedWrestlerMetricsService {
         last_updated: entry.updated_at
       }));
 
+      console.log('Returning', result.length, 'wrestler metrics');
       return result.sort((a, b) => b.mention_count - a.mention_count);
 
     } catch (error) {
@@ -104,6 +116,8 @@ export class EnhancedWrestlerMetricsService {
     contentSnippet: string
   ): Promise<void> {
     try {
+      console.log('Logging wrestler mention:', { wrestlerName, sourceName });
+      
       // Analyze sentiment with enhanced service
       const sentimentAnalysis = enhancedSentimentService.analyzeWrestlingSentiment(
         title + ' ' + contentSnippet,
@@ -138,6 +152,8 @@ export class EnhancedWrestlerMetricsService {
 
       if (error) {
         console.error('Error logging wrestler mention:', error);
+      } else {
+        console.log('Successfully logged mention for', wrestlerName);
       }
 
     } catch (error) {
@@ -147,12 +163,27 @@ export class EnhancedWrestlerMetricsService {
 
   async processNewsForMentions(newsItems: any[], wrestlers: any[]): Promise<void> {
     try {
+      console.log('Processing', newsItems.length, 'news items for', wrestlers.length, 'wrestlers');
+      let processedCount = 0;
+      
       for (const newsItem of newsItems) {
         for (const wrestler of wrestlers) {
           const content = (newsItem.title + ' ' + (newsItem.contentSnippet || '')).toLowerCase();
           const wrestlerName = wrestler.name.toLowerCase();
 
-          if (content.includes(wrestlerName)) {
+          // More flexible name matching
+          const nameVariations = [
+            wrestlerName,
+            wrestlerName.replace(/\s+/g, ''), // remove spaces
+            wrestlerName.split(' ').join(''), // join without spaces
+            ...wrestlerName.split(' ') // individual name parts
+          ];
+
+          const hasMatch = nameVariations.some(variation => 
+            variation.length > 2 && content.includes(variation)
+          );
+
+          if (hasMatch) {
             await this.logWrestlerMention(
               wrestler.id,
               wrestler.name,
@@ -162,9 +193,12 @@ export class EnhancedWrestlerMetricsService {
               newsItem.title,
               newsItem.contentSnippet || ''
             );
+            processedCount++;
           }
         }
       }
+      
+      console.log('Processed', processedCount, 'wrestler mentions from news');
     } catch (error) {
       console.error('Error processing news for mentions:', error);
     }
@@ -172,15 +206,18 @@ export class EnhancedWrestlerMetricsService {
 
   async triggerMetricsCalculation(): Promise<void> {
     try {
+      console.log('Triggering metrics calculation...');
       const { data, error } = await supabase.functions.invoke('wrestler-metrics-processor');
       
       if (error) {
         console.error('Error triggering metrics calculation:', error);
+        throw error;
       } else {
         console.log('Metrics calculation triggered successfully:', data);
       }
     } catch (error) {
       console.error('Error in triggerMetricsCalculation:', error);
+      throw error;
     }
   }
 
