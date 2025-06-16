@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 
@@ -78,6 +77,8 @@ export const storeWrestlerMetrics = async (analyses: WrestlerAnalysis[]): Promis
 
 export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> => {
   try {
+    console.log('🔍 Fetching wrestler metrics from database...');
+    
     // First get the metrics
     const { data: metrics, error: metricsError } = await supabase
       .from('wrestler_metrics_history')
@@ -94,8 +95,12 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       return [];
     }
 
+    console.log(`📊 Retrieved ${metrics.length} raw metric records`);
+
     // Then get the wrestlers data separately
     const wrestlerIds = [...new Set(metrics.map(m => m.wrestler_id))];
+    console.log(`👥 Fetching wrestler details for ${wrestlerIds.length} unique wrestlers`);
+    
     const { data: wrestlers, error: wrestlersError } = await supabase
       .from('wrestlers')
       .select('id, name, brand, is_champion, championship_title')
@@ -112,15 +117,16 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       wrestlerMap.set(wrestler.id, wrestler);
     });
 
-    console.log(`📊 Retrieved ${metrics.length} stored wrestler analyses`);
+    console.log(`🗂️ Created wrestler lookup map with ${wrestlerMap.size} entries`);
 
-    return metrics.map(metric => {
+    // Convert stored metrics to WrestlerAnalysis format
+    const analyses = metrics.map(metric => {
       const wrestler = wrestlerMap.get(metric.wrestler_id);
       const dataSources = typeof metric.data_sources === 'string' 
         ? JSON.parse(metric.data_sources) 
         : metric.data_sources || {};
 
-      return {
+      const analysis: WrestlerAnalysis = {
         id: metric.wrestler_id,
         wrestler_name: wrestler?.name || 'Unknown Wrestler',
         promotion: wrestler?.brand || 'Unknown',
@@ -128,7 +134,7 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
         burialScore: metric.burial_score,
         momentumScore: metric.momentum_score,
         popularityScore: metric.popularity_score,
-        totalMentions: metric.mention_count,
+        totalMentions: metric.mention_count, // This is the key fix - use mention_count from DB
         sentimentScore: Math.round((metric.push_score + (100 - metric.burial_score)) / 2),
         isChampion: wrestler?.is_champion || false,
         championshipTitle: wrestler?.championship_title,
@@ -144,7 +150,25 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
           total_sources: metric.mention_count
         }
       };
+
+      return analysis;
     });
+
+    // Filter out duplicates (keep most recent for each wrestler)
+    const uniqueAnalyses = new Map();
+    analyses.forEach(analysis => {
+      const existing = uniqueAnalyses.get(analysis.id);
+      if (!existing || analysis.totalMentions > existing.totalMentions) {
+        uniqueAnalyses.set(analysis.id, analysis);
+      }
+    });
+
+    const finalAnalyses = Array.from(uniqueAnalyses.values());
+    
+    console.log(`✅ Successfully converted ${finalAnalyses.length} unique wrestler analyses from stored data`);
+    console.log(`📈 Analyses with mentions > 0: ${finalAnalyses.filter(a => a.totalMentions > 0).length}`);
+    
+    return finalAnalyses;
   } catch (error) {
     console.error('❌ Error in getStoredWrestlerMetrics:', error);
     return [];

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
@@ -20,7 +21,7 @@ export const useWrestlerAnalysis = (
       return;
     }
 
-    console.log('Starting wrestler analysis...', {
+    console.log('Starting fresh wrestler analysis...', {
       wrestlers: wrestlers.length,
       newsItems: newsItems.length
     });
@@ -41,7 +42,7 @@ export const useWrestlerAnalysis = (
       setWrestlerAnalyses(analyses);
       setLastAnalysisTime(new Date());
       
-      console.log(`Analysis completed. Found ${analyses.length} wrestlers with mentions.`);
+      console.log(`Fresh analysis completed. Found ${analyses.length} wrestlers with mentions.`);
     } catch (error) {
       console.error('Error analyzing wrestlers:', error);
     } finally {
@@ -49,55 +50,69 @@ export const useWrestlerAnalysis = (
     }
   };
 
-  // Load stored data on mount
+  // Load stored data on mount and whenever dependencies change
   useEffect(() => {
     const loadStoredData = async () => {
       console.log('Loading stored wrestler metrics...');
-      const storedAnalyses = await getStoredWrestlerMetrics();
       
-      if (storedAnalyses.length > 0) {
-        setWrestlerAnalyses(storedAnalyses);
-        setLastAnalysisTime(new Date());
-        console.log(`Loaded ${storedAnalyses.length} stored analyses`);
-      } else if (wrestlers.length > 0 && newsItems.length > 0) {
-        // If no stored data, run fresh analysis
-        console.log('No stored data found, running fresh analysis...');
-        analyzeWrestlers();
+      try {
+        const storedAnalyses = await getStoredWrestlerMetrics();
+        
+        if (storedAnalyses.length > 0) {
+          console.log(`✅ Loaded ${storedAnalyses.length} stored analyses`);
+          setWrestlerAnalyses(storedAnalyses);
+          setLastAnalysisTime(new Date());
+        } else {
+          console.log('⚠️ No stored analyses found, will run fresh analysis when news is available');
+          if (wrestlers.length > 0 && newsItems.length > 0) {
+            console.log('📰 News available, running fresh analysis...');
+            analyzeWrestlers();
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading stored data:', error);
+        // Fallback to fresh analysis if stored data fails
+        if (wrestlers.length > 0 && newsItems.length > 0) {
+          analyzeWrestlers();
+        }
       }
     };
 
     loadStoredData();
-  }, [wrestlers.length, newsItems.length]);
-
-  // Auto-refresh every 15 minutes if we have fresh news
-  useEffect(() => {
-    if (!lastAnalysisTime || wrestlers.length === 0 || newsItems.length === 0) return;
-
-    const interval = setInterval(() => {
-      const timeSinceLastAnalysis = Date.now() - lastAnalysisTime.getTime();
-      const fifteenMinutes = 15 * 60 * 1000;
-
-      if (timeSinceLastAnalysis > fifteenMinutes) {
-        console.log('Auto-refreshing wrestler analysis...');
-        analyzeWrestlers();
-      }
-    }, 5 * 60 * 1000); // Check every 5 minutes
-
-    return () => clearInterval(interval);
-  }, [lastAnalysisTime, wrestlers.length, newsItems.length]);
+  }, [wrestlers.length, newsItems.length, promotion]);
 
   // Filter analyses based on criteria
   const filteredAnalysis = useMemo(() => {
     const minMentionsNum = parseInt(minMentions) || 1;
     
-    return wrestlerAnalyses.filter(analysis => {
-      const meetsMinMentions = analysis.totalMentions >= minMentionsNum;
+    console.log(`🔍 Filtering ${wrestlerAnalyses.length} analyses with min mentions: ${minMentionsNum}, promotion: ${promotion}`);
+    
+    const filtered = wrestlerAnalyses.filter(analysis => {
+      // Handle both stored data format (mention_count) and fresh analysis format (totalMentions)
+      const actualMentions = analysis.totalMentions || 0;
+      const meetsMinMentions = actualMentions >= minMentionsNum;
       const meetsPromotion = promotion === 'all' || 
         analysis.promotion.toLowerCase() === promotion.toLowerCase();
       
-      return meetsMinMentions && meetsPromotion;
+      const passes = meetsMinMentions && meetsPromotion;
+      
+      if (passes) {
+        console.log(`✅ Wrestler passed filter: ${analysis.wrestler_name} (${actualMentions} mentions, ${analysis.promotion})`);
+      }
+      
+      return passes;
     });
+    
+    console.log(`📊 Filtered result: ${filtered.length} wrestlers pass criteria`);
+    return filtered;
   }, [wrestlerAnalyses, minMentions, promotion]);
+
+  // Calculate if we have real data
+  const hasRealData = useMemo(() => {
+    const hasData = wrestlerAnalyses.length > 0 && wrestlerAnalyses.some(w => (w.totalMentions || 0) > 0);
+    console.log(`📈 hasRealData calculation: ${hasData} (${wrestlerAnalyses.length} total, with mentions: ${wrestlerAnalyses.filter(w => (w.totalMentions || 0) > 0).length})`);
+    return hasData;
+  }, [wrestlerAnalyses]);
 
   return {
     wrestlerAnalyses,
@@ -105,6 +120,6 @@ export const useWrestlerAnalysis = (
     isAnalyzing,
     lastAnalysisTime,
     analyzeWrestlers,
-    hasRealData: wrestlerAnalyses.length > 0 && wrestlerAnalyses.some(w => w.totalMentions > 0)
+    hasRealData
   };
 };
