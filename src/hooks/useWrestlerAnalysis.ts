@@ -1,75 +1,111 @@
 
-import { useMemo } from 'react';
-import type { Wrestler, NewsItem, WrestlerAnalysis } from '@/types/wrestlerAnalysis';
-import { filterWrestlersByPromotion, filterPopularWrestlers } from '@/utils/wrestlerFiltering';
-import { filterNewsByTimePeriod } from '@/utils/newsFiltering';
-import { performWrestlerAnalysis } from '@/services/wrestlerAnalysisService';
-import { getTopPushWrestlers, getWorstBuriedWrestlers } from '@/utils/wrestlerRanking';
-
-export type { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
+import { useState, useEffect, useMemo } from 'react';
+import { NewsItem } from '@/services/data/dataTypes';
+import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
+import { analyzeWrestlerMentions, getStoredWrestlerMetrics } from '@/services/enhancedWrestlerAnalysisService';
 
 export const useWrestlerAnalysis = (
-  wrestlers: Wrestler[], 
-  newsItems: NewsItem[], 
-  selectedTimePeriod: string,
-  selectedPromotion: string
+  wrestlers: any[],
+  newsItems: NewsItem[],
+  minMentions: string = '1',
+  promotion: string = 'all'
 ) => {
-  console.log('useWrestlerAnalysis - Input data:', {
-    wrestlersCount: wrestlers.length,
-    newsItemsCount: newsItems.length,
-    selectedTimePeriod,
-    selectedPromotion
-  });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [wrestlerAnalyses, setWrestlerAnalyses] = useState<WrestlerAnalysis[]>([]);
+  const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
 
-  const filteredWrestlers = useMemo(() => {
-    return filterWrestlersByPromotion(wrestlers, selectedPromotion);
-  }, [wrestlers, selectedPromotion]);
-
-  const periodNewsItems = useMemo(() => {
-    let newsForPeriod = filterNewsByTimePeriod(newsItems, selectedTimePeriod);
-    
-    // If we don't have enough news for the selected period, expand to at least 7 days
-    if (newsForPeriod.length < 50) {
-      console.log('Not enough news for selected period, expanding to 7 days minimum');
-      const sevenDayNews = filterNewsByTimePeriod(newsItems, '7');
-      if (sevenDayNews.length > newsForPeriod.length) {
-        newsForPeriod = sevenDayNews;
-      }
+  // Function to trigger new analysis
+  const analyzeWrestlers = async () => {
+    if (wrestlers.length === 0 || newsItems.length === 0) {
+      console.log('No wrestlers or news items available for analysis');
+      return;
     }
-    
-    return newsForPeriod;
-  }, [newsItems, selectedTimePeriod]);
 
-  const pushBurialAnalysis = useMemo(() => {
-    const popularWrestlers = filterPopularWrestlers(wrestlers);
-    console.log('Analyzing', popularWrestlers.length, 'filtered wrestlers');
-    
-    // Pass minimum wrestler requirement to ensure at least 10, include news items for mention sources
-    return performWrestlerAnalysis(popularWrestlers, periodNewsItems, 10);
-  }, [wrestlers, periodNewsItems]);
+    console.log('Starting wrestler analysis...', {
+      wrestlers: wrestlers.length,
+      newsItems: newsItems.length
+    });
 
+    setIsAnalyzing(true);
+    
+    try {
+      // Filter wrestlers by promotion if specified
+      const filteredWrestlers = promotion === 'all' 
+        ? wrestlers 
+        : wrestlers.filter(w => w.promotions?.name?.toLowerCase() === promotion.toLowerCase());
+
+      console.log(`Analyzing ${filteredWrestlers.length} wrestlers for promotion: ${promotion}`);
+
+      // Run the enhanced analysis
+      const analyses = await analyzeWrestlerMentions(filteredWrestlers, newsItems);
+      
+      setWrestlerAnalyses(analyses);
+      setLastAnalysisTime(new Date());
+      
+      console.log(`Analysis completed. Found ${analyses.length} wrestlers with mentions.`);
+    } catch (error) {
+      console.error('Error analyzing wrestlers:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Load stored data on mount
+  useEffect(() => {
+    const loadStoredData = async () => {
+      console.log('Loading stored wrestler metrics...');
+      const storedAnalyses = await getStoredWrestlerMetrics();
+      
+      if (storedAnalyses.length > 0) {
+        setWrestlerAnalyses(storedAnalyses);
+        setLastAnalysisTime(new Date());
+        console.log(`Loaded ${storedAnalyses.length} stored analyses`);
+      } else if (wrestlers.length > 0 && newsItems.length > 0) {
+        // If no stored data, run fresh analysis
+        console.log('No stored data found, running fresh analysis...');
+        analyzeWrestlers();
+      }
+    };
+
+    loadStoredData();
+  }, [wrestlers.length, newsItems.length]);
+
+  // Auto-refresh every 15 minutes if we have fresh news
+  useEffect(() => {
+    if (!lastAnalysisTime || wrestlers.length === 0 || newsItems.length === 0) return;
+
+    const interval = setInterval(() => {
+      const timeSinceLastAnalysis = Date.now() - lastAnalysisTime.getTime();
+      const fifteenMinutes = 15 * 60 * 1000;
+
+      if (timeSinceLastAnalysis > fifteenMinutes) {
+        console.log('Auto-refreshing wrestler analysis...');
+        analyzeWrestlers();
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => clearInterval(interval);
+  }, [lastAnalysisTime, wrestlers.length, newsItems.length]);
+
+  // Filter analyses based on criteria
   const filteredAnalysis = useMemo(() => {
-    return selectedPromotion === 'all'
-      ? pushBurialAnalysis
-      : pushBurialAnalysis.filter(wrestler => 
-          wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
-        );
-  }, [pushBurialAnalysis, selectedPromotion]);
-
-  const topPushWrestlers = useMemo(() => {
-    return getTopPushWrestlers(filteredAnalysis);
-  }, [filteredAnalysis]);
-
-  const worstBuriedWrestlers = useMemo(() => {
-    return getWorstBuriedWrestlers(filteredAnalysis);
-  }, [filteredAnalysis]);
+    const minMentionsNum = parseInt(minMentions) || 1;
+    
+    return wrestlerAnalyses.filter(analysis => {
+      const meetsMinMentions = analysis.totalMentions >= minMentionsNum;
+      const meetsPromotion = promotion === 'all' || 
+        analysis.promotion.toLowerCase() === promotion.toLowerCase();
+      
+      return meetsMinMentions && meetsPromotion;
+    });
+  }, [wrestlerAnalyses, minMentions, promotion]);
 
   return {
-    filteredWrestlers,
-    periodNewsItems,
-    pushBurialAnalysis,
+    wrestlerAnalyses,
     filteredAnalysis,
-    topPushWrestlers,
-    worstBuriedWrestlers
+    isAnalyzing,
+    lastAnalysisTime,
+    analyzeWrestlers,
+    hasRealData: wrestlerAnalyses.length > 0 && wrestlerAnalyses.some(w => w.totalMentions > 0)
   };
 };

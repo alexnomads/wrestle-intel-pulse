@@ -1,155 +1,91 @@
-
 import React, { useState, useEffect } from 'react';
+import { DashboardHeader } from './dashboard/DashboardHeader';
+import { AutoProcessingIndicator } from './dashboard/AutoProcessingIndicator';
+import { DashboardFiltersEnhanced } from './dashboard/DashboardFiltersEnhanced';
+import { WrestlerAnalyticsCard } from './wrestler-intelligence/WrestlerAnalyticsCard';
+import { WrestlerDetailModal } from './dashboard/wrestler-tracker/WrestlerDetailModal';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
-import { useEnhancedWrestlerMetrics } from '@/hooks/useEnhancedWrestlerMetrics';
-import { enhancedWrestlerMetricsService } from '@/services/enhancedWrestlerMetricsService';
-import { WrestlerDetailModal } from './dashboard/wrestler-tracker/WrestlerDetailModal';
-import { PromotionHeatmap } from './storyline/PromotionHeatmap';
-import { PlatformBreakdown } from './storyline/PlatformBreakdown';
-import { useStorylineAnalysis } from '@/hooks/useAdvancedAnalytics';
-import { useRedditPosts } from '@/hooks/useWrestlingData';
-
-// Import new components
-import { DashboardHeader } from './wrestler-intelligence/DashboardHeader';
-import { AutoProcessingIndicator } from './wrestler-intelligence/AutoProcessingIndicator';
-import { DashboardFiltersEnhanced } from './wrestler-intelligence/DashboardFiltersEnhanced';
-import { WrestlerAnalyticsCard } from './wrestler-intelligence/WrestlerAnalyticsCard';
-
-// Import new hooks
 import { useWrestlerFiltering } from '@/hooks/useWrestlerFiltering';
 import { useWrestlerDataProcessing } from '@/hooks/useWrestlerDataProcessing';
 
 export const WrestlerIntelligenceDashboard = () => {
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [selectedPromotion, setSelectedPromotion] = useState('all');
-  const [sortBy, setSortBy] = useState('mentions');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(new Date());
   const [selectedWrestler, setSelectedWrestler] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isProcessingMetrics, setIsProcessingMetrics] = useState(false);
-  const [hasProcessedOnLoad, setHasProcessedOnLoad] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Data hooks
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
   const { data: newsItems = [], isLoading: newsLoading, refetch: refetchNews } = useRSSFeeds();
-  const { data: enhancedMetrics = [], isLoading: metricsLoading, refetch: refetchMetrics } = useEnhancedWrestlerMetrics();
-  const { data: storylines = [] } = useStorylineAnalysis();
-  const { data: redditPosts = [] } = useRedditPosts();
 
-  // Custom hooks for data processing
-  const applyFiltersAndSorting = useWrestlerFiltering(searchTerm, selectedPromotion, sortBy);
-  const processedWrestlers = useWrestlerDataProcessing(wrestlers, enhancedMetrics, applyFiltersAndSorting);
+  // Use the enhanced wrestler filtering and data processing
+  const {
+    filteredWrestlers,
+    searchTerm,
+    setSearchTerm,
+    selectedPromotion,
+    setSelectedPromotion,
+    minMentions,
+    setMinMentions,
+    sortBy,
+    setSortBy
+  } = useWrestlerFiltering(wrestlers);
 
-  // Auto-process metrics when data is available and hasn't been processed yet
-  useEffect(() => {
-    const shouldAutoProcess = !hasProcessedOnLoad && 
-                            wrestlers.length > 0 && 
-                            newsItems.length > 0 && 
-                            enhancedMetrics.length === 0 && 
-                            !isProcessingMetrics;
+  const {
+    processedWrestlers,
+    isProcessing,
+    hasRealData,
+    forceRefresh
+  } = useWrestlerDataProcessing(filteredWrestlers, newsItems);
 
-    if (shouldAutoProcess) {
-      console.log('Auto-processing metrics on load...');
-      setHasProcessedOnLoad(true);
-      handleProcessMetrics();
-    }
-  }, [wrestlers, newsItems, enhancedMetrics, hasProcessedOnLoad, isProcessingMetrics]);
-
-  // Process news for wrestler mentions when news data changes
-  useEffect(() => {
-    if (newsItems.length > 0 && wrestlers.length > 0) {
-      console.log('Processing news for wrestler mentions...');
-      enhancedWrestlerMetricsService.processNewsForMentions(newsItems, wrestlers);
-    }
-  }, [newsItems, wrestlers]);
-
+  // Handle refresh
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      refetchNews(),
-      refetchMetrics()
-    ]);
-    setLastUpdate(new Date());
-    setIsRefreshing(false);
+    console.log('Manual refresh triggered');
+    await refetchNews();
+    await forceRefresh();
+    setRefreshTrigger(new Date());
   };
 
-  const handleProcessMetrics = async () => {
-    setIsProcessingMetrics(true);
-    try {
-      console.log('Triggering metrics calculation...');
-      await enhancedWrestlerMetricsService.triggerMetricsCalculation();
-      
-      // Wait a moment for processing, then refresh
-      setTimeout(async () => {
-        console.log('Refreshing metrics after processing...');
-        await refetchMetrics();
-        setIsProcessingMetrics(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Error processing metrics:', error);
-      setIsProcessingMetrics(false);
-    }
-  };
-
+  // Handle wrestler click for detailed view
   const handleWrestlerClick = (wrestler: any) => {
+    console.log('Wrestler clicked for detailed view:', wrestler.wrestler_name);
     setSelectedWrestler(wrestler);
-    setIsModalOpen(true);
+    setShowDetailModal(true);
   };
 
-  const handlePromotionClick = (promotion: string) => {
-    setSelectedPromotion(promotion.toLowerCase());
-  };
-
-  // Auto-refresh effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastUpdate(new Date());
-    }, 15 * 60 * 1000); // 15 minutes
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const isLoading = wrestlersLoading || newsLoading || metricsLoading;
-  const availablePromotions = [...new Set(processedWrestlers.map(w => w.promotion))];
-  const hasRealData = enhancedMetrics.length > 0;
+  const isLoading = wrestlersLoading || newsLoading || isProcessing;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
-        {/* Header */}
-        <DashboardHeader
-          hasRealData={hasRealData}
-          isProcessingMetrics={isProcessingMetrics}
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          lastUpdate={lastUpdate}
-          onProcessMetrics={handleProcessMetrics}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="container mx-auto p-6 space-y-8">
+        {/* Dashboard Header */}
+        <DashboardHeader 
           onRefresh={handleRefresh}
+          isLoading={isLoading}
+          lastUpdate={refreshTrigger}
         />
 
-        {/* Auto-processing indicator */}
-        <AutoProcessingIndicator
+        {/* Auto Processing Indicator */}
+        <AutoProcessingIndicator 
+          isProcessing={isProcessing}
           hasRealData={hasRealData}
-          isProcessingMetrics={isProcessingMetrics}
-          wrestlersCount={wrestlers.length}
-          newsItemsCount={newsItems.length}
+          lastUpdate={refreshTrigger}
         />
 
         {/* Enhanced Filters */}
         <DashboardFiltersEnhanced
           searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
+          setSearchTerm={setSearchTerm}
           selectedPromotion={selectedPromotion}
-          onPromotionChange={setSelectedPromotion}
+          setSelectedPromotion={setSelectedPromotion}
+          minMentions={minMentions}
+          setMinMentions={setMinMentions}
           sortBy={sortBy}
-          onSortChange={setSortBy}
-          availablePromotions={availablePromotions}
-          wrestlerCount={processedWrestlers.length}
+          setSortBy={setSortBy}
+          wrestlers={wrestlers}
         />
 
-        {/* Enhanced Wrestler Analytics */}
+        {/* Main Analytics Card */}
         <WrestlerAnalyticsCard
           isLoading={isLoading}
           processedWrestlers={processedWrestlers}
@@ -159,31 +95,33 @@ export const WrestlerIntelligenceDashboard = () => {
           onRefresh={handleRefresh}
         />
 
-        {/* Wrestler Detail Modal */}
-        <WrestlerDetailModal
-          wrestler={selectedWrestler}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
-
-        {/* 2nd and 3rd Sections: Wrestling Promotion Heatmap and Wrestling Hashtags Analytics */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 lg:gap-8">
-          <div className="xl:col-span-3">
-            <PromotionHeatmap 
-              storylines={storylines}
-              redditPosts={redditPosts}
-              newsItems={newsItems}
-              onPromotionClick={handlePromotionClick}
-            />
+        {/* Enhanced Status Info */}
+        <div className="text-center text-sm text-muted-foreground space-y-2">
+          <div className="font-medium">
+            {hasRealData 
+              ? `Live analytics processing ${processedWrestlers.length} wrestlers with real data`
+              : `System ready - monitoring ${wrestlers.length} wrestlers across ${newsItems.length} news sources`
+            }
           </div>
-          <div className="xl:col-span-2">
-            <PlatformBreakdown 
-              redditPosts={redditPosts}
-              newsItems={newsItems}
-            />
+          <div>
+            Enhanced sentiment analysis • Source credibility weighting • Real-time metrics tracking
           </div>
+          {hasRealData && (
+            <div className="text-emerald-600 text-xs">
+              ✓ Data collection active • Last update: {refreshTrigger.toLocaleTimeString()}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Enhanced Detail Modal */}
+      {showDetailModal && selectedWrestler && (
+        <WrestlerDetailModal
+          wrestler={selectedWrestler}
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+        />
+      )}
     </div>
   );
 };
