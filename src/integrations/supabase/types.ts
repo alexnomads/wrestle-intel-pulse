@@ -266,6 +266,39 @@ export type Database = {
         }
         Relationships: []
       }
+      source_credibility: {
+        Row: {
+          created_at: string
+          credibility_tier: number
+          description: string | null
+          id: string
+          last_updated: string
+          source_name: string
+          source_type: string
+          weight_multiplier: number
+        }
+        Insert: {
+          created_at?: string
+          credibility_tier: number
+          description?: string | null
+          id?: string
+          last_updated?: string
+          source_name: string
+          source_type: string
+          weight_multiplier?: number
+        }
+        Update: {
+          created_at?: string
+          credibility_tier?: number
+          description?: string | null
+          id?: string
+          last_updated?: string
+          source_name?: string
+          source_type?: string
+          weight_multiplier?: number
+        }
+        Relationships: []
+      }
       storylines: {
         Row: {
           created_at: string
@@ -391,6 +424,99 @@ export type Database = {
           show?: string
           updated_at?: string
           viewership?: number | null
+        }
+        Relationships: []
+      }
+      wrestler_mentions_log: {
+        Row: {
+          content_snippet: string | null
+          created_at: string
+          id: string
+          keywords: Json | null
+          mention_context: string | null
+          sentiment_score: number
+          source_credibility_tier: number
+          source_name: string
+          source_type: string
+          source_url: string
+          title: string
+          wrestler_id: string
+          wrestler_name: string
+        }
+        Insert: {
+          content_snippet?: string | null
+          created_at?: string
+          id?: string
+          keywords?: Json | null
+          mention_context?: string | null
+          sentiment_score?: number
+          source_credibility_tier?: number
+          source_name: string
+          source_type: string
+          source_url: string
+          title: string
+          wrestler_id: string
+          wrestler_name: string
+        }
+        Update: {
+          content_snippet?: string | null
+          created_at?: string
+          id?: string
+          keywords?: Json | null
+          mention_context?: string | null
+          sentiment_score?: number
+          source_credibility_tier?: number
+          source_name?: string
+          source_type?: string
+          source_url?: string
+          title?: string
+          wrestler_id?: string
+          wrestler_name?: string
+        }
+        Relationships: []
+      }
+      wrestler_metrics_history: {
+        Row: {
+          burial_score: number
+          confidence_level: string
+          created_at: string
+          data_sources: Json | null
+          date: string
+          id: string
+          mention_count: number
+          momentum_score: number
+          popularity_score: number
+          push_score: number
+          updated_at: string
+          wrestler_id: string
+        }
+        Insert: {
+          burial_score?: number
+          confidence_level?: string
+          created_at?: string
+          data_sources?: Json | null
+          date?: string
+          id?: string
+          mention_count?: number
+          momentum_score?: number
+          popularity_score?: number
+          push_score?: number
+          updated_at?: string
+          wrestler_id: string
+        }
+        Update: {
+          burial_score?: number
+          confidence_level?: string
+          created_at?: string
+          data_sources?: Json | null
+          date?: string
+          id?: string
+          mention_count?: number
+          momentum_score?: number
+          popularity_score?: number
+          push_score?: number
+          updated_at?: string
+          wrestler_id?: string
         }
         Relationships: []
       }
@@ -588,7 +714,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_confidence_level: {
+        Args: {
+          mention_count: number
+          tier1_count?: number
+          tier2_count?: number
+          tier3_count?: number
+          hours_since_last_mention?: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
