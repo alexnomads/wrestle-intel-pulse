@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis, WrestlerMention } from '@/types/wrestlerAnalysis';
@@ -148,26 +149,26 @@ export const analyzeWrestlerMentions = async (
     }
   }
 
-  // Store metrics in database with proper integer conversion
+  // Store metrics in database with proper JSON conversion
   if (analyses.length > 0) {
     console.log('Storing', analyses.length, 'wrestler metrics...');
     try {
       const metricsToStore = analyses.map(analysis => ({
         wrestler_id: analysis.id,
-        push_score: Math.round(analysis.pushScore), // Ensure integer
-        burial_score: Math.round(analysis.burialScore), // Ensure integer
-        momentum_score: Math.round(analysis.momentumScore), // Ensure integer
-        popularity_score: Math.round(analysis.popularityScore), // Ensure integer
+        push_score: Math.round(analysis.pushScore),
+        burial_score: Math.round(analysis.burialScore),
+        momentum_score: Math.round(analysis.momentumScore),
+        popularity_score: Math.round(analysis.popularityScore),
         mention_count: analysis.totalMentions,
         confidence_level: analysis.totalMentions >= 5 ? 'high' : analysis.totalMentions >= 3 ? 'medium' : 'low',
-        data_sources: {
+        data_sources: JSON.parse(JSON.stringify({
           total_mentions: analysis.totalMentions,
           tier_1_mentions: 0,
           tier_2_mentions: analysis.totalMentions,
           tier_3_mentions: 0,
           hours_since_last_mention: 1,
-          source_breakdown: analysis.source_breakdown
-        }
+          source_breakdown: analysis.source_breakdown || {}
+        }))
       }));
 
       const { error: metricsError } = await supabase
@@ -193,16 +194,14 @@ export const analyzeWrestlerMentions = async (
 
 export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> => {
   try {
-    const { data: metrics, error } = await supabase
+    // First get the metrics
+    const { data: metrics, error: metricsError } = await supabase
       .from('wrestler_metrics_history')
-      .select(`
-        *,
-        wrestlers!inner(name, promotion_id, is_champion, championship_title, brand)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching stored metrics:', error);
+    if (metricsError) {
+      console.error('Error fetching stored metrics:', metricsError);
       return [];
     }
 
@@ -211,32 +210,57 @@ export const getStoredWrestlerMetrics = async (): Promise<WrestlerAnalysis[]> =>
       return [];
     }
 
+    // Then get the wrestlers data separately
+    const wrestlerIds = [...new Set(metrics.map(m => m.wrestler_id))];
+    const { data: wrestlers, error: wrestlersError } = await supabase
+      .from('wrestlers')
+      .select('id, name, brand, is_champion, championship_title')
+      .in('id', wrestlerIds);
+
+    if (wrestlersError) {
+      console.error('Error fetching wrestlers:', wrestlersError);
+      return [];
+    }
+
+    // Create a map for quick lookup
+    const wrestlerMap = new Map();
+    wrestlers?.forEach(wrestler => {
+      wrestlerMap.set(wrestler.id, wrestler);
+    });
+
     console.log('Retrieved', metrics.length, 'stored wrestler analyses');
 
-    return metrics.map(metric => ({
-      id: metric.wrestler_id,
-      wrestler_name: metric.wrestlers.name,
-      promotion: metric.wrestlers.brand || 'Unknown',
-      pushScore: metric.push_score,
-      burialScore: metric.burial_score,
-      momentumScore: metric.momentum_score,
-      popularityScore: metric.popularity_score,
-      totalMentions: metric.mention_count,
-      sentimentScore: Math.round((metric.push_score + (100 - metric.burial_score)) / 2),
-      isChampion: metric.wrestlers.is_champion || false,
-      championshipTitle: metric.wrestlers.championship_title,
-      isOnFire: metric.push_score > 80 || metric.mention_count > 8,
-      trend: metric.push_score > 70 ? 'push' : metric.burial_score > 60 ? 'burial' : 'stable',
-      evidence: `Based on ${metric.mention_count} recent mentions`,
-      change24h: 0,
-      relatedNews: [],
-      mention_sources: [],
-      source_breakdown: metric.data_sources?.source_breakdown || {
-        news_count: metric.mention_count,
-        reddit_count: 0,
-        total_sources: metric.mention_count
-      }
-    }));
+    return metrics.map(metric => {
+      const wrestler = wrestlerMap.get(metric.wrestler_id);
+      const dataSources = typeof metric.data_sources === 'string' 
+        ? JSON.parse(metric.data_sources) 
+        : metric.data_sources || {};
+
+      return {
+        id: metric.wrestler_id,
+        wrestler_name: wrestler?.name || 'Unknown Wrestler',
+        promotion: wrestler?.brand || 'Unknown',
+        pushScore: metric.push_score,
+        burialScore: metric.burial_score,
+        momentumScore: metric.momentum_score,
+        popularityScore: metric.popularity_score,
+        totalMentions: metric.mention_count,
+        sentimentScore: Math.round((metric.push_score + (100 - metric.burial_score)) / 2),
+        isChampion: wrestler?.is_champion || false,
+        championshipTitle: wrestler?.championship_title,
+        isOnFire: metric.push_score > 80 || metric.mention_count > 8,
+        trend: metric.push_score > 70 ? 'push' : metric.burial_score > 60 ? 'burial' : 'stable',
+        evidence: `Based on ${metric.mention_count} recent mentions`,
+        change24h: 0,
+        relatedNews: [],
+        mention_sources: [],
+        source_breakdown: dataSources.source_breakdown || {
+          news_count: metric.mention_count,
+          reddit_count: 0,
+          total_sources: metric.mention_count
+        }
+      };
+    });
   } catch (error) {
     console.error('Error in getStoredWrestlerMetrics:', error);
     return [];
