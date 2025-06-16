@@ -33,6 +33,38 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
       mentionSourcesCount: analysis.mention_sources?.length || 0
     });
 
+    // Ensure we have the actual news articles, not just empty arrays
+    const relatedNewsArticles = analysis.relatedNews && analysis.relatedNews.length > 0 
+      ? analysis.relatedNews 
+      : (analysis.mention_sources || []).map(source => ({
+          title: source.title,
+          link: source.url || source.source_url || '#',
+          source: source.source_name,
+          pubDate: source.timestamp ? new Date(source.timestamp).toISOString() : new Date().toISOString(),
+          contentSnippet: source.content_snippet || ''
+        }));
+
+    const mentionSourcesData = analysis.mention_sources && analysis.mention_sources.length > 0
+      ? analysis.mention_sources
+      : (analysis.relatedNews || []).map(news => ({
+          id: `mention-${analysis.id}-${Date.now()}`,
+          wrestler_name: analysis.wrestler_name,
+          source_type: 'news' as const,
+          source_name: news.source || 'Wrestling News',
+          title: news.title,
+          url: news.link || '#',
+          content_snippet: news.contentSnippet || '',
+          timestamp: new Date(news.pubDate || Date.now()),
+          sentiment_score: 0.7
+        }));
+
+    console.log(`📰 News data for ${analysis.wrestler_name}:`, {
+      relatedNewsCount: relatedNewsArticles.length,
+      mentionSourcesCount: mentionSourcesData.length,
+      hasNews: relatedNewsArticles.length > 0,
+      sampleNews: relatedNewsArticles.slice(0, 2).map(n => n.title)
+    });
+
     return {
       ...analysis,
       id: analysis.id,
@@ -59,14 +91,16 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
         source_breakdown: analysis.source_breakdown || {}
       },
       last_updated: new Date().toISOString(),
-      // Ensure news data is properly included
-      relatedNews: analysis.relatedNews || [],
-      mention_sources: analysis.mention_sources || [],
+      // Ensure news data is properly included with actual articles
+      relatedNews: relatedNewsArticles,
+      mention_sources: mentionSourcesData,
       // Add debug info
       _debug: {
-        hasRelatedNews: !!(analysis.relatedNews && analysis.relatedNews.length > 0),
-        hasMentionSources: !!(analysis.mention_sources && analysis.mention_sources.length > 0),
-        totalNewsItems: (analysis.relatedNews?.length || 0) + (analysis.mention_sources?.length || 0)
+        hasRelatedNews: relatedNewsArticles.length > 0,
+        hasMentionSources: mentionSourcesData.length > 0,
+        totalNewsItems: relatedNewsArticles.length + mentionSourcesData.length,
+        originalAnalysisNews: analysis.relatedNews?.length || 0,
+        originalAnalysisSources: analysis.mention_sources?.length || 0
       }
     };
   });

@@ -13,12 +13,15 @@ export const RecentNewsSection = ({ wrestler }: RecentNewsSectionProps) => {
                      wrestler.mention_sources || 
                      (wrestler.recentNews ? wrestler.recentNews : []);
   
-  console.log('RecentNewsSection - wrestler data:', {
+  console.log('RecentNewsSection - comprehensive data check:', {
     wrestlerName: wrestler.wrestler_name || wrestler.name,
-    relatedNews: relatedNews?.length || 0,
+    relatedNews: wrestler.relatedNews?.length || 0,
     mentionSources: wrestler.mention_sources?.length || 0,
-    hasRelatedNews: !!wrestler.relatedNews,
-    wrestlerKeys: Object.keys(wrestler)
+    recentNews: wrestler.recentNews?.length || 0,
+    totalMentions: wrestler.totalMentions || wrestler.mention_count || 0,
+    debugInfo: wrestler._debug,
+    wrestlerKeys: Object.keys(wrestler),
+    finalNewsCount: relatedNews?.length || 0
   });
   
   if (!relatedNews || relatedNews.length === 0) {
@@ -34,8 +37,15 @@ export const RecentNewsSection = ({ wrestler }: RecentNewsSectionProps) => {
           <p className="text-sm">Try refreshing to get newer articles or check the news sources</p>
           <div className="text-xs mt-2 text-yellow-600">
             Debug: Checked relatedNews ({wrestler.relatedNews?.length || 0}), 
-            mention_sources ({wrestler.mention_sources?.length || 0})
+            mention_sources ({wrestler.mention_sources?.length || 0}), 
+            totalMentions ({wrestler.totalMentions || wrestler.mention_count || 0})
           </div>
+          {wrestler._debug && (
+            <div className="text-xs mt-1 text-blue-600">
+              Original Analysis: news({wrestler._debug.originalAnalysisNews}), 
+              sources({wrestler._debug.originalAnalysisSources})
+            </div>
+          )}
         </div>
       </div>
     );
