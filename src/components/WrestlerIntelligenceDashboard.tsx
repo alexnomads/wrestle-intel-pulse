@@ -8,38 +8,74 @@ import { Input } from '@/components/ui/input';
 import { RefreshCw, Users, TrendingUp, AlertTriangle, Database, Filter, Search, Info } from 'lucide-react';
 import { useSupabaseWrestlers } from '@/hooks/useSupabaseWrestlers';
 import { useRSSFeeds } from '@/hooks/useWrestlingData';
-import { useWrestlerAnalysis } from '@/hooks/useWrestlerAnalysis';
-import { useStorylineAnalysis } from '@/hooks/useAdvancedAnalytics';
-import { useRedditPosts } from '@/hooks/useWrestlingData';
-import { WrestlerCard } from './dashboard/wrestler-tracker/WrestlerCard';
+import { useEnhancedWrestlerMetrics } from '@/hooks/useEnhancedWrestlerMetrics';
+import { enhancedWrestlerMetricsService } from '@/services/enhancedWrestlerMetricsService';
+import { EnhancedWrestlerCard } from './wrestler-intelligence/EnhancedWrestlerCard';
 import { WrestlerDetailModal } from './dashboard/wrestler-tracker/WrestlerDetailModal';
 import { PromotionHeatmap } from './storyline/PromotionHeatmap';
 import { PlatformBreakdown } from './storyline/PlatformBreakdown';
-import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
+import { useStorylineAnalysis } from '@/hooks/useAdvancedAnalytics';
+import { useRedditPosts } from '@/hooks/useWrestlingData';
 
 export const WrestlerIntelligenceDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [selectedPromotion, setSelectedPromotion] = useState('all');
   const [sortBy, setSortBy] = useState('mentions');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedWrestler, setSelectedWrestler] = useState<WrestlerAnalysis | null>(null);
+  const [selectedWrestler, setSelectedWrestler] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProcessingMetrics, setIsProcessingMetrics] = useState(false);
 
   // Data hooks
   const { data: wrestlers = [], isLoading: wrestlersLoading } = useSupabaseWrestlers();
-  const { data: newsItems = [], isLoading: newsLoading, refetch } = useRSSFeeds();
+  const { data: newsItems = [], isLoading: newsLoading, refetch: refetchNews } = useRSSFeeds();
+  const { data: enhancedMetrics = [], isLoading: metricsLoading, refetch: refetchMetrics } = useEnhancedWrestlerMetrics();
   const { data: storylines = [] } = useStorylineAnalysis();
   const { data: redditPosts = [] } = useRedditPosts();
 
-  // Analysis hook - only show wrestlers with real mentions
-  const { filteredAnalysis } = useWrestlerAnalysis(wrestlers, newsItems, '1', selectedPromotion);
+  // Process news for wrestler mentions when news data changes
+  useEffect(() => {
+    if (newsItems.length > 0 && wrestlers.length > 0) {
+      console.log('Processing news for wrestler mentions...');
+      enhancedWrestlerMetricsService.processNewsForMentions(newsItems, wrestlers);
+    }
+  }, [newsItems, wrestlers]);
 
-  // Filter and sort wrestlers
+  // Combine wrestler data with enhanced metrics
   const processedWrestlers = React.useMemo(() => {
-    let filtered = filteredAnalysis.filter(w => (w.mention_sources?.length || 0) > 0);
+    if (!wrestlers.length || !enhancedMetrics.length) {
+      return [];
+    }
 
-    // Apply search filter
+    const wrestlersWithMetrics = wrestlers.map(wrestler => {
+      const metrics = enhancedMetrics.find(m => m.wrestler_id === wrestler.id);
+      
+      if (!metrics) {
+        return null; // Don't show wrestlers without metrics
+      }
+
+      return {
+        ...wrestler,
+        ...metrics,
+        wrestler_name: wrestler.name,
+        promotion: wrestler.brand || 'Independent',
+        totalMentions: metrics.mention_count,
+        sentimentScore: Math.round((metrics.push_score - metrics.burial_score + 50)), // Convert to percentage
+        pushScore: metrics.push_score,
+        burialScore: metrics.burial_score,
+        momentumScore: metrics.momentum_score,
+        popularityScore: metrics.popularity_score,
+        isOnFire: metrics.push_score >= 70 && metrics.momentum_score >= 70,
+        trend: metrics.push_score > metrics.burial_score ? 'push' : 
+               metrics.burial_score > metrics.push_score ? 'burial' : 'stable',
+        change24h: Math.round(metrics.momentum_score - 50), // Relative to baseline
+      };
+    }).filter(Boolean);
+
+    // Apply filters
+    let filtered = wrestlersWithMetrics;
+
     if (searchTerm) {
       filtered = filtered.filter(wrestler =>
         wrestler.wrestler_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,7 +83,6 @@ export const WrestlerIntelligenceDashboard = () => {
       );
     }
 
-    // Apply promotion filter
     if (selectedPromotion !== 'all') {
       filtered = filtered.filter(wrestler =>
         wrestler.promotion.toLowerCase().includes(selectedPromotion.toLowerCase())
@@ -58,29 +93,49 @@ export const WrestlerIntelligenceDashboard = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'mentions':
-          return (b.totalMentions || 0) - (a.totalMentions || 0);
+          return b.totalMentions - a.totalMentions;
         case 'sentiment':
-          return (b.sentimentScore || 0) - (a.sentimentScore || 0);
+          return b.sentimentScore - a.sentimentScore;
         case 'change':
-          return (b.change24h || 0) - (a.change24h || 0);
+          return b.change24h - a.change24h;
+        case 'push':
+          return b.pushScore - a.pushScore;
         case 'name':
           return a.wrestler_name.localeCompare(b.wrestler_name);
         default:
-          return (b.totalMentions || 0) - (a.totalMentions || 0);
+          return b.totalMentions - a.totalMentions;
       }
     });
 
     return filtered;
-  }, [filteredAnalysis, searchTerm, selectedPromotion, sortBy]);
+  }, [wrestlers, enhancedMetrics, searchTerm, selectedPromotion, sortBy]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await Promise.all([
+      refetchNews(),
+      refetchMetrics()
+    ]);
     setLastUpdate(new Date());
     setIsRefreshing(false);
   };
 
-  const handleWrestlerClick = (wrestler: WrestlerAnalysis) => {
+  const handleProcessMetrics = async () => {
+    setIsProcessingMetrics(true);
+    try {
+      await enhancedWrestlerMetricsService.triggerMetricsCalculation();
+      // Wait a moment for processing, then refresh
+      setTimeout(async () => {
+        await refetchMetrics();
+        setIsProcessingMetrics(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error processing metrics:', error);
+      setIsProcessingMetrics(false);
+    }
+  };
+
+  const handleWrestlerClick = (wrestler: any) => {
     setSelectedWrestler(wrestler);
     setIsModalOpen(true);
   };
@@ -98,7 +153,7 @@ export const WrestlerIntelligenceDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const isLoading = wrestlersLoading || newsLoading;
+  const isLoading = wrestlersLoading || newsLoading || metricsLoading;
   const availablePromotions = [...new Set(processedWrestlers.map(w => w.promotion))];
 
   return (
@@ -111,10 +166,20 @@ export const WrestlerIntelligenceDashboard = () => {
               Wrestler Intelligence Dashboard
             </h2>
             <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-300 whitespace-nowrap">
-              REAL DATA ONLY
+              ENHANCED ANALYTICS
             </Badge>
           </div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <Button
+              onClick={handleProcessMetrics}
+              disabled={isProcessingMetrics}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 w-full sm:w-auto bg-wrestling-electric/10 border-wrestling-electric/40 hover:bg-wrestling-electric/20"
+            >
+              <Database className={`h-4 w-4 ${isProcessingMetrics ? 'animate-spin' : ''}`} />
+              <span>Process Metrics</span>
+            </Button>
             <Button
               onClick={handleRefresh}
               disabled={isLoading || isRefreshing}
@@ -172,6 +237,7 @@ export const WrestlerIntelligenceDashboard = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mentions">Mentions</SelectItem>
+                      <SelectItem value="push">Push Score</SelectItem>
                       <SelectItem value="sentiment">Sentiment</SelectItem>
                       <SelectItem value="change">24h Change</SelectItem>
                       <SelectItem value="name">Name</SelectItem>
@@ -182,30 +248,30 @@ export const WrestlerIntelligenceDashboard = () => {
 
               <div className="flex items-center space-x-2 text-xs text-emerald-600 whitespace-nowrap">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="font-medium">{processedWrestlers.length} active</span>
+                <span className="font-medium">{processedWrestlers.length} with data</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Wrestler Popularity Treemap */}
+        {/* Enhanced Wrestler Analytics */}
         <Card className="glass-card border-slate-700/50">
           <CardHeader className="pb-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <CardTitle className="flex items-center space-x-2 text-xl sm:text-2xl">
                   <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-wrestling-electric" />
-                  <span>Live Wrestling Analytics</span>
+                  <span>Enhanced Wrestling Analytics</span>
                 </CardTitle>
                 <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 whitespace-nowrap">
-                  REAL MENTIONS ONLY
+                  REAL METRICS
                 </Badge>
               </div>
               
               <div className="flex flex-col items-start lg:items-end space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
-                  <span>Real-Time Wrestling News Analysis</span>
+                  <span>Advanced Sentiment Analysis</span>
                 </div>
                 <div className="flex items-center space-x-2 text-xs text-emerald-600">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -220,27 +286,30 @@ export const WrestlerIntelligenceDashboard = () => {
               <div className="flex items-center justify-center py-16 lg:py-20">
                 <div className="flex flex-col items-center space-y-4">
                   <RefreshCw className="h-8 w-8 animate-spin text-wrestling-electric" />
-                  <span className="text-lg">Loading real wrestler data...</span>
+                  <span className="text-lg">Loading enhanced wrestler data...</span>
                 </div>
               </div>
             ) : processedWrestlers.length > 0 ? (
               <>
-                {/* Responsive Treemap Container */}
-                <div className="mb-8">
-                  <div 
-                    className="flex flex-wrap gap-4 lg:gap-6 justify-center items-start p-6 lg:p-8 bg-gradient-to-br from-slate-900/60 to-slate-800/60 rounded-xl border border-slate-700/40 backdrop-blur-sm"
-                    style={{ minHeight: '500px' }}
-                  >
-                    {processedWrestlers.map((wrestler, index) => (
-                      <WrestlerCard
-                        key={wrestler.id}
-                        wrestler={wrestler}
-                        index={index}
-                        totalWrestlers={processedWrestlers.length}
-                        onWrestlerClick={handleWrestlerClick}
-                      />
-                    ))}
-                  </div>
+                {/* Enhanced Wrestler Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 mb-8">
+                  {processedWrestlers.map((wrestler) => (
+                    <EnhancedWrestlerCard
+                      key={wrestler.id}
+                      wrestler={wrestler}
+                      metrics={{
+                        push_score: wrestler.pushScore,
+                        burial_score: wrestler.burialScore,
+                        momentum_score: wrestler.momentumScore,
+                        popularity_score: wrestler.popularityScore,
+                        confidence_level: wrestler.confidence_level,
+                        mention_count: wrestler.mention_count,
+                        data_sources: wrestler.data_sources,
+                        last_updated: wrestler.last_updated
+                      }}
+                      onWrestlerClick={handleWrestlerClick}
+                    />
+                  ))}
                 </div>
 
                 {/* Enhanced Stats Summary */}
@@ -254,16 +323,16 @@ export const WrestlerIntelligenceDashboard = () => {
                   
                   <div className="text-center p-4 lg:p-6 bg-secondary/30 rounded-lg border border-border/50">
                     <div className="text-xl lg:text-2xl font-bold text-emerald-500">
-                      {processedWrestlers.filter(w => w.sentimentScore >= 65).length}
+                      {processedWrestlers.filter(w => w.pushScore >= 70).length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Positive Sentiment</div>
+                    <div className="text-sm text-muted-foreground">High Push Score</div>
                   </div>
                   
                   <div className="text-center p-4 lg:p-6 bg-secondary/30 rounded-lg border border-border/50">
                     <div className="text-xl lg:text-2xl font-bold text-blue-500">
-                      {processedWrestlers.filter(w => w.isChampion).length}
+                      {processedWrestlers.filter(w => w.confidence_level === 'high').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Champions</div>
+                    <div className="text-sm text-muted-foreground">High Confidence</div>
                   </div>
                   
                   <div className="text-center p-4 lg:p-6 bg-secondary/30 rounded-lg border border-border/50">
@@ -277,10 +346,10 @@ export const WrestlerIntelligenceDashboard = () => {
                 {/* Data source info */}
                 <div className="mt-8 text-center text-sm text-muted-foreground space-y-2">
                   <div className="font-medium">
-                    Real-time analysis of {processedWrestlers.length} wrestlers with verified mentions
+                    Enhanced analytics for {processedWrestlers.length} wrestlers with verified mentions
                   </div>
                   <div>
-                    Data from {newsItems.length} wrestling news sources • Updated every 15 minutes
+                    Source-weighted sentiment analysis • Historical trend tracking • Confidence indicators
                   </div>
                   <div className="flex items-center justify-center space-x-1 text-emerald-600">
                     <Info className="h-3 w-3" />
@@ -291,40 +360,34 @@ export const WrestlerIntelligenceDashboard = () => {
             ) : (
               // Enhanced empty state
               <div className="text-center py-16 lg:py-20">
-                <Users className="h-16 w-16 mx-auto mb-6 text-muted-foreground opacity-50" />
-                <h3 className="text-xl font-semibold mb-3">No Wrestling Mentions Found</h3>
+                <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-yellow-400 opacity-50" />
+                <h3 className="text-xl font-semibold mb-3">No Enhanced Metrics Available</h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  {searchTerm || selectedPromotion !== 'all' 
-                    ? `No wrestlers match your current filters. Try adjusting your search or promotion filter.`
-                    : `No wrestlers are currently being mentioned in wrestling news. The dashboard will populate when new mentions are detected.`
-                  }
+                  No wrestlers have enhanced analytics data yet. Click "Process Metrics" to analyze current wrestling news and generate real metrics.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
                   <div className="flex items-center space-x-2 text-sm">
                     <Database className="h-4 w-4 text-emerald-500" />
-                    <span className="text-emerald-600">{newsItems.length} sources monitored</span>
+                    <span className="text-emerald-600">{newsItems.length} news sources available</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-emerald-600">Real-time updates active</span>
+                    <span className="text-emerald-600">Enhanced analytics ready</span>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
-                  <Button onClick={handleRefresh} className="flex items-center space-x-2">
-                    <RefreshCw className="h-4 w-4" />
-                    <span>Refresh Data</span>
+                  <Button 
+                    onClick={handleProcessMetrics} 
+                    disabled={isProcessingMetrics}
+                    className="flex items-center space-x-2 bg-wrestling-electric hover:bg-wrestling-electric/80"
+                  >
+                    <Database className={`h-4 w-4 ${isProcessingMetrics ? 'animate-spin' : ''}`} />
+                    <span>Process Metrics</span>
                   </Button>
-                  {(searchTerm || selectedPromotion !== 'all') && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setSearchTerm('');
-                        setSelectedPromotion('all');
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
-                  )}
+                  <Button onClick={handleRefresh} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Data
+                  </Button>
                 </div>
               </div>
             )}
