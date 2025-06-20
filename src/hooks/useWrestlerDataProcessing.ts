@@ -30,7 +30,8 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
       pushScore: analysis.pushScore,
       burialScore: analysis.burialScore,
       relatedNewsCount: analysis.relatedNews?.length || 0,
-      mentionSourcesCount: analysis.mention_sources?.length || 0
+      mentionSourcesCount: analysis.mention_sources?.length || 0,
+      promotion: analysis.promotion
     });
 
     // Ensure we have the actual news articles, not just empty arrays
@@ -41,7 +42,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
           link: source.url || '#',
           source: source.source_name,
           pubDate: source.timestamp ? new Date(source.timestamp).toISOString() : new Date().toISOString(),
-          contentSnippet: source.content_snippet || ''
+          content_snippet: source.content_snippet || ''
         }));
 
     const mentionSourcesData = analysis.mention_sources && analysis.mention_sources.length > 0
@@ -53,7 +54,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
           source_name: news.source || 'Wrestling News',
           title: news.title,
           url: news.link || '#',
-          content_snippet: news.contentSnippet || '',
+          content_snippet: news.content_snippet || news.contentSnippet || '',
           timestamp: new Date(news.pubDate || Date.now()),
           sentiment_score: 0.7
         }));
@@ -70,7 +71,8 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
       id: analysis.id,
       wrestler_name: analysis.wrestler_name,
       name: analysis.wrestler_name,
-      promotion: analysis.promotion,
+      // Use the correct promotion from the analysis or wrestler data
+      promotion: analysis.promotion || 'Unknown',
       pushScore: analysis.pushScore || 0,
       burialScore: analysis.burialScore || 0,
       momentumScore: analysis.momentumScore || 0,
@@ -100,7 +102,8 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
         hasMentionSources: mentionSourcesData.length > 0,
         totalNewsItems: relatedNewsArticles.length + mentionSourcesData.length,
         originalAnalysisNews: analysis.relatedNews?.length || 0,
-        originalAnalysisSources: analysis.mention_sources?.length || 0
+        originalAnalysisSources: analysis.mention_sources?.length || 0,
+        originalPromotion: analysis.promotion
       }
     };
   });
