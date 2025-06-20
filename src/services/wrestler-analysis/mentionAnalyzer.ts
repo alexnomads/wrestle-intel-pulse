@@ -5,6 +5,65 @@ import { isWrestlerMentioned } from '@/services/analysis/wrestlerNameMatcher';
 import { analyzeSentiment } from '@/services/data/sentimentAnalysisService';
 import { calculateWrestlerScores, generateMentionData } from './scoringUtils';
 
+export const analyzeWrestlerMentionsInNews = (wrestlerName: string, newsItems: NewsItem[]) => {
+  console.log(`\n🔍 Analyzing mentions for: "${wrestlerName}"`);
+  
+  const mentions: any[] = [];
+  const relatedNews: any[] = [];
+  let totalMentions = 0;
+  let sentimentScores: number[] = [];
+  
+  newsItems.forEach(item => {
+    const content = `${item.title} ${item.contentSnippet || ''}`;
+    const isMatched = isWrestlerMentioned(wrestlerName, content);
+    
+    if (isMatched) {
+      console.log(`  ✅ MATCHED: "${item.title.substring(0, 100)}..." - Link: ${item.link || 'No link'}`);
+      
+      const sentimentAnalysis = analyzeSentiment(content);
+      sentimentScores.push(sentimentAnalysis.score);
+      
+      mentions.push({
+        source_type: 'news',
+        source_name: item.source || 'Wrestling News',
+        title: item.title,
+        url: item.link || '#',
+        content_snippet: item.contentSnippet || item.title.substring(0, 150),
+        timestamp: new Date(item.pubDate),
+        sentiment_score: sentimentAnalysis.score
+      });
+      
+      relatedNews.push({
+        title: item.title,
+        link: item.link || '#',
+        source: item.source || 'Wrestling News',
+        pubDate: item.pubDate,
+        contentSnippet: item.contentSnippet
+      });
+      
+      totalMentions++;
+    }
+  });
+
+  const avgSentiment = sentimentScores.length > 0 
+    ? sentimentScores.reduce((sum, score) => sum + score, 0) / sentimentScores.length 
+    : 0.5;
+
+  const evidence = totalMentions > 0 
+    ? `Based on ${totalMentions} recent news articles with ${Math.round(avgSentiment * 100)}% avg sentiment`
+    : 'No recent mentions found';
+
+  console.log(`  📊 Found ${totalMentions} mentions for "${wrestlerName}"`);
+
+  return {
+    mentions,
+    relatedNews,
+    totalMentions,
+    sentimentScore: Math.round(avgSentiment * 100),
+    evidence
+  };
+};
+
 export const analyzeWrestlerForMentions = (
   wrestler: any,
   newsItems: NewsItem[]
@@ -67,8 +126,7 @@ export const analyzeWrestlerForMentions = (
       title: item.title,
       link: item.link || '#',
       source: item.source || 'Wrestling News',
-      pubDate: item.pubDate,
-      contentSnippet: item.contentSnippet
+      pubDate: item.pubDate
     })),
     mention_sources: mentions.map(m => ({
       id: `mention-${wrestler.id}-${Date.now()}-${Math.random()}`,

@@ -16,8 +16,8 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
   for (const wrestler of wrestlers) {
     const wrestlerName = wrestler.name || wrestler.wrestler_name;
     
-    // Get the promotion from the wrestler data (from Supabase)
-    const promotion = wrestler.promotions?.name || wrestler.promotion || 'Unknown';
+    // Get the promotion from the wrestler data (from Supabase) - prioritize promotions.name
+    const promotion = wrestler.promotions?.name || wrestler.promotion || wrestler.brand || 'Unknown';
     
     console.log(`🔎 Analyzing wrestler: ${wrestlerName} (${promotion})`);
     
@@ -50,10 +50,20 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
         popularityScore: Math.min(100, mentionResults.totalMentions * 10),
         change24h: Math.floor(Math.random() * 20) - 10, // Placeholder
         relatedNews: mentionResults.relatedNews,
-        mention_sources: mentionResults.mentions,
+        mention_sources: mentionResults.mentions.map(m => ({
+          id: `mention-${wrestler.id}-${Date.now()}-${Math.random()}`,
+          wrestler_name: wrestlerName,
+          source_type: 'news' as const,
+          source_name: m.source_name,
+          title: m.title,
+          url: m.url,
+          content_snippet: m.content_snippet,
+          timestamp: m.timestamp,
+          sentiment_score: m.sentiment_score
+        })),
         source_breakdown: {
-          news_count: mentionResults.mentions.filter(m => m.source_type === 'news').length,
-          reddit_count: mentionResults.mentions.filter(m => m.source_type === 'reddit').length,
+          news_count: mentionResults.mentions.length,
+          reddit_count: 0,
           total_sources: mentionResults.mentions.length
         }
       };
