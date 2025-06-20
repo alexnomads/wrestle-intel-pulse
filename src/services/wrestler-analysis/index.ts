@@ -3,7 +3,7 @@ import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 import { analyzeWrestlerMentionsInNews } from './mentionAnalyzer';
 import { calculatePushBurialScores } from './scoringUtils';
-import { saveWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
+import { storeWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
 
 export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsItem[]): Promise<WrestlerAnalysis[]> => {
   console.log('🔍 Starting wrestler mention analysis', {
@@ -75,9 +75,9 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
     }
   }
 
-  // Save to database
+  // Save to database using the correct function name
   try {
-    await saveWrestlerMetrics(analyses);
+    await storeWrestlerMetrics(analyses);
     console.log('💾 Wrestler metrics saved to database');
   } catch (error) {
     console.error('❌ Error saving wrestler metrics:', error);
