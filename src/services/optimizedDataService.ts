@@ -173,27 +173,29 @@ export async function fetchAllDataParallel() {
   
   const results = await Promise.allSettled(dataPromises);
   
-  // Process results and combine successful data with proper type checking
-  const newsItems = results[0].status === 'fulfilled' && results[0].value.success && Array.isArray(results[0].value.data)
-    ? results[0].value.data : [];
-  const redditPosts = results[1].status === 'fulfilled' && results[1].value.success && Array.isArray(results[1].value.data)
-    ? results[1].value.data : [];
-  const tweets = results[2].status === 'fulfilled' && results[2].value.success && Array.isArray(results[2].value.data)
-    ? results[2].value.data : [];
-  const videos = results[3].status === 'fulfilled' && results[3].value.success && Array.isArray(results[3].value.data)
-    ? results[3].value.data : [];
+  // Process results and extract data safely
+  const getDataFromResult = (result: PromiseSettledResult<DataSourceResult<any>>) => {
+    if (result.status === 'fulfilled' && result.value.success && Array.isArray(result.value.data)) {
+      return result.value.data;
+    }
+    return [];
+  };
+  
+  const getLoadTimeFromResult = (result: PromiseSettledResult<DataSourceResult<any>>) => {
+    return result.status === 'fulfilled' ? result.value.loadTime : 0;
+  };
   
   const combinedData = {
-    newsItems: newsItems,
-    redditPosts: redditPosts,
-    tweets: tweets,
-    videos: videos,
+    newsItems: getDataFromResult(results[0]),
+    redditPosts: getDataFromResult(results[1]),
+    tweets: getDataFromResult(results[2]),
+    videos: getDataFromResult(results[3]),
     lastUpdated: new Date(),
     loadTimes: {
-      rss: results[0].status === 'fulfilled' ? results[0].value.loadTime : 0,
-      reddit: results[1].status === 'fulfilled' ? results[1].value.loadTime : 0,
-      twitter: results[2].status === 'fulfilled' ? results[2].value.loadTime : 0,
-      youtube: results[3].status === 'fulfilled' ? results[3].value.loadTime : 0
+      rss: getLoadTimeFromResult(results[0]),
+      reddit: getLoadTimeFromResult(results[1]),
+      twitter: getLoadTimeFromResult(results[2]),
+      youtube: getLoadTimeFromResult(results[3])
     },
     fromCache: false
   };
