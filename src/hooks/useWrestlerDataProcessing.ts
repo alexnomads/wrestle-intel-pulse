@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { NewsItem } from '@/services/data/dataTypes';
 import { useWrestlerAnalysis } from './useWrestlerAnalysis';
@@ -41,8 +40,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
           title: source.title,
           link: source.url || '#',
           source: source.source_name,
-          pubDate: source.timestamp ? new Date(source.timestamp).toISOString() : new Date().toISOString(),
-          content_snippet: source.content_snippet || ''
+          pubDate: source.timestamp ? new Date(source.timestamp).toISOString() : new Date().toISOString()
         }));
 
     const mentionSourcesData = analysis.mention_sources && analysis.mention_sources.length > 0
@@ -54,7 +52,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
           source_name: news.source || 'Wrestling News',
           title: news.title,
           url: news.link || '#',
-          content_snippet: news.content_snippet || '',
+          content_snippet: '',
           timestamp: new Date(news.pubDate || Date.now()),
           sentiment_score: 0.7
         }));
