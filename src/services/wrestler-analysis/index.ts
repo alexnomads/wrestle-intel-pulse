@@ -3,7 +3,7 @@ import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 import { analyzeWrestlerMentionsInNews } from './mentionAnalyzer';
 import { calculatePushBurialScores } from './scoringUtils';
-import { storeWrestlerMetrics as saveWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
+import { saveWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
 
 export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsItem[]): Promise<WrestlerAnalysis[]> => {
   console.log('🔍 Starting wrestler mention analysis', {
@@ -17,7 +17,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
     const wrestlerName = wrestler.name || wrestler.wrestler_name;
     
     // Get the promotion from the wrestler data (from Supabase)
-    const promotion = wrestler.promotions?.name || wrestler.brand || 'Unknown';
+    const promotion = wrestler.promotions?.name || wrestler.promotion || 'Unknown';
     
     console.log(`🔎 Analyzing wrestler: ${wrestlerName} (${promotion})`);
     
@@ -39,7 +39,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
         promotion: promotion, // Use the correct promotion from wrestler data
         pushScore: scores.pushScore,
         burialScore: scores.burialScore,
-        trend: scores.trend as 'push' | 'burial' | 'stable',
+        trend: scores.trend,
         totalMentions: mentionResults.totalMentions,
         sentimentScore: mentionResults.sentimentScore,
         isChampion: wrestler.is_champion || false,
@@ -53,7 +53,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
         mention_sources: mentionResults.mentions,
         source_breakdown: {
           news_count: mentionResults.mentions.filter(m => m.source_type === 'news').length,
-          reddit_count: 0, // No reddit sources in current implementation
+          reddit_count: mentionResults.mentions.filter(m => m.source_type === 'reddit').length,
           total_sources: mentionResults.mentions.length
         }
       };
