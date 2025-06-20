@@ -54,7 +54,7 @@ export const useWrestlerDataProcessing = (wrestlers: any[], newsItems: NewsItem[
           source_name: news.source || 'Wrestling News',
           title: news.title,
           url: news.link || '#',
-          content_snippet: news.content_snippet || news.contentSnippet || '',
+          content_snippet: news.content_snippet || '',
           timestamp: new Date(news.pubDate || Date.now()),
           sentiment_score: 0.7
         }));

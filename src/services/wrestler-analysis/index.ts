@@ -3,7 +3,7 @@ import { NewsItem } from '@/services/data/dataTypes';
 import { WrestlerAnalysis } from '@/types/wrestlerAnalysis';
 import { analyzeWrestlerMentionsInNews } from './mentionAnalyzer';
 import { calculatePushBurialScores } from './scoringUtils';
-import { saveWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
+import { storeWrestlerMetrics as saveWrestlerMetrics, getStoredWrestlerMetrics } from './databaseOperations';
 
 export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsItem[]): Promise<WrestlerAnalysis[]> => {
   console.log('🔍 Starting wrestler mention analysis', {
@@ -17,7 +17,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
     const wrestlerName = wrestler.name || wrestler.wrestler_name;
     
     // Get the promotion from the wrestler data (from Supabase)
-    const promotion = wrestler.promotions?.name || wrestler.promotion || 'Unknown';
+    const promotion = wrestler.promotions?.name || wrestler.brand || 'Unknown';
     
     console.log(`🔎 Analyzing wrestler: ${wrestlerName} (${promotion})`);
     

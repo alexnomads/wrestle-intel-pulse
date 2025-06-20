@@ -23,6 +23,21 @@ export const calculateWrestlerScores = (
   };
 };
 
+export const calculatePushBurialScores = (mentions: any[], avgSentiment: number) => {
+  const mentionsCount = mentions.length;
+  const baseScore = Math.round(avgSentiment);
+  const mentionBonus = Math.min(mentionsCount * 5, 30);
+  
+  const pushScore = Math.min(100, Math.max(0, baseScore + mentionBonus));
+  const burialScore = Math.min(100, Math.max(0, (100 - baseScore) * 0.7));
+  
+  return {
+    pushScore,
+    burialScore,
+    trend: pushScore > 70 ? 'push' : burialScore > 60 ? 'burial' : 'stable'
+  };
+};
+
 export const generateMentionData = (wrestler: any, item: any, sentimentScore: number) => {
   return {
     wrestler_id: wrestler.id,
