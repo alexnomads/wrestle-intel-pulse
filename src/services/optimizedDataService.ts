@@ -174,13 +174,13 @@ export async function fetchAllDataParallel() {
   const results = await Promise.allSettled(dataPromises);
   
   // Process results and combine successful data with proper type checking
-  const newsItems = results[0].status === 'fulfilled' && results[0].value.success && Array.isArray(results[0].value.data)
+  const newsItems: any[] = results[0].status === 'fulfilled' && results[0].value.success && Array.isArray(results[0].value.data)
     ? results[0].value.data : [];
-  const redditPosts = results[1].status === 'fulfilled' && results[1].value.success && Array.isArray(results[1].value.data)
+  const redditPosts: any[] = results[1].status === 'fulfilled' && results[1].value.success && Array.isArray(results[1].value.data)
     ? results[1].value.data : [];
-  const tweets = results[2].status === 'fulfilled' && results[2].value.success && Array.isArray(results[2].value.data)
+  const tweets: any[] = results[2].status === 'fulfilled' && results[2].value.success && Array.isArray(results[2].value.data)
     ? results[2].value.data : [];
-  const videos = results[3].status === 'fulfilled' && results[3].value.success && Array.isArray(results[3].value.data)
+  const videos: any[] = results[3].status === 'fulfilled' && results[3].value.success && Array.isArray(results[3].value.data)
     ? results[3].value.data : [];
   
   const combinedData = {
