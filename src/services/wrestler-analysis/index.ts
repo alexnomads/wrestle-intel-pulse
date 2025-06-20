@@ -39,7 +39,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
         promotion: promotion, // Use the correct promotion from wrestler data
         pushScore: scores.pushScore,
         burialScore: scores.burialScore,
-        trend: scores.trend,
+        trend: scores.trend as 'push' | 'burial' | 'stable',
         totalMentions: mentionResults.totalMentions,
         sentimentScore: mentionResults.sentimentScore,
         isChampion: wrestler.is_champion || false,
@@ -53,7 +53,7 @@ export const analyzeWrestlerMentions = async (wrestlers: any[], newsItems: NewsI
         mention_sources: mentionResults.mentions,
         source_breakdown: {
           news_count: mentionResults.mentions.filter(m => m.source_type === 'news').length,
-          reddit_count: mentionResults.mentions.filter(m => m.source_type === 'reddit').length,
+          reddit_count: 0, // No reddit sources in current implementation
           total_sources: mentionResults.mentions.length
         }
       };
