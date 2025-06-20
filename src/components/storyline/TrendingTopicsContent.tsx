@@ -67,8 +67,72 @@ export const TrendingTopicsContent = ({
 
   const fanEngagement = calculateFanEngagement();
 
+  // Get top Reddit posts by engagement score
+  const topEngagementPosts = redditPosts
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  const openRedditLink = (post: RedditPost) => {
+    let url = post.url;
+    
+    // If it's a Reddit permalink, construct the full URL
+    if (post.permalink && !post.permalink.startsWith('http')) {
+      url = `https://reddit.com${post.permalink}`;
+    }
+    
+    // Fallback to Reddit search if no valid URL
+    if (!url || url === '#' || !url.startsWith('http')) {
+      const searchQuery = encodeURIComponent(post.title);
+      url = `https://reddit.com/r/${post.subreddit}/search?q=${searchQuery}`;
+    }
+    
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Top Engagement Section */}
+      <Card className="glass-card">
+        <CardContent className="p-6">
+          <h3 className="text-xl font-bold text-foreground mb-4">Top Engagement</h3>
+          <div className="space-y-3">
+            {topEngagementPosts.map((post, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-secondary/20 rounded-lg hover:bg-secondary/30 transition-colors">
+                <div className="flex-1">
+                  <button
+                    onClick={() => openRedditLink(post)}
+                    className="text-left w-full hover:text-primary transition-colors"
+                  >
+                    <p className="font-medium text-foreground line-clamp-2 mb-1">
+                      {post.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      r/{post.subreddit}
+                    </p>
+                  </button>
+                </div>
+                <div className="flex items-center space-x-4 ml-4">
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-wrestling-electric">
+                      {post.score.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">upvotes</div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openRedditLink(post)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <FanEngagementMetrics 
         redditPosts={redditPosts}
         newsItemsCount={newsItems.length}
